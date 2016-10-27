@@ -70,6 +70,7 @@ subroutine upgradeu(ntau, green_up, green_dn)
      random = spring_sfmt_stream()
      if ( ratio_re_abs .gt. random ) then
         accm  = accm + 1.d0
+        weight_track = weight_track + dlog( ratio_re_abs )
         ! update greep_up
         do nl = 1, ndim
             u1(nl) = green_up(nl,i4)/ratioup
