@@ -61,6 +61,7 @@ module blockc
   real(dp), save :: dtau
   integer, save :: ltrot
   complex(dp), save :: phase
+  real(dp), save :: weight_track
   complex(dp), allocatable, dimension(:,:), save :: Imat
   complex(dp), allocatable, dimension(:,:), save :: grup, grdn, grupc, grdnc
   real(dp), allocatable, dimension(:), save :: Ivec
@@ -289,6 +290,7 @@ module blockc
     end if
 
     nmeas_bin = 2*(2*obs_segment_len+1)*nsweep*isize
+    weight_track = 0.d0
 
    	a1_p(1) = 1 ; a1_p(2) =  0
     a2_p(1) = 0 ; a2_p(2) =  1

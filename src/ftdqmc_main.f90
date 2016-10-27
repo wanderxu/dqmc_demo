@@ -59,7 +59,7 @@ program ftdqmc_main
   max_wrap_error = 0.d0
   if(ltau) xmax_dyn = 0.d0
 
-  call ftdqmc_sweep_start
+  call ftdqmc_sweep_start_0b
 
   if( irank .eq. 0 ) then
       write(fout,'(a)') ' ftdqmc_sweep_start done '
@@ -75,7 +75,8 @@ program ftdqmc_main
           write(fout,'(a,i8)') ' nwarnup = ', nwarnup
       end if
       do nsw = 1, nwarnup
-          call ftdqmc_sweep(.false.)
+          call ftdqmc_sweep_b0(lupdate=.true., lmeasure=.false.)
+          call ftdqmc_sweep_0b(lupdate=.true., lmeasure=.false.)
       end do
       if(irank.eq.0) write(fout, '(a,e16.8)') 'after wanrup, max_wrap_error = ', max_wrap_error
       if(irank.eq.0 .and. ltau) write(fout,'(a,e16.8)')'after wanrup  xmax_dyn = ', xmax_dyn
@@ -93,7 +94,20 @@ program ftdqmc_main
 
       do nsw = 1, nsweep
 
-          call ftdqmc_sweep(.true.)
+          call ftdqmc_sweep_b0(lupdate=.true., lmeasure=.true.)
+#IFDEF GEN_CONFC_LEARNING
+      ! output configuration for learning
+      call outconfc_bin(weight_track)
+      call preq
+      call obser_init
+#ENDIF
+          call ftdqmc_sweep_0b(lupdate=.true., lmeasure=.true.)
+#IFDEF GEN_CONFC_LEARNING
+       ! output configuration for learning
+       call outconfc_bin(weight_track)
+       call preq
+       call obser_init
+#ENDIF
 #IFDEF TEST
           if( irank .eq. 0 ) then
               write(fout,'(a,i4,i4,a)') ' ftdqmc_sweep ', nbc, nsw,  '  done'
@@ -102,7 +116,9 @@ program ftdqmc_main
 
       end do
 
+#IFNDEF GEN_CONFC_LEARNING
       call preq  ! reduce
+#ENDIF
       if(ltau) call prtau
 
       if( nbc .eq. 1 )  then

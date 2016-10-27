@@ -43,6 +43,7 @@ module ftdqmc_core
       allocate( Vst_up_tmp(ndim,ndim,0:nst) ) ! 19
       allocate( grup_tmp(ndim,ndim) )         ! 20
 
+      allocate( Bdtau1_dn(ndim,ndim) )       ! 16
 #IFDEF SPINDOWN
       allocate( Ust_dn(ndim,ndim,0:nst) )     ! 1
       allocate( Dst_dn(ndim,0:nst) )          ! 2
@@ -53,7 +54,6 @@ module ftdqmc_core
       allocate( VL_dn(ndim,ndim) )             ! 7
       allocate( DLvec_dn(ndim) )               ! 8
       allocate( UL_dn(ndim,ndim) )             ! 9
-      allocate( Bdtau1_dn(ndim,ndim) )       ! 16
       if(ltau) then
           allocate( Bt2t1_dn(ndim,ndim) )       ! 16
           allocate( gt0dn(ndim,ndim) )
@@ -71,6 +71,7 @@ module ftdqmc_core
 
     subroutine deallocate_core
       implicit none
+      deallocate( Bdtau1_dn )      ! 16
 #IFDEF SPINDOWN
       deallocate( grdn_tmp )         ! 20
       deallocate( Vst_dn_tmp )       ! 19
@@ -82,7 +83,6 @@ module ftdqmc_core
           deallocate( gt0dn )
           deallocate( Bt2t1_dn )      ! 16
       end if
-      deallocate( Bdtau1_dn )      ! 16
       deallocate( UL_dn )             ! 9
       deallocate( DLvec_dn )          ! 8
       deallocate( VL_dn )             ! 7
@@ -238,7 +238,7 @@ module ftdqmc_core
 
     end subroutine ftdqmc_stablize_b0_svd
   
-    subroutine ftdqmc_sweep_start
+    subroutine ftdqmc_sweep_start_0b
       implicit none
       integer :: n, i, info
       real(dp) :: tmp
@@ -310,27 +310,90 @@ module ftdqmc_core
 #ENDIF
 
 #ENDIF
+  
+    end subroutine ftdqmc_sweep_start_0b
 
-  
-    end subroutine ftdqmc_sweep_start
-  
-    subroutine ftdqmc_sweep(lmeasure)
-    
+    subroutine ftdqmc_sweep_start_b0
       implicit none
+      integer :: n, i, info
+      real(dp) :: tmp
 
-      logical, intent(in) :: lmeasure
+      ! at tau = beta
+      Vst_up(:,:,nst) = Imat(:,:)
+      Dst_up(:,nst)   = Ivec(:)
+      Ust_up(:,:,nst) = Imat(:,:)
+#IFDEF SPINDOWN
+      Vst_dn(:,:,nst) = Imat(:,:)
+      Dst_dn(:,nst)   = Ivec(:)
+      Ust_dn(:,:,nst) = Imat(:,:)
+#ENDIF
 
+      do n = nst, 1, -1
+          ! at tau = (n-1) * tau1
+          ! calculate B(n*tau1,(n-1)*tau1), and set Vst(:,:,n-1), Dst(:,:,n-1), Ust(:,:,n-1)
+          call ftdqmc_stablize_b0_svd(n)
+#IFDEF TEST
+          write(fout, '(a,i4,a)') ' Dst_up(:,', n, ' ) = '
+          write(fout,'(4(e16.8))') Dst_up(:,n)
+#ENDIF
+      end do
+
+      ! at tau = 0
+      UL_up(:,:) = Ust_up(:,:,0)
+      DLvec_up(:)= Dst_up(:,0)
+      VL_up(:,:) = Vst_up(:,:,0)
+      call green_equaltime( nst, ndim, Imat, Ivec, Imat, VL_up, DLvec_up, UL_up, grup, info )
+
+#IFDEF SPINDOWN
+      UL_dn(:,:) = Ust_dn(:,:,0)
+      DLvec_dn(:)= Dst_dn(:,0)
+      VL_dn(:,:) = Vst_dn(:,:,0)
+      call green_equaltime( nst, ndim, Imat, Ivec, Imat, VL_dn, DLvec_dn, UL_dn, grdn, info )
+#ENDIF
+
+      if( info .eq. -1 ) then
+          write(fout,'(a)') ' WRONG in sweep_start, exit '
+          stop
+      end if
+
+#IFDEF TEST_LEVEL3
+      write(fout, '(a)') ' After sweep_start, grup(:,:) = '
+      do i = 1, ndim
+          write(fout,'(4(2e12.4))') grup(i,:)
+      end do
+#ENDIF
+
+
+#IFDEF TEST
+
+      tmp = 0.d0
+      do i = 1, ndim
+          tmp = tmp + real( cone - grup(i,i) )
+      end do
+      write(fout,'(a,2e12.4)') ' grup(1,1) = ', grup(1,1)
+      write(fout,'(a,e12.4)') ' ne_up = ', tmp
+
+#IFDEF SPINDOWN
+      tmp = 0.d0
+      do i = 1, ndim
+          tmp = tmp + real( cone - grdn(i,i) )
+      end do
+      write(fout,'(a,2e12.4)') ' grdn(1,1) = ', grdn(1,1)
+      write(fout,'(a,e12.4)') ' ne_dn = ', tmp
+#ENDIF
+
+#ENDIF
+
+    end subroutine ftdqmc_sweep_start_b0
+  
+    subroutine ftdqmc_sweep_b0(lupdate, lmeasure)
+      implicit none
+      logical, intent(in) :: lupdate, lmeasure
       ! local variables
       integer :: nt, n, nf, nflag, i, j, nt_ob, ilq, it, nn_ilq, nn_it, inn_st, info, nt1, nt2
       logical :: lterminate 
       real(dp) :: tmp, ratiof, ratiofi
 
-      complex(dp), allocatable, dimension(:,:) :: Umat1, Vmat1
-      real(dp), allocatable, dimension(:) :: Dvec1
-
-      allocate( Umat1(ndim,ndim), Vmat1(ndim,ndim) )
-      allocate( Dvec1(ndim) )
-  
       ! at tau = beta
       Vst_up(:,:,nst) = Imat(:,:)
       Dst_up(:,nst)   = Ivec(:)
@@ -454,7 +517,7 @@ module ftdqmc_core
           ! updateu
           if( lupdateu ) then
               nflag = 3 ! onsite
-              call upgradeu( nt, grup, grdn )
+              if(lupdate) call upgradeu( nt, grup, grdn )
               call mmuul  ( grup, grdn, nf, nt, nflag )
               call mmuurm1( grup, grdn, nf, nt, nflag )
           end if
@@ -465,7 +528,7 @@ module ftdqmc_core
                   nflag = 2
                   call mmuul  ( grup, grdn, nf, nt, nflag )
                   call mmuurm1( grup, grdn, nf, nt, nflag )
-                  call upgradej(nt,nf,grup,grdn)
+                  if(lupdate) call upgradej(nt,nf,grup,grdn)
                   nflag = 1
                   call mmuul  ( grup, grdn, nf, nt, nflag )
                   call mmuurm1( grup, grdn, nf, nt, nflag )
@@ -491,7 +554,15 @@ module ftdqmc_core
 #ENDIF
   
       end do
+    end subroutine ftdqmc_sweep_b0
   
+    subroutine ftdqmc_sweep_0b(lupdate, lmeasure)
+      implicit none
+      logical, intent(in) :: lupdate, lmeasure
+      ! local variables
+      integer :: nt, n, nf, nflag, i, j, nt_ob, ilq, it, nn_ilq, nn_it, inn_st, info, nt1, nt2
+      logical :: lterminate 
+      real(dp) :: tmp, ratiof, ratiofi
       ! at tau = 0
       n = 0
 !!!      UR(:,:) = Ust_up(:,:,n)
@@ -537,7 +608,7 @@ module ftdqmc_core
 #ENDIF
 
 
-#include "stglobal.f90"
+!!!!#include "stglobal.f90"
 
       if( ltau ) then
           g00up = grup
@@ -587,7 +658,7 @@ module ftdqmc_core
                   nflag = 2
                   call mmuur   (grup, grdn, nf, nt, nflag)
                   call mmuulm1 (grup, grdn, nf, nt, nflag)
-                  if(.not.ltau .or. .not.lmeasure) then
+                  if( lupdate .and. (.not.ltau .or. .not.lmeasure)) then
                       call upgradej(nt,nf,grup,grdn)
                   end if
                   nflag = 1
@@ -600,7 +671,7 @@ module ftdqmc_core
               nflag = 3 ! onsite
               call mmuur  ( grup, grdn, nf, nt, nflag )
               call mmuulm1( grup, grdn, nf, nt, nflag )
-              if(.not.ltau .or. .not.lmeasure) then
+              if( lupdate .and. (.not.ltau .or. .not.lmeasure)) then
                   call upgradeu( nt, grup, grdn )
               end if
           end if
@@ -828,11 +899,7 @@ module ftdqmc_core
 #include "dyn.f90"
   
       end do
-
-      deallocate( Dvec1 )
-      deallocate( Vmat1, Umat1 )
-
-    end subroutine ftdqmc_sweep
+    end subroutine ftdqmc_sweep_0b
   
     subroutine green_equaltime( nt, ndm, ure, dre, vre, vle, dle, ule, gtt, infoe )
       implicit none
@@ -1238,4 +1305,14 @@ module ftdqmc_core
       !write(fout,'(a,2e16.8)') ' phaseu = ', phaseu
       !bmat(:,:) = bmat(:,:) * phaseu
     end subroutine Bmat_tau
+
+    subroutine ftdqmc_stglobal
+      implicit none
+      ! local variables
+      integer :: nt, n, nf, nflag, i, j, nt_ob, ilq, it, nn_ilq, nn_it, inn_st, info, nt1, nt2
+      logical :: lterminate 
+      real(dp) :: tmp, ratiof, ratiofi
+      call ftdqmc_sweep_start_b0
+!!!#include "stglobal_spinlocal.f90"
+    end subroutine ftdqmc_stglobal
 end module ftdqmc_core
