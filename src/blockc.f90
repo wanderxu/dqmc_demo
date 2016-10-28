@@ -58,7 +58,7 @@ module blockc
 
 
   ! dqmc relative
-  logical, save :: lwrapu, lwrapj, lstglobal
+  logical, save :: lwrapu, lwrapj, llocal, lstglobal
   integer(dp), save :: iseed
   real(dp), save :: dtau
   integer, save :: ltrot
@@ -186,6 +186,7 @@ module blockc
     nsw_stglobal = -1
     icount_nsw_stglobal = 0
     lstglobal = .false.
+    llocal = .true.
 
 #IFNDEF OLDCOMP
     ! read parameters
@@ -211,6 +212,7 @@ module blockc
             call p_get( 'nwrap'    , nwrap   )            ! 8
             call p_get( 'nsweep'   , nsweep  )            ! 9
             call p_get( 'nbin'     , nbin    )            ! 10
+            call p_get( 'llocal'   , llocal  )            ! 11
             call p_get( 'nsw_stglobal', nsw_stglobal )    ! 11
             call p_get( 'lsstau'     , lsstau    )
             call p_get( 'lsstau0r'     , lsstau0r    )
@@ -233,6 +235,7 @@ module blockc
             read(1177,*) mu            
             read(1177,*) muA           
             read(1177,*) muB           
+            read(1177,*) llocal
             read(1177,*) nsw_stglobal  
             read(1177,*) nsweep        
             read(1177,*) nbin          
@@ -264,7 +267,8 @@ module blockc
     call mp_bcast( nwrap, 0 )               ! 8
     call mp_bcast( nsweep, 0 )              ! 9
     call mp_bcast( nbin, 0 )                ! 10
-    call mp_bcast( nsw_stglobal, 0 )    ! 11
+    call mp_bcast( llocal, 0 )           ! 11
+    call mp_bcast( nsw_stglobal, 0 )     ! 11
     call mp_bcast( lsstau, 0 )
     call mp_bcast( lsstau0r, 0 )
     call mp_bcast( ltau, 0 )
@@ -276,6 +280,7 @@ module blockc
     if( rhub .gt. 0.d0 ) lwrapu = .true.
     if( rj .gt. 0.d0 ) lwrapj = .true.
     if( nsw_stglobal .gt. 0 .and. lwrapu ) lstglobal = .true.
+    if( .not. llocal .and. lstglobal ) nsw_stglobal = 1
     lq = l*l
     lfam = max(lq/2,1)
     nfam = 1

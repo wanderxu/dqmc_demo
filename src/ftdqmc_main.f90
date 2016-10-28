@@ -44,7 +44,7 @@ program ftdqmc_main
   call sltpf
 
   call ftdqmc_initial_print
- 
+
   ! prepare for the DQMC
   call salph
   call inconfc
@@ -77,7 +77,7 @@ program ftdqmc_main
       do nsw = 1, nwarnup
           call ftdqmc_sweep_b0(lupdate=.true., lmeasure=.false.)
           call ftdqmc_sweep_0b(lupdate=.true., lmeasure=.false.)
-          call ftdqmc_stglobal
+          call ftdqmc_stglobal(lmeas=.false.)
       end do
       if(irank.eq.0) write(fout, '(a,e16.8)') 'after wanrup, max_wrap_error = ', max_wrap_error
       if(irank.eq.0 .and. ltau) write(fout,'(a,e16.8)')'after wanrup  xmax_dyn = ', xmax_dyn
@@ -95,21 +95,45 @@ program ftdqmc_main
 
       do nsw = 1, nsweep
 
+#IFNDEF ONLYGLOBAL
+          IF(llocal) THEN
           call ftdqmc_sweep_b0(lupdate=.true., lmeasure=.true.)
 #IFDEF GEN_CONFC_LEARNING
+          IF(.not.lstglobal) THEN
           ! output configuration for learning
           call outconfc_bin(weight_track)
           call preq
           call obser_init
+          ENDIF
 #ENDIF
           call ftdqmc_sweep_0b(lupdate=.true., lmeasure=.true.)
 #IFDEF GEN_CONFC_LEARNING
+          IF(.not.lstglobal) THEN
           ! output configuration for learning
           call outconfc_bin(weight_track)
           call preq
           call obser_init
+          ENDIF
 #ENDIF
-          call ftdqmc_stglobal
+#ENDIF
+          ENDIF
+
+          IF(lstglobal) THEN
+#IFDEF GEN_CONFC_LEARNING
+          call ftdqmc_stglobal(lmeas=.true.)
+          ! output configuration for learning
+          call outconfc_bin(weight_track)
+          call preq
+          call obser_init
+#ELSE
+          IF(llocal) THEN
+          call ftdqmc_stglobal(lmeas=.false.)
+          ELSE
+          call ftdqmc_stglobal(lmeas=.true.)
+          ENDIF
+#ENDIF
+          ENDIF
+
 #IFDEF TEST
           if( irank .eq. 0 ) then
               write(fout,'(a,i4,i4,a)') ' ftdqmc_sweep ', nbc, nsw,  '  done'
