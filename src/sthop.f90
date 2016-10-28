@@ -61,6 +61,11 @@ subroutine sthop
         ! add the chemical potential term
         do i = 1, nch
             hlp2(i,i) = hlp2(i,i) - dcmplx(0.5d0*mu,0.d0) ! 0.5 because every site count 2 times
+            if(mod(i,2).eq.1) then
+                hlp2(i,i) = hlp2(i,i) - dcmplx(0.5d0*muA,0.d0)
+            else
+                hlp2(i,i) = hlp2(i,i) - dcmplx(0.5d0*muB,0.d0)
+            end if
         end do
 
         call s_eig_he(nch,nch,hlp2,wc,hlp1)
@@ -128,6 +133,11 @@ subroutine sthop
         ! add the chemical potential term
         do i = 1, nch
             hlp2(i,i) = hlp2(i,i) - dcmplx(0.5d0*mu,0.d0) ! 0.5 because every site count 2 times
+            if(mod(i,2).eq.1) then
+                hlp2(i,i) = hlp2(i,i) - dcmplx(0.5d0*muA,0.d0)
+            else
+                hlp2(i,i) = hlp2(i,i) - dcmplx(0.5d0*muB,0.d0)
+            end if
         end do
 
         call s_eig_he(nch,nch,hlp2,wc,hlp1)
@@ -208,6 +218,11 @@ subroutine sthop
   ! add the chemical potential term
   do i = 1, ndim
       hmat(i,i) = hmat(i,i) - dcmplx(mu,0.d0)
+      if ( mod( list(i,1)+list(i,2), 2 ) .eq. 0 ) then
+          hmat(i,i) = hmat(i,i) - dcmplx(muA,0.d0)
+      else
+          hmat(i,i) = hmat(i,i) - dcmplx(muB,0.d0)
+      end if
   end do
 
   call s_eig_he(ndim,ndim,hmat,heig,hvec)
@@ -300,6 +315,11 @@ subroutine sthop
   ! add the chemical potential term
   do i = 1, ndim
       hmat(i,i) = hmat(i,i) - dcmplx(mu,0.d0)
+      if ( mod( list(i,1)+list(i,2), 2 ) .eq. 0 ) then
+          hmat(i,i) = hmat(i,i) - dcmplx(muA,0.d0)
+      else
+          hmat(i,i) = hmat(i,i) - dcmplx(muB,0.d0)
+      end if
   end do
 
   call s_eig_he(ndim,ndim,hmat,heig,hvec)

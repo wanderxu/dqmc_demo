@@ -39,6 +39,8 @@ module blockc
   real(dp), parameter :: rt = 1.d0
   real(dp), save :: beta
   real(dp), save :: mu
+  real(dp), save :: muA ! chemical potentail for A sublattice
+  real(dp), save :: muB ! chemical potential for B sublattice
   real(dp), save :: rhub
   real(dp), save :: rj
   real(dp), save :: js
@@ -153,6 +155,8 @@ module blockc
     beta = 20
     dtau = 0.05d0
     mu   = 0.d0 ! default is half filling
+    muA   = 0.d0
+    muB   = 0.d0
     rhub = 1.0d0
     rj   = 0.d0
     js   = 1.d0
@@ -182,7 +186,8 @@ module blockc
     nsw_stglobal = -1
     icount_nsw_stglobal = 0
     lstglobal = .false.
-    
+
+#IFNDEF OLDCOMP
     ! read parameters
     if ( irank.eq.0 ) then
         exists = .false.
@@ -194,6 +199,8 @@ module blockc
             call p_get( 'beta'     , beta    )            ! 2
             call p_get( 'dtau'     , dtau    )            ! 3
             call p_get( 'mu'       , mu      )            ! 3.5
+            call p_get( 'muA'      , muA     )            ! 3.5
+            call p_get( 'muB'      , muB     )            ! 3.5
             call p_get( 'rhub'     , rhub    )            ! 4
             call p_get( 'rj'       , rj      )            ! 5
             call p_get( 'js'       , js      )            ! 6
@@ -213,11 +220,40 @@ module blockc
             call p_destroy()
         end if
     end if
+#ELSE
+    if ( irank.eq.0 ) then
+        exists = .false.
+        inquire (file = 'ftdqmc.in', exist = exists)
+        if ( exists .eqv. .true. ) then
+            open(unit=1177, file='ftdqmc.in',status='unknown')
+            read(1177,*) L
+            read(1177,*) rhub
+            read(1177,*) hx
+            read(1177,*) beta          
+            read(1177,*) mu            
+            read(1177,*) muA           
+            read(1177,*) muB           
+            read(1177,*) nsw_stglobal  
+            read(1177,*) nsweep        
+            read(1177,*) nbin          
+            read(1177,*) xmag          
+            read(1177,*) lsstau        
+            read(1177,*) lsstau0r      
+            read(1177,*) ltau          
+            read(1177,*) ltauall       
+            read(1177,*) nwrap         
+            read(1177,*) nuse          
+            close(1177)
+        end if
+    end if
+#ENDIF
 
     call mp_bcast( l,    0 )                ! 1
     call mp_bcast( beta, 0 )                ! 2
     call mp_bcast( dtau, 0 )                ! 3
     call mp_bcast( mu,   0 )                ! 3.5
+    call mp_bcast( muA,  0 )                ! 3.5
+    call mp_bcast( muB,  0 )                ! 3.5
     call mp_bcast( rhub, 0 )                ! 4
     call mp_bcast( rj,   0 )                ! 5
     call mp_bcast( js,   0 )                ! 6
