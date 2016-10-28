@@ -77,6 +77,7 @@ program ftdqmc_main
       do nsw = 1, nwarnup
           call ftdqmc_sweep_b0(lupdate=.true., lmeasure=.false.)
           call ftdqmc_sweep_0b(lupdate=.true., lmeasure=.false.)
+          call ftdqmc_stglobal
       end do
       if(irank.eq.0) write(fout, '(a,e16.8)') 'after wanrup, max_wrap_error = ', max_wrap_error
       if(irank.eq.0 .and. ltau) write(fout,'(a,e16.8)')'after wanrup  xmax_dyn = ', xmax_dyn
@@ -96,18 +97,19 @@ program ftdqmc_main
 
           call ftdqmc_sweep_b0(lupdate=.true., lmeasure=.true.)
 #IFDEF GEN_CONFC_LEARNING
-      ! output configuration for learning
-      call outconfc_bin(weight_track)
-      call preq
-      call obser_init
+          ! output configuration for learning
+          call outconfc_bin(weight_track)
+          call preq
+          call obser_init
 #ENDIF
           call ftdqmc_sweep_0b(lupdate=.true., lmeasure=.true.)
 #IFDEF GEN_CONFC_LEARNING
-       ! output configuration for learning
-       call outconfc_bin(weight_track)
-       call preq
-       call obser_init
+          ! output configuration for learning
+          call outconfc_bin(weight_track)
+          call preq
+          call obser_init
 #ENDIF
+          call ftdqmc_stglobal
 #IFDEF TEST
           if( irank .eq. 0 ) then
               write(fout,'(a,i4,i4,a)') ' ftdqmc_sweep ', nbc, nsw,  '  done'
@@ -157,8 +159,8 @@ program ftdqmc_main
 
   call mpi_reduce(main_obs, mpi_main_obs, size(main_obs), mpi_complex16, mpi_sum, 0, mpi_comm_world, ierr )
   if(irank.eq.0) then
-      if(lupdateu)  write(fout,'(a,e16.8)') ' >>> accep_u  = ', dble(main_obs(1))/aimag(main_obs(1))
-      if(lupdatej)  write(fout,'(a,e16.8)') ' >>> accep_j  = ', dble(main_obs(2))/aimag(main_obs(2))
+      if(lwrapu)  write(fout,'(a,e16.8)') ' >>> accep_u  = ', dble(main_obs(1))/aimag(main_obs(1))
+      if(lwrapj)  write(fout,'(a,e16.8)') ' >>> accep_j  = ', dble(main_obs(2))/aimag(main_obs(2))
       if(lstglobal) write(fout,'(a,e16.8)') ' >>> accep_st = ', dble(main_obs(3))/aimag(main_obs(3))
   end if
 

@@ -515,7 +515,7 @@ module ftdqmc_core
   
           !! update
           ! updateu
-          if( lupdateu ) then
+          if( lwrapu ) then
               nflag = 3 ! onsite
               if(lupdate) call upgradeu( nt, grup, grdn )
               call mmuul  ( grup, grdn, nf, nt, nflag )
@@ -523,7 +523,7 @@ module ftdqmc_core
           end if
   
           ! updatej
-          if( lupdatej ) then
+          if( lwrapj ) then
               do nf = nfam,1,-1
                   nflag = 2
                   call mmuul  ( grup, grdn, nf, nt, nflag )
@@ -653,7 +653,7 @@ module ftdqmc_core
   
           ! update
           ! updatej
-          if( lupdatej ) then
+          if( lwrapj ) then
               do nf = 1, nfam
                   nflag = 2
                   call mmuur   (grup, grdn, nf, nt, nflag)
@@ -667,7 +667,7 @@ module ftdqmc_core
               end do
           end if
           ! updateu
-          if( lupdateu ) then
+          if( lwrapu ) then
               nflag = 3 ! onsite
               call mmuur  ( grup, grdn, nf, nt, nflag )
               call mmuulm1( grup, grdn, nf, nt, nflag )
@@ -1286,7 +1286,7 @@ module ftdqmc_core
       bmat_dn(:,:) = Imat(:,:)
       do nt = nt2, nt1
           call mmthr(bmat_up,bmat_dn)
-          if( lupdatej ) then
+          if( lwrapj ) then
             do nf = 1, nfam
                 nflag = 2
                 call mmuur(bmat_up, bmat_dn, nf, nt, nflag)
@@ -1294,7 +1294,7 @@ module ftdqmc_core
                 call mmuur(bmat_up, bmat_dn, nf, nt, nflag)
             end do
           end if
-          if( lupdateu ) then
+          if( lwrapu ) then
             nflag = 3 ! onsite
             call mmuur(bmat_up, bmat_dn, nf, nt, nflag )
             !call get_phase_u(nt, phaseui)
@@ -1306,13 +1306,7 @@ module ftdqmc_core
       !bmat(:,:) = bmat(:,:) * phaseu
     end subroutine Bmat_tau
 
-    subroutine ftdqmc_stglobal
-      implicit none
-      ! local variables
-      integer :: nt, n, nf, nflag, i, j, nt_ob, ilq, it, nn_ilq, nn_it, inn_st, info, nt1, nt2
-      logical :: lterminate 
-      real(dp) :: tmp, ratiof, ratiofi
-      call ftdqmc_sweep_start_b0
+#include "stglobal_wolff.f90"
 !!!#include "stglobal_spinlocal.f90"
-    end subroutine ftdqmc_stglobal
+
 end module ftdqmc_core

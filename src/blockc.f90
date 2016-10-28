@@ -58,7 +58,7 @@ module blockc
 
 
   ! dqmc relative
-  logical, save :: lupdateu, lupdatej, lstglobal
+  logical, save :: lwrapu, lwrapj, lstglobal
   integer(dp), save :: iseed
   real(dp), save :: dtau
   integer, save :: ltrot
@@ -179,8 +179,8 @@ module blockc
     nbin = 10
     obs_segment_len = 10
 
-    lupdateu = .false.
-    lupdatej = .false.
+    lwrapu = .false.
+    lwrapj = .false.
 
     num_st_nn = 6
     nsw_stglobal = -1
@@ -273,9 +273,9 @@ module blockc
     call MPI_BARRIER(MPI_COMM_WORLD,ierr)
 
     ! tune parameters
-    if( rhub .gt. 0.d0 ) lupdateu = .true.
-    if( rj .gt. 0.d0 ) lupdatej = .true.
-    if( nsw_stglobal .gt. 0 .and. lupdateu ) lstglobal = .true.
+    if( rhub .gt. 0.d0 ) lwrapu = .true.
+    if( rj .gt. 0.d0 ) lwrapj = .true.
+    if( nsw_stglobal .gt. 0 .and. lwrapu ) lstglobal = .true.
     lq = l*l
     lfam = max(lq/2,1)
     nfam = 1

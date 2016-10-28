@@ -839,6 +839,62 @@
      return
   end subroutine s_det_z
 
+!!>>> s_logdet_z: calculate the log of determinant of a complex(dp) matrix
+  subroutine s_logdet_z(ndim, zmat, zlogdet)
+     use constants, only : dp, czero
+
+     implicit none
+
+! external arguments
+! dimension of zmat matrix
+     integer, intent(in)        :: ndim
+
+! determinant of zmat matrix
+     complex(dp), intent(out)   :: zlogdet
+
+! object matrix, on entry, it contains the original matrix, on exit,
+! it is destroyed and replaced with the L and U matrix
+     complex(dp), intent(inout) :: zmat(ndim,ndim)
+
+! local variables
+! loop index
+     integer :: i
+
+! error flag
+     integer :: ierror
+
+! working arrays for lapack subroutines
+     integer, allocatable :: ipiv(:)
+
+! allocate memory
+     allocate(ipiv(ndim), stat=ierror)
+     if ( ierror /= 0 ) then
+         call s_print_error('s_logdet_z','can not allocate enough memory')
+     endif ! back if ( ierror /= 0 ) block
+
+! computes the LU factorization of a general m-by-n matrix, need lapack
+! package, zgetrf subroutine
+     call ZGETRF(ndim, ndim, zmat, ndim, ipiv, ierror)
+     if ( ierror /= 0 ) then
+         call s_print_error('s_logdet_z','error in lapack subroutine zgetrf')
+     endif ! back if ( ierror /= 0 ) block
+
+! calculate determinant
+     zlogdet = czero
+     do i=1,ndim
+         if ( ipiv(i) == i ) then
+             zlogdet = zlogdet + log( +zmat(i,i) )
+         else
+             zlogdet = zlogdet + log( -zmat(i,i) )
+         endif ! back if ( ipiv(i) == i ) block
+     enddo ! over i={1,ndim} loop
+
+! deallocate memory
+     if ( allocated(ipiv) ) deallocate(ipiv)
+
+     return
+  end subroutine s_logdet_z
+
 !!========================================================================
 !!>>> matrix manipulation: calculate matrix's inversion                <<<
 !!========================================================================

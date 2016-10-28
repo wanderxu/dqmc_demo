@@ -83,8 +83,8 @@ subroutine ftdqmc_initial_print
   write(fout,'(a,i6)')      ' ltrot  = ', ltrot
   write(fout,'(a,i6)')      ' nwrap  = ', nwrap
   write(fout,'(a,i6)')      ' nst    = ', nst
-  write(fout,*)  ' lupdateu = ', lupdateu
-  write(fout,*)  ' lupdatej = ', lupdatej
+  write(fout,*)  ' lwrapu = ', lwrapu
+  write(fout,*)  ' lwrapjg = ', lwrapj
   write(fout,*)  ' lstglobal = ', lstglobal
   write(fout,*)  ' lsstau = ', lsstau
   write(fout,*)  ' ltau = ', ltau
