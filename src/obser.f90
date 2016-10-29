@@ -144,9 +144,17 @@ module obser
 
     ! order_branch
     order_branch = 0
-    do i = 1, ndim
-        order_branch = order_branch + nsigl_u(i,nt)
+!$OMP PARALLEL &
+!$OMP PRIVATE ( n, i )
+!$OMP DO REDUCTION ( + : order_branch )
+    do n = 1, ltrot
+        do i = 1, ndim
+            order_branch = order_branch + nsigl_u(i,nt)
+        end do
     end do
+!$OMP END DO
+!$OMP END PARALLEL
+    obs_bin(2) = obs_bin(2) + dcmplx( dble(abs(order_branch))/dble(ndim*ltrot), 0.d0 )
 
     ! measure rne_up, rne_dn
     rne_up = zero
@@ -160,7 +168,7 @@ module obser
             rne_dn = rne_dn + dble(grupc(i,i))
         end if
     end do
-    obs_bin(2) = obs_bin(2) + dcmplx(rne_up, rne_dn)
+    obs_bin(3) = obs_bin(3) + dcmplx(rne_up, rne_dn)
 
     ! measure kinetic energy
     zkint = czero
@@ -215,7 +223,7 @@ module obser
     ELSE
         zkint = zkint + dcmplx(-4.d0*rt,0.d0) * ( grupc(1,1) + grdnc(1,1) )
     ENDIF
-    obs_bin(3) = obs_bin(3) + zkint + dconjg(zkint)  ! layer 1 and layer 2
+    obs_bin(4) = obs_bin(4) + zkint + dconjg(zkint)  ! layer 1 and layer 2
 
     ! zecoup
     zecoup = czero
@@ -223,7 +231,7 @@ module obser
         zecoup = zecoup + ( grupc(i,i) - grdnc(i,i) ) * nsigl_u(i,nt)
     end do
     zecoup = zecoup*dcmplx(-rhub*0.5d0, 0.d0)  ! note 0.5 for fermion spin 1/2
-    obs_bin(4) = obs_bin(4) + zecoup + dconjg(zecoup) ! layer 1 and layer 2
+    obs_bin(5) = obs_bin(5) + zecoup + dconjg(zecoup) ! layer 1 and layer 2
 
     ! zejs
     ijs = 0
@@ -246,7 +254,7 @@ module obser
 !$OMP END PARALLEL
     end do
     zejs = dcmplx( dble(ijs)*(-js), 0.d0 )
-    obs_bin(5) = obs_bin(5) + zejs
+    obs_bin(6) = obs_bin(6) + zejs
 
     ! ehx
     ehx = zero
@@ -257,7 +265,7 @@ module obser
             ehx = ehx + cothdth
         end if
     end do
-    obs_bin(6) = obs_bin(6) + dcmplx( -hx*ehx, 0.d0 )
+    obs_bin(7) = obs_bin(7) + dcmplx( -hx*ehx, 0.d0 )
 
     ! uncomment if needed
     !!!!! measure S(pi,pi)
