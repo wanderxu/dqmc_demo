@@ -53,7 +53,7 @@ module blockc
   complex(dp), save :: alpha_u
 
   ! tmp 
-  real(dp), save :: tanhdth, cothdth
+  real(dp), save :: tanhdth, cothdth, gamma_s
 
 
 

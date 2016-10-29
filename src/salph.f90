@@ -91,6 +91,13 @@ subroutine salph
   dth = dtau * hx
   tanhdth = dtanh(dth) ! set tanhdth, maybe useful in obser
   cothdth = 1.d0/dtanh(dth) ! set cothdth, maybe useful in obser
+  gamma_s = -0.5d0*log(tanhdth)
+  if ( irank .eq. 0 ) then
+      write(50,*)
+      write(50,'(a,e16.8)') ' tanhdth = ', tanhdth
+      write(50,'(a,e16.8)') ' cothdth = ', cothdth
+      write(50,'(a,e16.8)') ' gamma_s = ', gamma_s
+  end if
 
   if( irank .eq. 0 ) then
       write(50,*)

@@ -4,8 +4,8 @@
       ! local variables
       integer :: nt, n, nf, nflag, i, j, nt_ob, ilq, it, nn_ilq, nn_it, inn_st, info, nt1, nt2
       logical :: lterminate 
-      real(dp) :: logweight_old, logweight_new, ratiof, logratiof
-      complex(dp) :: logweight_up, logweight_dn
+      real(dp) :: logweightf_old, logweightf_new, ratiof, logratiof
+      complex(dp) :: logweightf_up, logweightf_dn
 
       ! perform global update
       if( lstglobal ) then
@@ -33,7 +33,7 @@
              do  i = 1, ndim
                  Btmp(i,i) = Btmp(i,i) + cone
              end do
-             call s_logdet_z(ndim, Btmp, logweight_up)
+             call s_logdet_z(ndim, Btmp, logweightf_up)
 #IFDEF SPINDOWN
              ! at tau = beta
              UR_dn(:,:) = Ust_dn(:,:,nst)
@@ -44,11 +44,48 @@
              do  i = 1, ndim
                  Btmp(i,i) = Btmp(i,i) + cone
              end do
-             call s_logdet_z(ndim, Btmp, logweight_dn)
+             call s_logdet_z(ndim, Btmp, logweightf_dn)
 #ENDIF
-             logweight_old = dble( logweight_up + logweight_dn )*2.d0
+             logweightf_old = dble( logweightf_up + logweightf_dn )*2.d0
 
+#IFNDEF GEN_CONFC_LEARNING
+             ! calculate boson part ratio
+             ijs = 0
+!$OMP PARALLEL &
+!$OMP PRIVATE ( n, nf, i_1, i0, i1, i2, i3, i4 )
+!$OMP DO REDUCTION ( + : ijs )
+             do n = 1, ltrot
+                 do nf = 1,2
+                     do i_1 = 1,lq/4
+                         i0 = lthf(i_1,nf)
+                         i1 = nnlist(i0,1)
+                         i2 = nnlist(i0,2)
+                         i3 = nnlist(i0,3)
+                         i4 = nnlist(i0,4)
+                         ijs = ijs + nsigl_u(i0,nt)*nsigl_u(i1,nt) + &
+                                     nsigl_u(i0,nt)*nsigl_u(i2,nt) + &
+                                     nsigl_u(i0,nt)*nsigl_u(i3,nt) + &
+                                     nsigl_u(i0,nt)*nsigl_u(i4,nt)
+                     end do
+                 end do
+             end do
+!$OMP END DO
+!$OMP END PARALLEL
+             logweights_old = dtau*js*dble(ijs)
 
+             ijs = 0
+!$OMP PARALLEL &
+!$OMP PRIVATE ( n, i )
+!$OMP DO REDUCTION ( + : ijs )
+             do n = 1, ltrot
+                 do i = 1, lq
+                     ijs = ijs + nsigl_u(i,nt)*nsigl_u(i,mod(nt,ltrot)+1)
+                 end do
+             end do
+!$OMP END DO
+!$OMP END PARALLEL
+             logweights_old = logweights_old + gamma_s*dble(ijs)
+#ENDIF
 
              !! build the space-time cluster to be performed global update on
              !! use the Wolff algorithm
@@ -116,6 +153,45 @@
              end do
              end do
 
+#IFNDEF GEN_CONFC_LEARNING
+             ! calculate boson part ratio
+             ijs = 0
+!$OMP PARALLEL &
+!$OMP PRIVATE ( n, nf, i_1, i0, i1, i2, i3, i4 )
+!$OMP DO REDUCTION ( + : ijs )
+             do n = 1, ltrot
+                 do nf = 1,2
+                     do i_1 = 1,lq/4
+                         i0 = lthf(i_1,nf)
+                         i1 = nnlist(i0,1)
+                         i2 = nnlist(i0,2)
+                         i3 = nnlist(i0,3)
+                         i4 = nnlist(i0,4)
+                         ijs = ijs + nsigl_u(i0,nt)*nsigl_u(i1,nt) + &
+                                     nsigl_u(i0,nt)*nsigl_u(i2,nt) + &
+                                     nsigl_u(i0,nt)*nsigl_u(i3,nt) + &
+                                     nsigl_u(i0,nt)*nsigl_u(i4,nt)
+                     end do
+                 end do
+             end do
+!$OMP END DO
+!$OMP END PARALLEL
+             logweights_new = dtau*js*dble(ijs)
+
+             ijs = 0
+!$OMP PARALLEL &
+!$OMP PRIVATE ( n, i )
+!$OMP DO REDUCTION ( + : ijs )
+             do n = 1, ltrot
+                 do i = 1, lq
+                     ijs = ijs + nsigl_u(i,nt)*nsigl_u(i,mod(nt,ltrot)+1)
+                 end do
+             end do
+!$OMP END DO
+!$OMP END PARALLEL
+             logweights_new = logweights_new + gamma_s*dble(ijs)
+#ENDIF
+
              ! calculate the fermion part ratio
              ! ratio = weight_new / weight_old
 
@@ -130,7 +206,7 @@
              do  i = 1, ndim
                  Btmp(i,i) = Btmp(i,i) + cone
              end do
-             call s_logdet_z(ndim, Btmp, logweight_up)
+             call s_logdet_z(ndim, Btmp, logweightf_up)
 #IFDEF SPINDOWN
              ! at tau = 0
              UR_dn(:,:) = Ust_dn(:,:,0)
@@ -141,11 +217,11 @@
              do  i = 1, ndim
                  Btmp(i,i) = Btmp(i,i) + cone
              end do
-             call s_logdet_z(ndim, Btmp, logweight_dn)
+             call s_logdet_z(ndim, Btmp, logweightf_dn)
 #ENDIF
-             logweight_new = dble( logweight_up + logweight_dn )*2.d0
+             logweightf_new = dble( logweightf_up + logweightf_dn )*2.d0
 
-             logratiof = logweight_new - logweight_old
+             logratiof = logweightf_new - logweightf_old
              if( logratiof .gt. 0 ) then
                  ratiof = 1.001d0
              else
