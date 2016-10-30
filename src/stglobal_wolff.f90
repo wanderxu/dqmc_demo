@@ -177,6 +177,9 @@
              end do
 !$OMP END DO
 !$OMP END PARALLEL
+#IFDEF TEST
+             write(fout,'(a,i20)') 'new ijs for spatial = ', ijs
+#ENDIF 
              logweights_new = dtau*js*dble(ijs)
 
              ijs = 0
@@ -190,6 +193,9 @@
              end do
 !$OMP END DO
 !$OMP END PARALLEL
+#IFDEF TEST
+             write(fout,'(a,i20)') 'new ijs for temporal = ', ijs
+#ENDIF 
              logweights_new = logweights_new + gamma_s*dble(ijs)
 #ENDIF
 
