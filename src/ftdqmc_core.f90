@@ -414,8 +414,39 @@ module ftdqmc_core
           write(fout,'(a)') " ----------------"
           write(fout,*)
 #ENDIF
-          if ( iwrap_nt(nt) .gt. 0 .and. nt.ne.ltrot ) then
-              n = iwrap_nt(nt)
+          ! obser
+          if( lmeasure .and. ( abs(nt-nt_ob) .le. obs_segment_len .or. abs(nt-nt_ob) .ge. (ltrot-obs_segment_len) ) ) then
+             call obser_equaltime(nt)
+          end if
+  
+          !! update
+          ! updateu
+          if( lwrapu ) then
+              nflag = 3 ! onsite
+              if(lupdate) call upgradeu( nt, grup, grdn )
+              call mmuul  ( grup, grdn, nf, nt, nflag )
+              call mmuurm1( grup, grdn, nf, nt, nflag )
+          end if
+  
+          ! updatej
+          if( lwrapj ) then
+              do nf = nfam,1,-1
+                  nflag = 2
+                  call mmuul  ( grup, grdn, nf, nt, nflag )
+                  call mmuurm1( grup, grdn, nf, nt, nflag )
+                  if(lupdate) call upgradej(nt,nf,grup,grdn)
+                  nflag = 1
+                  call mmuul  ( grup, grdn, nf, nt, nflag )
+                  call mmuurm1( grup, grdn, nf, nt, nflag )
+              enddo
+          end if
+  
+          ! wrap H0
+          call mmthl  (grup, grdn)
+          call mmthrm1(grup, grdn)
+
+          if ( (iwrap_nt(nt-1) .gt. 0 .and. nt.ne.ltrot) .or. nt.eq.1 ) then
+              n = iwrap_nt(nt-1)
               ! at tau = n * tau1
               UR_up(:,:) = Ust_up(:,:,n)
               DRvec_up(:)= Dst_up(:,n)
@@ -508,50 +539,6 @@ module ftdqmc_core
 #ENDIF
           end if
   
-          ! obser
-          if( lmeasure .and. ( abs(nt-nt_ob) .le. obs_segment_len .or. abs(nt-nt_ob) .ge. (ltrot-obs_segment_len) ) ) then
-             call obser_equaltime(nt)
-          end if
-  
-          !! update
-          ! updateu
-          if( lwrapu ) then
-              nflag = 3 ! onsite
-              if(lupdate) call upgradeu( nt, grup, grdn )
-              call mmuul  ( grup, grdn, nf, nt, nflag )
-              call mmuurm1( grup, grdn, nf, nt, nflag )
-          end if
-  
-          ! updatej
-          if( lwrapj ) then
-              do nf = nfam,1,-1
-                  nflag = 2
-                  call mmuul  ( grup, grdn, nf, nt, nflag )
-                  call mmuurm1( grup, grdn, nf, nt, nflag )
-                  if(lupdate) call upgradej(nt,nf,grup,grdn)
-                  nflag = 1
-                  call mmuul  ( grup, grdn, nf, nt, nflag )
-                  call mmuurm1( grup, grdn, nf, nt, nflag )
-              enddo
-          end if
-  
-          ! wrap H0
-          call mmthl  (grup, grdn)
-          call mmthrm1(grup, grdn)
-#IFDEF TEST
-          tmp = 0.d0
-          do i = 1, ndim
-              tmp = tmp + real( cone - grup(i,i) )
-          end do
-          write(fout,'(a, i4, a,e12.4)') 'nt = ', nt, ' ne_up = ', tmp
-#IFDEF SPINDOWN
-          tmp = 0.d0
-          do i = 1, ndim
-              tmp = tmp + real( cone - grdn(i,i) )
-          end do
-          write(fout,'(a, i4, a,e12.4)') 'nt = ', nt, ' ne_dn = ', tmp
-#ENDIF
-#ENDIF
   
       end do
     end subroutine ftdqmc_sweep_b0
@@ -564,47 +551,13 @@ module ftdqmc_core
       logical :: lterminate 
       real(dp) :: tmp, ratiof, ratiofi
       ! at tau = 0
-      n = 0
-!!!      UR(:,:) = Ust_up(:,:,n)
-!!!      DRvec(:)= Dst_up(:,n)
-!!!      VR(:,:) = Vst_up(:,:,n)
-!!!      call ftdqmc_stablize_b0_svd(n+1)
-!!!      call green_equaltime( n, ndim, UR, DRvec, VR, Vmat2, Dvec2, Umat2, grtmp, info )
-!!!      call s_compare_max_z( ndim, grtmp, grup, max_wrap_error_tmp )
-!!!      if( max_wrap_error_tmp .gt. max_wrap_error ) max_wrap_error = max_wrap_error_tmp
-!!!#IFDEF TEST
-!!!              write(fout,*)
-!!!              write(fout, '(a,i5,a)') 'nt = ', nt, ' progating grup(:,:) = '
-!!!              do i = 1, ndim
-!!!                  write(fout,'(4(2e12.4))') grup(i,:)
-!!!              end do
-!!!
-!!!              write(fout,*)
-!!!              write(fout, '(a,i5,a)') 'nt = ', nt, ' scratch grup(:,:) = '
-!!!              do i = 1, ndim
-!!!                  write(fout,'(4(2e12.4))') grtmp(i,:)
-!!!              end do
-!!!
-!!!              write(fout,*)
-!!!              write(fout, '(a,i4,a)') ' Dst_up(:,', n, ' ) before wrap = '
-!!!              write(fout,'(4(e16.8))') DRvec(:)
-!!!
-!!!              write(fout,*)
-!!!              write(fout, '(a,i4,a)') ' Dst_up(:,', n, ' ) after wrap = '
-!!!              write(fout,'(4(e16.8))') Dst_up(:,n)
-!!!
-!!!              write(fout,*)
-!!!
-!!!              write(fout, '(a,e16.8)') ' max_wrap_error_tmp = ',  max_wrap_error_tmp
-!!!#ENDIF
-!!!      if( info .eq. 0 ) grup(:,:) = grtmp(:,:)
-      Ust_up(:,:,n) = Imat(:,:)
-      Dst_up(:,n)   = Ivec(:)
-      Vst_up(:,:,n) = Imat(:,:)
+      Ust_up(:,:,0) = Imat(:,:)
+      Dst_up(:,0)   = Ivec(:)
+      Vst_up(:,:,0) = Imat(:,:)
 #IFDEF SPINDOWN
-      Ust_dn(:,:,n) = Imat(:,:)
-      Dst_dn(:,n)   = Ivec(:)
-      Vst_dn(:,:,n) = Imat(:,:)
+      Ust_dn(:,:,0) = Imat(:,:)
+      Dst_dn(:,0)   = Ivec(:)
+      Vst_dn(:,:,0) = Imat(:,:)
 #ENDIF
 
 
@@ -636,21 +589,6 @@ module ftdqmc_core
           call mmthr  (grup, grdn)
           call mmthlm1(grup, grdn)
 
-#IFDEF TEST
-          tmp = 0.d0
-          do i = 1, ndim
-              tmp = tmp + real( cone - grup(i,i) )
-          end do
-          write(fout,'(a, i4, a,e12.4)') 'nt = ', nt, ' ne_up = ', tmp
-#IFDEF SPINDOWN
-          tmp = 0.d0
-          do i = 1, ndim
-              tmp = tmp + real( cone - grdn(i,i) )
-          end do
-          write(fout,'(a, i4, a,e12.4)') 'nt = ', nt, ' ne_dn = ', tmp
-#ENDIF
-#ENDIF
-  
           ! update
           ! updatej
           if( lwrapj ) then

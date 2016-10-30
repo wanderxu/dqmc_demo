@@ -92,61 +92,9 @@ program ftdqmc_main
   do nbc =  1, nbin
 
       call obser_init
+#include 'sweep.f90'
 
-      do nsw = 1, nsweep
-
-#IFNDEF ONLYGLOBAL
-          IF(llocal) THEN
-          call ftdqmc_sweep_b0(lupdate=.true., lmeasure=.true.)
-#IFDEF GEN_CONFC_LEARNING
-          IF(.not.lstglobal) THEN
-          ! output configuration for learning
-          call outconfc_bin(weight_track)
-          call preq
-          call obser_init
-          ENDIF
-#ENDIF
-          call ftdqmc_sweep_0b(lupdate=.true., lmeasure=.true.)
-#IFDEF GEN_CONFC_LEARNING
-          IF(.not.lstglobal) THEN
-          ! output configuration for learning
-          call outconfc_bin(weight_track)
-          call preq
-          call obser_init
-          ENDIF
-#ENDIF
-#ENDIF
-          ENDIF
-
-          IF(lstglobal) THEN
-#IFDEF GEN_CONFC_LEARNING
-          call ftdqmc_stglobal(lmeas=.true.)
-          ! output configuration for learning
-          call outconfc_bin(weight_track)
-          call preq
-          call obser_init
-#ELSE
-          IF(llocal) THEN
-          call ftdqmc_stglobal(lmeas=.false.)
-          ELSE
-          call ftdqmc_stglobal(lmeas=.true.)
-          ENDIF
-#ENDIF
-          ENDIF
-
-#IFDEF TEST
-          if( irank .eq. 0 ) then
-              write(fout,'(a,i4,i4,a)') ' ftdqmc_sweep ', nbc, nsw,  '  done'
-          end if
-#ENDIF
-
-      end do
-
-#IFNDEF GEN_CONFC_LEARNING
-      call preq  ! reduce
-#ENDIF
-      if(ltau) call prtau
-
+      !!! --- Timming and outconfc
       if( nbc .eq. 1 )  then
 #IFDEF _OPENMP
           time2 = omp_get_wtime()
@@ -173,7 +121,7 @@ program ftdqmc_main
       if( irank.eq.0 .and. mod(nbc,max(nbin/10,1) ).eq.0 ) then
           write( fout, '(i5,a,i5,a)' ) nbc, '  /', nbin, '   finished '
       end if
-
+      !!! --- END Timming and outconfc
   end do
 
   if(irank.eq.0) write(fout, '(a,e16.8)') ' max_wrap_error = ', max_wrap_error
@@ -185,7 +133,10 @@ program ftdqmc_main
   if(irank.eq.0) then
       if(lwrapu)  write(fout,'(a,e16.8)') ' >>> accep_u  = ', dble(main_obs(1))/aimag(main_obs(1))
       if(lwrapj)  write(fout,'(a,e16.8)') ' >>> accep_j  = ', dble(main_obs(2))/aimag(main_obs(2))
-      if(lstglobal) write(fout,'(a,e16.8)') ' >>> accep_st = ', dble(main_obs(3))/aimag(main_obs(3))
+      if(lstglobal) then
+          write(fout,'(a,e16.8)') ' >>> accep_st = ', dble(main_obs(3))/aimag(main_obs(3))
+          write(fout,'(a,e16.8)') ' >>> cluster_size = ', dble(main_obs(4))/aimag(main_obs(4))*dble(ltrot*lq)
+      end if
   end if
 
 

@@ -4,8 +4,9 @@
       ! local variables
       integer :: nt, n, nf, nflag, i, j, nt_ob, ilq, it, nn_ilq, nn_it, inn_st, info, nt1, nt2
       logical :: lterminate 
-      real(dp) :: logweightf_old, logweightf_new, ratiof, logratiof
+      real(dp) :: logweightf_old, logweightf_new, logweights_old, logweights_new, ratiof, logratiof
       complex(dp) :: logweightf_up, logweightf_dn
+      integer :: ijs, i_1, i0, i1, i2, i3, i4
 
       ! perform global update
       if( lstglobal ) then
@@ -48,13 +49,13 @@
 #ENDIF
              logweightf_old = dble( logweightf_up + logweightf_dn )*2.d0
 
-#IFNDEF GEN_CONFC_LEARNING
+#IFDEF GEN_CONFC_LEARNING
              ! calculate boson part ratio
              ijs = 0
 !$OMP PARALLEL &
-!$OMP PRIVATE ( n, nf, i_1, i0, i1, i2, i3, i4 )
+!$OMP PRIVATE ( nt, nf, i_1, i0, i1, i2, i3, i4 )
 !$OMP DO REDUCTION ( + : ijs )
-             do n = 1, ltrot
+             do nt = 1, ltrot
                  do nf = 1,2
                      do i_1 = 1,lq/4
                          i0 = lthf(i_1,nf)
@@ -75,9 +76,9 @@
 
              ijs = 0
 !$OMP PARALLEL &
-!$OMP PRIVATE ( n, i )
+!$OMP PRIVATE ( nt, i )
 !$OMP DO REDUCTION ( + : ijs )
-             do n = 1, ltrot
+             do nt = 1, ltrot
                  do i = 1, lq
                      ijs = ijs + nsigl_u(i,nt)*nsigl_u(i,mod(nt,ltrot)+1)
                  end do
@@ -153,13 +154,13 @@
              end do
              end do
 
-#IFNDEF GEN_CONFC_LEARNING
+#IFDEF GEN_CONFC_LEARNING
              ! calculate boson part ratio
              ijs = 0
 !$OMP PARALLEL &
-!$OMP PRIVATE ( n, nf, i_1, i0, i1, i2, i3, i4 )
+!$OMP PRIVATE ( nt, nf, i_1, i0, i1, i2, i3, i4 )
 !$OMP DO REDUCTION ( + : ijs )
-             do n = 1, ltrot
+             do nt = 1, ltrot
                  do nf = 1,2
                      do i_1 = 1,lq/4
                          i0 = lthf(i_1,nf)
@@ -180,9 +181,9 @@
 
              ijs = 0
 !$OMP PARALLEL &
-!$OMP PRIVATE ( n, i )
+!$OMP PRIVATE ( nt, i )
 !$OMP DO REDUCTION ( + : ijs )
-             do n = 1, ltrot
+             do nt = 1, ltrot
                  do i = 1, lq
                      ijs = ijs + nsigl_u(i,nt)*nsigl_u(i,mod(nt,ltrot)+1)
                  end do
@@ -229,17 +230,31 @@
              end if
 
              if( ratiof .gt. spring_sfmt_stream() ) then
-                 ! global update is accepted, perfrom an sweep from beta to 0
+                 ! global update is accepted
+#IFDEF GEN_CONFC_LEARNING
+                 weight_track = logweightf_new + logweights_new
+#ENDIF
                  main_obs(3) = main_obs(3) + dcmplx(1.d0,1.d0)
+                 main_obs(4) = main_obs(4) + dcmplx(dble(nstcluster),dble(ltrot*lq))
 #IFDEF TEST
                  write(fout,'(a,e16.8,a,i8)') ' global update accepted, logratiof = ', logratiof, '  nstcluster = ',  nstcluster
+                 write(fout,'(a,e16.8)') ' logweights_old = ', logweights_old
+                 write(fout,'(a,e16.8)') ' logweights_new = ', logweights_new
+                 write(fout,'(a,e16.8)') ' weight_track = ', weight_track
 #ENDIF
                  ! perform measurement
                  call ftdqmc_sweep_0b(lupdate=.false., lmeasure=lmeas)
              else
+                 ! global update is rejected
+#IFDEF GEN_CONFC_LEARNING
+                 weight_track = logweightf_old + logweights_old
+#ENDIF
                  main_obs(3) = main_obs(3) + dcmplx(0.d0,1.d0)
 #IFDEF TEST
                  write(fout,'(a,e16.8,a,i8)') ' global update rejected, logratiof = ', logratiof, '  nstcluster = ',  nstcluster
+                 write(fout,'(a,e16.8)') ' logweights_old = ', logweights_old
+                 write(fout,'(a,e16.8)') ' logweights_new = ', logweights_new
+                 write(fout,'(a,e16.8)') ' weight_track = ', weight_track
 #ENDIF
                  ! global update is rejected, you need flip back the spin
                  do nt = 1, ltrot

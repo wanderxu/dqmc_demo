@@ -287,8 +287,9 @@ module blockc
     ndim = lq   ! the dimension of matrix inside determinant
     ltrot = nint( beta / dtau )
 
-    allocate( iwrap_nt(ltrot) )
-    iwrap_nt(:) = 0
+    allocate( iwrap_nt(0:ltrot) )
+    iwrap_nt(0:ltrot) = 0
+    iwrap_nt(0) = 0
     ! set nst, and wrap_step
     if( mod(ltrot,2) .eq. 0 ) then
         if( mod(ltrot/2,nwrap) .eq. 0 ) then
