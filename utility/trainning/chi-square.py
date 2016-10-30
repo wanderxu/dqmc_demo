@@ -42,7 +42,7 @@ def chi_square ( xdata, ydata, ydata_sigma, p0 ):
 
 
 ## prepare data
-indat=file2list("in.dat")
+indat=file2list("train.dat")
 inmat = np.transpose(indat)
 xdata = inmat[1:4]
 ydata = inmat[0]
