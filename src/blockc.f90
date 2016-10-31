@@ -289,9 +289,10 @@ module blockc
 
     allocate( iwrap_nt(0:ltrot) )
     iwrap_nt(0:ltrot) = 0
-    iwrap_nt(0) = 0
     ! set nst, and wrap_step
-    if( mod(ltrot,2) .eq. 0 ) then
+    if( ltrot .lt. nwrap ) then
+        nst = 0
+    else if( mod(ltrot,2) .eq. 0 ) then
         if( mod(ltrot/2,nwrap) .eq. 0 ) then
             nst = (ltrot/2/nwrap)*2
             allocate( wrap_step(2,nst) )
@@ -425,7 +426,7 @@ module blockc
 
     deallocate( listk, latt_imj )
     deallocate( orblist, lthf, ltpf, list_plaq, nnlist, invlist, list )
-    deallocate( wrap_step )
+    if(allocated(wrap_step) ) deallocate( wrap_step )
     deallocate( iwrap_nt )
   end subroutine deallocate_tables
 

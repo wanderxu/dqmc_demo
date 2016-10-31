@@ -243,6 +243,8 @@ module ftdqmc_core
       integer :: n, i, info
       real(dp) :: tmp
 
+      IF ( nst .gt. 0 ) THEN
+
       ! at tau = 0
       grup(:,:) = Imat(:,:)
       Ust_up(:,:,0) = Imat(:,:)
@@ -310,6 +312,23 @@ module ftdqmc_core
 #ENDIF
 
 #ENDIF
+
+     ELSE
+
+     call Bmat_tau( ltrot, 1, Bdtau1_up, Bdtau1_dn )
+     do  i = 1, ndim
+         Bdtau1_up(i,i) = Bdtau1_up(i,i) + cone
+     end do
+     call s_inv_z( ndim, Bdtau1_up )
+     grup(:,:) = Bdtau1_up
+#IFDEF SPINDOWN
+     do  i = 1, ndim
+         Bdtau1_dn(i,i) = Bdtau1_dn(i,i) + cone
+     end do
+     call s_inv_z( ndim, Bdtau1_dn )
+     grdn(:,:) = Bdtau1_dn
+#ENDIF
+     END IF
   
     end subroutine ftdqmc_sweep_start_0b
 
@@ -317,6 +336,8 @@ module ftdqmc_core
       implicit none
       integer :: n, i, info
       real(dp) :: tmp
+
+      IF ( nst .gt. 0 ) THEN
 
       ! at tau = beta
       Vst_up(:,:,nst) = Imat(:,:)
@@ -384,6 +405,23 @@ module ftdqmc_core
 
 #ENDIF
 
+     ELSE
+
+     call Bmat_tau( ltrot, 1, Bdtau1_up, Bdtau1_dn )
+     do  i = 1, ndim
+         Bdtau1_up(i,i) = Bdtau1_up(i,i) + cone
+     end do
+     call s_inv_z( ndim, Bdtau1_up )
+     grup(:,:) = Bdtau1_up
+#IFDEF SPINDOWN
+     do  i = 1, ndim
+         Bdtau1_dn(i,i) = Bdtau1_dn(i,i) + cone
+     end do
+     call s_inv_z( ndim, Bdtau1_dn )
+     grdn(:,:) = Bdtau1_dn
+#ENDIF
+     END IF
+  
     end subroutine ftdqmc_sweep_start_b0
   
     subroutine ftdqmc_sweep_b0(lupdate, lmeasure)
@@ -445,7 +483,7 @@ module ftdqmc_core
           call mmthl  (grup, grdn)
           call mmthrm1(grup, grdn)
 
-          if ( (iwrap_nt(nt-1) .gt. 0 .and. nt.ne.ltrot) .or. nt.eq.1 ) then
+          if ( (iwrap_nt(nt-1) .gt. 0 .and. nt.ne.ltrot) .or. ( nt.eq.1 .and. nst .gt. 0 ) ) then
               n = iwrap_nt(nt-1)
               ! at tau = n * tau1
               UR_up(:,:) = Ust_up(:,:,n)
