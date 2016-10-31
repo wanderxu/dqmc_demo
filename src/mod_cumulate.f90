@@ -227,7 +227,7 @@ module mod_cumulate
         write(*,'(a)') ' nei_cord = '
         do nt = 1, ltrot
             do i = 1, lq
-                write(*,"(6('(',i2,',',i2,')  '))") nei_cord(:,1,i,nt), &
+                write(*,"(6('(',i4,',',i4,')  '))") nei_cord(:,1,i,nt), &
                                                 nei_cord(:,2,i,nt), &
                                                 nei_cord(:,3,i,nt), &
                                                 nei_cord(:,4,i,nt), &
