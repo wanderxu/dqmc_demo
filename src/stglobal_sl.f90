@@ -27,6 +27,23 @@
 #ENDIF
              ! WARNNING, make sure you are at tau=beta
 
+#IFDEF TEST
+             call Bmat_tau( ltrot, 1, Bdtau1_up, Bdtau1_dn )
+             Btmp(:,:) = Bdtau1_up(:,:)
+             do  i = 1, ndim
+                 Btmp(i,i) = Bdtau1_up(i,i) + cone
+             end do
+             call s_logdet_z(ndim, Btmp, logweightf_up)
+
+             Btmp(:,:) = Bdtau1_dn(:,:)
+             do  i = 1, ndim
+                 Btmp(i,i) = Bdtau1_dn(i,i) + cone
+             end do
+             call s_logdet_z(ndim, Btmp, logweightf_dn)
+             write(fout,'(a,2e24.12)') ' without stablize, logweightf_up = ', logweightf_up
+             write(fout,'(a,2e24.12)') ' without stablize, logweightf_dn = ', logweightf_dn
+#ENDIF
+
              ! calculate det(1+B(beta,0))
              ! det( I + UDV ) = det( I + DVU )
              ! at tau = beta
@@ -52,6 +69,10 @@
              call s_logdet_z(ndim, Btmp, logweightf_dn)
 #ENDIF
              logweightf_old = dble( logweightf_up + logweightf_dn )*2.d0
+#IFDEF TEST
+             write(fout,'(a,2e24.12)') ' with stablize, logweightf_up = ', logweightf_up
+             write(fout,'(a,2e24.12)') ' with stablize, logweightf_dn = ', logweightf_dn
+#ENDIF
 
              ! calculate boson part ratio
              ijs = 0
