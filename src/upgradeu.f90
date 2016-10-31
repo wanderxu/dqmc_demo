@@ -6,6 +6,9 @@ subroutine upgradeu(ntau, green_up, green_dn)
   use spring
   use blockc
   use data_tmp
+#IFDEF CUMC
+  use mod_cumulate, only: heff, nei_cord, nei_Jeff, num_nei
+#ENDIF
 
   implicit none
 
@@ -17,6 +20,9 @@ subroutine upgradeu(ntau, green_up, green_dn)
   complex(dp) ::  ratioup, ratiodn, ratiotot, del44_up, del44_dn
   integer :: i4, nl, nl1, nl2, nrflip, nfb, id, ntm1, nta1
   real(dp) :: accm, ratio_re, ratio_re_abs, random
+#IFDEF CUMC
+  integer :: inn, j, ntj
+#ENDIF
 
   accm  = 0.d0
   do i4 = 1,lq
@@ -105,6 +111,14 @@ subroutine upgradeu(ntau, green_up, green_dn)
 !$OMP END PARALLEL
 #ENDIF
 
+#IFDEF CUMC
+        ! update heff
+        do inn = 1, num_nei
+            j = nei_cord(1,inn,i4,ntau)
+            ntj = nei_cord(2,inn,i4,ntau)
+            heff(j,ntj) = heff(j,ntj) - 2.d0*nei_Jeff(inn,i4,ntau)*nsigl_u(i4,ntau)
+        end do
+#ENDIF
         ! flip
         nsigl_u(i4,ntau) =  nflipl(nsigl_u(i4,ntau), nrflip)
         

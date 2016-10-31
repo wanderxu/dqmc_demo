@@ -25,15 +25,26 @@ module mod_cumulate
       implicit none
       integer :: inn, j, ntj, i, nt
       allocate( heff(lq,ltrot) )
+      heff(:,:) = 0.d0
       do nt = 1, ltrot
           do i = 1, lq
               do inn = 1, num_nei
                   j = nei_cord(1,inn,i,nt)
                   ntj = nei_cord(2,inn,i,nt)
-                  heff(i,nt) = heff(i,nt) + nei_Jeff(inn,i,nt)*nsigl_u(i,nt)
+                  heff(i,nt) = heff(i,nt) + nei_Jeff(inn,i,nt)*nsigl_u(j,ntj)
               end do
           end do
       end do
+#IFDEF TEST
+      write(*,'(a)') ' nsigl_u = '
+      do nt = 1, ltrot
+          write(*,'(40i7)') nsigl_u(:,nt)
+      end do
+      write(*,'(a)') ' after intial_heff, heff = '
+      do nt = 1, ltrot
+          write(*,'(40f7.3)') heff(:,nt)
+      end do
+#ENDIF
     end subroutine initial_heff
 
     subroutine set_neighbor
@@ -210,10 +221,27 @@ module mod_cumulate
         nncount = inn
 #IFDEF TEST
         write(*,'(a,i8)') ' after spatial-temporal-hybrid, nncount = ', nncount
-#ENDIF
-
-#IFDEF TEST
         write(*,'(a,i8)') ' recheck count, num_nei = ', nncount
+        write(*,*)
+
+        write(*,'(a)') ' nei_cord = '
+        do nt = 1, ltrot
+            do i = 1, lq
+                write(*,"(6('(',i2,',',i2,')  '))") nei_cord(:,1,i,nt), &
+                                                nei_cord(:,2,i,nt), &
+                                                nei_cord(:,3,i,nt), &
+                                                nei_cord(:,4,i,nt), &
+                                                nei_cord(:,5,i,nt), &
+                                                nei_cord(:,6,i,nt)
+            end do
+        end do
+
+        write(*,'(a)') ' nei_Jeff = '
+        do nt = 1, ltrot
+            do i = 1, lq
+                write(*,'(40f8.4)') nei_Jeff(:,i,nt)
+            end do
+        end do
 #ENDIF
         if( nncount .ne. num_nei ) stop 'wrong in count num_nei'
     

@@ -9,6 +9,7 @@
       complex(dp) :: logweightf_up, logweightf_dn
       integer :: ijs, i_1, i0, i1, i2, i3, i4, icum, inn, ntj
       integer, allocatable, dimension(:,:) :: nsigl_u_old
+      real(dp), allocatable, dimension(:,:) :: heff_old
       real(dp) :: ediff, local_ratio, Heff_diff
 
       ! perform global update
@@ -94,7 +95,9 @@
              
              ! store old field
              allocate( nsigl_u_old(lq,ltrot) )
+             allocate( heff_old(lq,ltrot) )
              nsigl_u_old(:,:) = nsigl_u(:,:)
+             heff_old(:,:) = heff(:,:)
 
              ! cumulate update
              Heff_diff = 0.d0
@@ -247,6 +250,7 @@
 #ENDIF
                  ! global update is rejected, you need flip back the spin
                  nsigl_u(:,:) = nsigl_u_old(:,:)
+                 heff(:,:) = heff_old(:,:)
                  !!!do nt = 1, ltrot
                  !!!do i = 1, lq
                  !!!    nf = 1
@@ -262,5 +266,6 @@
          end if
       end if
 
+      deallocate( heff_old )
       deallocate( nsigl_u_old )
     end subroutine ftdqmc_stglobal

@@ -79,6 +79,9 @@ program ftdqmc_main
       !nwarnup = nint( beta ) + 3
       nwarnup = nint( beta )*lq + 1
       if(rhub.le.0.d0) nwarnup = 0
+#IFDEF TEST
+      nwarnup = 0
+#ENDIF
       if( irank.eq.0 ) then
           write(fout,'(a,i8)') ' nwarnup = ', nwarnup
       end if
