@@ -1244,7 +1244,7 @@ module ftdqmc_core
       !bmat(:,:) = bmat(:,:) * phaseu
     end subroutine Bmat_tau
 
-#include "stglobal_wolff.f90"
-!!!#include "stglobal_spinlocal.f90"
+!!!#include "stglobal_wolff.f90"
+#include "stglobal_sl.f90"
 
 end module ftdqmc_core
