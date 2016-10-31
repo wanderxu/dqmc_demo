@@ -1,4 +1,5 @@
     subroutine ftdqmc_stglobal( lmeas )
+      use mod_cumulate
       implicit none
       logical, intent(in) :: lmeas
       ! local variables
@@ -7,7 +8,7 @@
       real(dp) :: logweightf_old, logweightf_new, logweights_old, logweights_new, ratiof, logratiof
       complex(dp) :: logweightf_up, logweightf_dn
       integer :: ijs, i_1, i0, i1, i2, i3, i4, icum, inn, ntj
-      integer, allocatable, dimension(:,:), nsigl_u_old
+      integer, allocatable, dimension(:,:) :: nsigl_u_old
       real(dp) :: ediff, local_ratio, Heff_diff
 
       ! perform global update
@@ -97,7 +98,7 @@
 
              ! cumulate update
              Heff_diff = 0.d0
-             do icum = 1, ncummulate
+             do icum = 1, ncumulate
                  do nt = 1, ltrot
                      do i = 1, lq
                         ediff=-2.d0*nsigl_u(i,nt)*heff(i,nt) 
@@ -108,7 +109,7 @@
                         end if
                         if( local_ratio .gt. spring_sfmt_stream() ) then
                             ! update heff
-                            do inn = 1, nneighbor
+                            do inn = 1, num_nei
                                 j = nei_cord(1,inn,i,nt)
                                 ntj = nei_cord(2,inn,i,nt)
                                 heff(j,ntj) = heff(j,ntj) - 2.d0*nei_Jeff(inn,i,nt)*nsigl_u(i,nt)
@@ -222,6 +223,9 @@
                  write(fout,'(a,e16.8,a,i8)') ' global update accepted, logratiof = ', logratiof, '  nstcluster = ',  nstcluster
                  write(fout,'(a,e16.8)') ' logweights_old = ', logweights_old
                  write(fout,'(a,e16.8)') ' logweights_new = ', logweights_new
+                 write(fout,'(a,e16.8)') ' logweightf_old = ', logweightf_old
+                 write(fout,'(a,e16.8)') ' logweightf_new = ', logweightf_new
+                 write(fout,'(a,e16.8)') ' Heff_diff = ', Heff_diff
                  write(fout,'(a,e16.8)') ' weight_track = ', weight_track
 #ENDIF
                  ! perform measurement
@@ -236,6 +240,9 @@
                  write(fout,'(a,e16.8,a,i8)') ' global update rejected, logratiof = ', logratiof, '  nstcluster = ',  nstcluster
                  write(fout,'(a,e16.8)') ' logweights_old = ', logweights_old
                  write(fout,'(a,e16.8)') ' logweights_new = ', logweights_new
+                 write(fout,'(a,e16.8)') ' logweightf_old = ', logweightf_old
+                 write(fout,'(a,e16.8)') ' logweightf_new = ', logweightf_new
+                 write(fout,'(a,e16.8)') ' Heff_diff = ', Heff_diff
                  write(fout,'(a,e16.8)') ' weight_track = ', weight_track
 #ENDIF
                  ! global update is rejected, you need flip back the spin

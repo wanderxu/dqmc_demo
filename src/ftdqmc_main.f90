@@ -4,6 +4,9 @@ program ftdqmc_main
 #ENDIF
   use blockc
   use data_tmp
+#IFDEF CUMC
+  use mod_cumulate
+#ENDIF
   use ftdqmc_core
   implicit none
 
@@ -55,6 +58,11 @@ program ftdqmc_main
   call allocate_data_tmp
   call allocate_core
   call allocate_obs
+
+#IFDEF CUMC
+  call set_neighbor
+  call initial_heff
+#ENDIF
 
   max_wrap_error = 0.d0
   if(ltau) xmax_dyn = 0.d0
@@ -139,6 +147,9 @@ program ftdqmc_main
       end if
   end if
 
+#IFDEF CUMC
+  call deallocate_cumulate
+#ENDIF
 
   call deallocate_core
   call deallocate_data_tmp
