@@ -82,12 +82,15 @@ program ftdqmc_main
 #IFDEF TEST
       nwarnup = 0
 #ENDIF
+      nwarnup = 0
       if( irank.eq.0 ) then
           write(fout,'(a,i8)') ' nwarnup = ', nwarnup
       end if
       do nsw = 1, nwarnup
-          call ftdqmc_sweep_b0(lupdate=.true., lmeasure=.false.)
-          call ftdqmc_sweep_0b(lupdate=.true., lmeasure=.false.)
+          if(llocal) then
+              call ftdqmc_sweep_b0(lupdate=.true., lmeasure=.false.)
+              call ftdqmc_sweep_0b(lupdate=.true., lmeasure=.false.)
+          end if
           call ftdqmc_stglobal(lmeas=.false.)
       end do
       if(irank.eq.0) write(fout, '(a,e16.8)') 'after wanrup, max_wrap_error = ', max_wrap_error
