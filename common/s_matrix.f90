@@ -841,7 +841,7 @@
 
 !!>>> s_logdet_z: calculate the log of determinant of a complex(dp) matrix
   subroutine s_logdet_z(ndim, zmat, zlogdet)
-     use constants, only : dp, czero
+     use constants, only : dp, czero, pi
 
      implicit none
 
@@ -859,6 +859,9 @@
 ! local variables
 ! loop index
      integer :: i
+
+     ! tmp for imaginary part
+     real(dp) :: im_zlogdet
 
 ! error flag
      integer :: ierror
@@ -888,6 +891,10 @@
              zlogdet = zlogdet + log( -zmat(i,i) )
          endif ! back if ( ipiv(i) == i ) block
      enddo ! over i={1,ndim} loop
+     im_zlogdet = aimag(zlogdet)
+     i=nint(im_zlogdet/2.d0/pi)
+     im_zlogdet = im_zlogdet - 2.d0*pi*dble(i)
+     zlogdet = dcmplx( real(zlogdet), im_zlogdet )
 
 ! deallocate memory
      if ( allocated(ipiv) ) deallocate(ipiv)
