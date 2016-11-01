@@ -66,6 +66,7 @@ program ftdqmc_main
 
   max_wrap_error = 0.d0
   if(ltau) xmax_dyn = 0.d0
+  max_sr_check = 0.d0
 
   call ftdqmc_sweep_start_0b
 
@@ -82,7 +83,6 @@ program ftdqmc_main
 #IFDEF TEST
       nwarnup = 0
 #ENDIF
-      nwarnup = 0
       if( irank.eq.0 ) then
           write(fout,'(a,i8)') ' nwarnup = ', nwarnup
       end if
@@ -140,6 +140,9 @@ program ftdqmc_main
 
   if(irank.eq.0) write(fout, '(a,e16.8)') ' max_wrap_error = ', max_wrap_error
   if(irank.eq.0 .and. ltau) write(fout,'(a,e16.8)')' >>> xmax_dyn = ', xmax_dyn
+#IFDEF SRCHECK
+  write(fout, '(a,e16.8)') ' max_sr_check = ', max_sr_check
+#ENDIF
 
   call outconfc
 
