@@ -23,31 +23,19 @@
 #ENDIF
              ! WARNNING, make sure you are at tau=beta
 
-             ! calculate det(1+B(beta,0))
-             ! det( I + UDV ) = det( I + DVU )
-             ! at tau = beta
-             UR_up(:,:) = Ust_up(:,:,nst)
-             DRvec_up(:)= Dst_up(:,nst)
-             VR_up(:,:) = Vst_up(:,:,nst)
-             call zgemm('n','n',ndim,ndim,ndim,cone,VR_up,ndim,UR_up,ndim,czero,Atmp,ndim)  ! Atmp = V*U
-             call s_diag_d_x_z(ndim,DRvec_up,Atmp,Btmp) ! Btmp = D * Atmp = DVU
-             do  i = 1, ndim
-                 Btmp(i,i) = Btmp(i,i) + cone
-             end do
-             call s_logdet_z(ndim, Btmp, logweightf_up)
-#IFDEF SPINDOWN
-             ! at tau = beta
-             UR_dn(:,:) = Ust_dn(:,:,nst)
-             DRvec_dn(:)= Dst_dn(:,nst)
-             VR_dn(:,:) = Vst_dn(:,:,nst)
-             call zgemm('n','n',ndim,ndim,ndim,cone,VR_dn,ndim,UR_dn,ndim,czero,Atmp,ndim)  ! Atmp = V*U
-             call s_diag_d_x_z(ndim,DRvec_dn,Atmp,Btmp) ! Btmp = D * Atmp = DVU
-             do  i = 1, ndim
-                 Btmp(i,i) = Btmp(i,i) + cone
-             end do
+             !!============================================================================================
+             !!! calculate fermioin part ratio
+             !   WARNNING, s_logdet_z will replace the input matrix with L and U
+             Atmp = grup; Btmp = grdn
+             call s_logdet_z(ndim, Atmp, logweightf_up)
              call s_logdet_z(ndim, Btmp, logweightf_dn)
-#ENDIF
+             logweightf_up = - logweightf_up
+             logweightf_dn = - logweightf_dn
              logweightf_old = dble( logweightf_up + logweightf_dn )*2.d0
+#IFDEF TEST
+             write(fout,'(a,2e24.12)') ' without stablize, logweightf_up_old = ', logweightf_up
+             write(fout,'(a,2e24.12)') ' without stablize, logweightf_dn_old = ', logweightf_dn
+#ENDIF
 
 #IFDEF GEN_CONFC_LEARNING
              ! calculate boson part ratio
@@ -199,35 +187,22 @@
              logweights_new = logweights_new + gamma_s*dble(ijs)
 #ENDIF
 
-             ! calculate the fermion part ratio
-             ! ratio = weight_new / weight_old
-
+             !!============================================================================================
+             !!! calculate new fermioin part ratio
              call ftdqmc_sweep_start_b0   ! update B(beta,0)
-             ! calculate  new_det(1+B(beta,0))
-             ! at tau = 0
-             UR_up(:,:) = Ust_up(:,:,0)
-             DRvec_up(:)= Dst_up(:,0)
-             VR_up(:,:) = Vst_up(:,:,0)
-             call zgemm('n','n',ndim,ndim,ndim,cone,VR_up,ndim,UR_up,ndim,czero,Atmp,ndim)  ! Atmp = V*U
-             call s_diag_d_x_z(ndim,DRvec_up,Atmp,Btmp) ! Btmp = D * Atmp = DVU
-             do  i = 1, ndim
-                 Btmp(i,i) = Btmp(i,i) + cone
-             end do
-             call s_logdet_z(ndim, Btmp, logweightf_up)
-#IFDEF SPINDOWN
-             ! at tau = 0
-             UR_dn(:,:) = Ust_dn(:,:,0)
-             DRvec_dn(:)= Dst_dn(:,0)
-             VR_dn(:,:) = Vst_dn(:,:,0)
-             call zgemm('n','n',ndim,ndim,ndim,cone,VR_dn,ndim,UR_dn,ndim,czero,Atmp,ndim)  ! Atmp = V*U
-             call s_diag_d_x_z(ndim,DRvec_dn,Atmp,Btmp) ! Btmp = D * Atmp = DVU
-             do  i = 1, ndim
-                 Btmp(i,i) = Btmp(i,i) + cone
-             end do
+             Atmp = grup; Btmp = grdn
+             call s_logdet_z(ndim, Atmp, logweightf_up)
              call s_logdet_z(ndim, Btmp, logweightf_dn)
-#ENDIF
+             logweightf_up = - logweightf_up
+             logweightf_dn = - logweightf_dn
              logweightf_new = dble( logweightf_up + logweightf_dn )*2.d0
+#IFDEF TEST
+             write(fout,'(a,2e24.12)') ' without stablize, logweightf_up_new = ', logweightf_up
+             write(fout,'(a,2e24.12)') ' without stablize, logweightf_dn_new = ', logweightf_dn
+#ENDIF
 
+             !!============================================================================================
+             !! calculate accept ratio
              logratiof = logweightf_new - logweightf_old
              if( logratiof .gt. 0 ) then
                  ratiof = 1.001d0
@@ -235,6 +210,8 @@
                  ratiof = exp(logratiof)
              end if
 
+             !!============================================================================================
+             ! update
              if( ratiof .gt. spring_sfmt_stream() ) then
                  ! global update is accepted
 #IFDEF GEN_CONFC_LEARNING

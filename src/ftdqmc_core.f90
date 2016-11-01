@@ -1282,7 +1282,10 @@ module ftdqmc_core
       !bmat(:,:) = bmat(:,:) * phaseu
     end subroutine Bmat_tau
 
-!!!#include "stglobal_wolff.f90"
+#IFDEF CUMC
 #include "stglobal_sl.f90"
+#ELSE
+#include "stglobal_wolff.f90"
+#ENDIF
 
 end module ftdqmc_core
