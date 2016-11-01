@@ -292,10 +292,11 @@ module blockc
     iwrap_nt(0:ltrot) = 0
     ! set nst, and wrap_step
     if( ltrot .lt. nwrap ) then
+        if(irank.eq.0) write(fout,'(a,i3,a)')  " WARNNING, ltrot is less than nwrap ", ltrot, ', do not need stablization '
         nst = 0
-    else if( mod(ltrot,2) .eq. 0 ) then
-        if( mod(ltrot/2,nwrap) .eq. 0 ) then
-            nst = (ltrot/2/nwrap)*2
+    else
+        if( mod(ltrot,nwrap) .eq. 0 ) then
+            nst = ltrot/nwrap
             allocate( wrap_step(2,nst) )
             do i = 1, nst
                 iwrap_nt(i*nwrap) = i
@@ -303,34 +304,18 @@ module blockc
                 wrap_step(2,i) = i*nwrap
             end do
         else
-            nst = (ltrot/2/nwrap+1)*2
-            nwrap_mid = ltrot/2-(nst/2-1)*nwrap
+            nst = ltrot/nwrap + 1
             allocate( wrap_step(2,nst) )
-            do i = 1, nst/2-1
+            do i = 1, nst-1
                 iwrap_nt(i*nwrap) = i
                 wrap_step(1,i) = 1+(i-1)*nwrap
                 wrap_step(2,i) = i*nwrap
             end do
-
-            i = nst/2
-            iwrap_nt(ltrot/2) = i
+            i = nst
+            iwrap_nt(ltrot) = i
             wrap_step(1,i) = (i-1)*nwrap+1
-            wrap_step(2,i) = ltrot/2
-
-            i = nst/2+1
-            iwrap_nt(ltrot/2+nwrap_mid) = i
-            wrap_step(1,i) = ltrot/2+1
-            wrap_step(2,i) = ltrot/2+nwrap_mid
-
-            do i = 1, nst/2-1
-                iwrap_nt(ltrot/2+nwrap_mid+i*nwrap) = nst/2+1+i
-                wrap_step(1,i+nst/2+1) = ltrot/2+nwrap_mid+(i-1)*nwrap+1
-                wrap_step(2,i+nst/2+1) = ltrot/2+nwrap_mid+i*nwrap
-            end do
+            wrap_step(2,i) = ltrot
         end if
-    else
-        write(*,*)  " ltrot should be even number ", ltrot
-        stop
     end if
 
     nmeas_bin = 2*(2*obs_segment_len+1)*nsweep*isize
