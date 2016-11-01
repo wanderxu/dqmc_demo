@@ -43,8 +43,9 @@
 #ENDIF
              else  ! calculate with stablization
                  ! calculate det(1+B(beta,0))
-                 ! det( I + UDV ) = det( I + DVU )
                  ! at tau = beta
+                 ! B(beta,0) = UDV
+                 ! det( I + UDV ) = det( I + DVU )
                  UR_up(:,:) = Ust_up(:,:,nst)
                  DRvec_up(:)= Dst_up(:,nst)
                  VR_up(:,:) = Vst_up(:,:,nst)
@@ -229,12 +230,15 @@
                  write(fout,'(a,2e24.12)') ' without stablize, logweightf_dn_new = ', logweightf_dn
 #ENDIF
              else
+                 ! calculate det(1+B(beta,0))
                  ! at tau = 0
+                 ! B(beta,0) = VDU  ! WARNNING take care here
+                 ! det( I + VDU ) = det( I + DUV )
                  UR_up(:,:) = Ust_up(:,:,0)
                  DRvec_up(:)= Dst_up(:,0)
                  VR_up(:,:) = Vst_up(:,:,0)
-                 call zgemm('n','n',ndim,ndim,ndim,cone,VR_up,ndim,UR_up,ndim,czero,Atmp,ndim)  ! Atmp = V*U
-                 call s_diag_d_x_z(ndim,DRvec_up,Atmp,Btmp) ! Btmp = D * Atmp = DVU
+                 call zgemm('n','n',ndim,ndim,ndim,cone,UR_up,ndim,VR_up,ndim,czero,Atmp,ndim)  ! Atmp = U*V
+                 call s_diag_d_x_z(ndim,DRvec_up,Atmp,Btmp) ! Btmp = D * Atmp = DUV
                  do  i = 1, ndim
                      Btmp(i,i) = Btmp(i,i) + cone
                  end do
@@ -244,8 +248,8 @@
                  UR_dn(:,:) = Ust_dn(:,:,0)
                  DRvec_dn(:)= Dst_dn(:,0)
                  VR_dn(:,:) = Vst_dn(:,:,0)
-                 call zgemm('n','n',ndim,ndim,ndim,cone,VR_dn,ndim,UR_dn,ndim,czero,Atmp,ndim)  ! Atmp = V*U
-                 call s_diag_d_x_z(ndim,DRvec_dn,Atmp,Btmp) ! Btmp = D * Atmp = DVU
+                 call zgemm('n','n',ndim,ndim,ndim,cone,UR_dn,ndim,VR_dn,ndim,czero,Atmp,ndim)  ! Atmp = U*V
+                 call s_diag_d_x_z(ndim,DRvec_dn,Atmp,Btmp) ! Btmp = D * Atmp = DUV
                  do  i = 1, ndim
                      Btmp(i,i) = Btmp(i,i) + cone
                  end do
