@@ -29,63 +29,16 @@
 
              !!============================================================================================
              !!! calculate fermioin part ratio
-             if(nst.eq.0) then ! calculate from Green function
-                 !!! WARNNING, s_logdet_z will replace the input matrix with L and U
-                 Atmp = grup; Btmp = grdn
-                 call s_logdet_z(ndim, Atmp, logweightf_up)
-                 call s_logdet_z(ndim, Btmp, logweightf_dn)
-                 logweightf_up = - logweightf_up
-                 logweightf_dn = - logweightf_dn
-                 logweightf_old = dble( logweightf_up + logweightf_dn )*2.d0
-#IFDEF TEST
-                 write(fout,'(a,2e24.12)') ' without stablize, logweightf_up_old = ', logweightf_up
-                 write(fout,'(a,2e24.12)') ' without stablize, logweightf_dn_old = ', logweightf_dn
-#ENDIF
-             else  ! calculate with stablization
-                 ! calculate det(1+B(beta,0))
-                 ! at tau = beta
-                 ! B(beta,0) = UDV
-                 ! det( I + UDV ) = det( I + DVU )
-                 UR_up(:,:) = Ust_up(:,:,nst)
-                 DRvec_up(:)= Dst_up(:,nst)
-                 VR_up(:,:) = Vst_up(:,:,nst)
-                 call zgemm('n','n',ndim,ndim,ndim,cone,VR_up,ndim,UR_up,ndim,czero,Atmp,ndim)  ! Atmp = V*U
-                 call s_diag_d_x_z(ndim,DRvec_up,Atmp,Btmp) ! Btmp = D * Atmp = DVU
-                 do  i = 1, ndim
-                     Btmp(i,i) = Btmp(i,i) + cone
-                 end do
-                 call s_logdet_z(ndim, Btmp, logweightf_up)
-#IFDEF SPINDOWN
-                 ! at tau = beta
-                 UR_dn(:,:) = Ust_dn(:,:,nst)
-                 DRvec_dn(:)= Dst_dn(:,nst)
-                 VR_dn(:,:) = Vst_dn(:,:,nst)
-                 call zgemm('n','n',ndim,ndim,ndim,cone,VR_dn,ndim,UR_dn,ndim,czero,Atmp,ndim)  ! Atmp = V*U
-                 call s_diag_d_x_z(ndim,DRvec_dn,Atmp,Btmp) ! Btmp = D * Atmp = DVU
-                 do  i = 1, ndim
-                     Btmp(i,i) = Btmp(i,i) + cone
-                 end do
-                 call s_logdet_z(ndim, Btmp, logweightf_dn)
-#ENDIF
-                 logweightf_old = dble( logweightf_up + logweightf_dn )*2.d0
-#IFDEF TEST
-                 write(fout,'(a,2e24.12)') ' with stablize, logweightf_up_old = ', logweightf_up
-                 write(fout,'(a,2e24.12)') ' with stablize, logweightf_dn_old = ', logweightf_dn
-#ENDIF
-             end if
-#IFDEF SRCHECK
+             !   WARNNING, s_logdet_z will replace the input matrix with L and U
              Atmp = grup; Btmp = grdn
-             call s_logdet_z(ndim, Atmp, logweightf_up_g)
-             call s_logdet_z(ndim, Btmp, logweightf_dn_g)
-             max_sr_check_tmp =  max( abs(logweightf_up_g+logweightf_up), abs(logweightf_dn_g+logweightf_dn) )
-             if(max_sr_check_tmp.gt.max_sr_check) max_sr_check = max_sr_check_tmp
+             call s_logdet_z(ndim, Atmp, logweightf_up)
+             call s_logdet_z(ndim, Btmp, logweightf_dn)
+             logweightf_up = - logweightf_up
+             logweightf_dn = - logweightf_dn
+             logweightf_old = dble( logweightf_up + logweightf_dn )*2.d0
 #IFDEF TEST
-             write(fout, '(a,e16.8)') ' max_sr_check_tmp = ', max_sr_check_tmp
-             if( nst .gt. 0 ) then
-                 write(fout,'(a,2e24.12)') ' without stablize, logweightf_up_old = ', -logweightf_up_g
-                 write(fout,'(a,2e24.12)') ' without stablize, logweightf_dn_old = ', -logweightf_dn_g
-             end if
-#ENDIF
+             write(fout,'(a,2e24.12)') ' without stablize, logweightf_up_old = ', logweightf_up
+             write(fout,'(a,2e24.12)') ' without stablize, logweightf_dn_old = ', logweightf_dn
 #ENDIF
 
              !!============================================================================================
@@ -218,62 +171,15 @@
              !!============================================================================================
              !!! calculate new fermioin part ratio
              call ftdqmc_sweep_start_b0   ! update B(beta,0)
-             if(nst.eq.0) then
-                 Atmp = grup; Btmp = grdn
-                 call s_logdet_z(ndim, Atmp, logweightf_up)
-                 call s_logdet_z(ndim, Btmp, logweightf_dn)
-                 logweightf_up = - logweightf_up
-                 logweightf_dn = - logweightf_dn
-                 logweightf_new = dble( logweightf_up + logweightf_dn )*2.d0
-#IFDEF TEST
-                 write(fout,'(a,2e24.12)') ' without stablize, logweightf_up_new = ', logweightf_up
-                 write(fout,'(a,2e24.12)') ' without stablize, logweightf_dn_new = ', logweightf_dn
-#ENDIF
-             else
-                 ! calculate det(1+B(beta,0))
-                 ! at tau = 0
-                 ! B(beta,0) = VDU  ! WARNNING take care here
-                 ! det( I + VDU ) = det( I + DUV )
-                 UR_up(:,:) = Ust_up(:,:,0)
-                 DRvec_up(:)= Dst_up(:,0)
-                 VR_up(:,:) = Vst_up(:,:,0)
-                 call zgemm('n','n',ndim,ndim,ndim,cone,UR_up,ndim,VR_up,ndim,czero,Atmp,ndim)  ! Atmp = U*V
-                 call s_diag_d_x_z(ndim,DRvec_up,Atmp,Btmp) ! Btmp = D * Atmp = DUV
-                 do  i = 1, ndim
-                     Btmp(i,i) = Btmp(i,i) + cone
-                 end do
-                 call s_logdet_z(ndim, Btmp, logweightf_up)
-#IFDEF SPINDOWN
-                 ! at tau = 0
-                 UR_dn(:,:) = Ust_dn(:,:,0)
-                 DRvec_dn(:)= Dst_dn(:,0)
-                 VR_dn(:,:) = Vst_dn(:,:,0)
-                 call zgemm('n','n',ndim,ndim,ndim,cone,UR_dn,ndim,VR_dn,ndim,czero,Atmp,ndim)  ! Atmp = U*V
-                 call s_diag_d_x_z(ndim,DRvec_dn,Atmp,Btmp) ! Btmp = D * Atmp = DUV
-                 do  i = 1, ndim
-                     Btmp(i,i) = Btmp(i,i) + cone
-                 end do
-                 call s_logdet_z(ndim, Btmp, logweightf_dn)
-#ENDIF
-                 logweightf_new = dble( logweightf_up + logweightf_dn )*2.d0
-#IFDEF TEST
-                 write(fout,'(a,2e24.12)') ' with stablize, logweightf_up_new = ', logweightf_up
-                 write(fout,'(a,2e24.12)') ' with stablize, logweightf_dn_new = ', logweightf_dn
-#ENDIF
-             end if
-#IFDEF SRCHECK
              Atmp = grup; Btmp = grdn
-             call s_logdet_z(ndim, Atmp, logweightf_up_g)
-             call s_logdet_z(ndim, Btmp, logweightf_dn_g)
-             max_sr_check_tmp =  max( abs(logweightf_up_g+logweightf_up), abs(logweightf_dn_g+logweightf_dn) )
-             if(max_sr_check_tmp.gt.max_sr_check) max_sr_check = max_sr_check_tmp
+             call s_logdet_z(ndim, Atmp, logweightf_up)
+             call s_logdet_z(ndim, Btmp, logweightf_dn)
+             logweightf_up = - logweightf_up
+             logweightf_dn = - logweightf_dn
+             logweightf_new = dble( logweightf_up + logweightf_dn )*2.d0
 #IFDEF TEST
-             write(fout, '(a,e16.8)') ' max_sr_check_tmp = ', max_sr_check_tmp
-             if( nst .gt. 0 ) then
-                 write(fout,'(a,2e24.12)') ' without stablize, logweightf_up_new = ', -logweightf_up_g
-                 write(fout,'(a,2e24.12)') ' without stablize, logweightf_dn_new = ', -logweightf_dn_g
-             end if
-#ENDIF
+             write(fout,'(a,2e24.12)') ' without stablize, logweightf_up_new = ', logweightf_up
+             write(fout,'(a,2e24.12)') ' without stablize, logweightf_dn_new = ', logweightf_dn
 #ENDIF
 
              !!============================================================================================

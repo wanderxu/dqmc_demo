@@ -126,7 +126,6 @@ module blockc
   real(dp) :: wsxsz(128), wjs(32)
   real(dp), save :: max_wrap_error, max_wrap_error_tmp 
   real(dp), save :: xmax_dyn, xmax_dyn_tmp
-  real(dp), save :: max_sr_check, max_sr_check_tmp
 
   ! for stglobal update
   integer, save :: icount_nsw_stglobal, nsw_stglobal
