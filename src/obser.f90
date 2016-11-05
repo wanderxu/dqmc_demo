@@ -149,7 +149,7 @@ module obser
 !$OMP DO REDUCTION ( + : order_branch )
     do n = 1, ltrot
         do i = 1, ndim
-            order_branch = order_branch + nsigl_u(i,nt)
+            order_branch = order_branch + nsigl_u(i,n)
         end do
     end do
 !$OMP END DO
