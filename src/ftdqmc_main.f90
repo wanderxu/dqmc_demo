@@ -16,6 +16,10 @@ program ftdqmc_main
   integer :: nbc, nsw
   character (len = 20) :: date_time_string
   real(dp) :: start_time, end_time, time1, time2
+#IFDEF CAL_AUTO
+  integer :: i, n, totsz
+  integer, allocatable, dimension(:) :: totsz_bin
+#ENDIF
 
   call MPI_INIT(ierr)                             
   call MPI_COMM_RANK(MPI_COMM_WORLD,irank,ierr) 
@@ -64,6 +68,14 @@ program ftdqmc_main
   call initial_heff
 #ENDIF
 
+#IFDEF CAL_AUTO
+  if( llocal .and. .not. lstglobal ) then
+      allocate( totsz_bin(2*nsweep) )
+  else
+      allocate( totsz_bin(nsweep) )
+  end if
+#ENDIF
+
   max_wrap_error = 0.d0
   if(ltau) xmax_dyn = 0.d0
 
@@ -77,7 +89,7 @@ program ftdqmc_main
   if( lwarnup ) then
       ! set nwarnup
       !nwarnup = nint( beta ) + 3
-      nwarnup = nint( beta )*lq + 1
+      nwarnup = 20
       if(rhub.le.0.d0) nwarnup = 0
 #IFDEF TEST
       nwarnup = 0
@@ -105,7 +117,11 @@ program ftdqmc_main
   do nbc =  1, nbin
 
       call obser_init
+#IFDEF CAL_AUTO
+#include 'sweep_auto.f90'
+#ELSE
 #include 'sweep.f90'
+#ENDIF
 
       !!! --- Timming and outconfc
       if( nbc .eq. 1 )  then
@@ -151,6 +167,10 @@ program ftdqmc_main
           write(fout,'(a,e16.8)') ' >>> cluster_size = ', dble(main_obs(4))/aimag(main_obs(4))*dble(ltrot*lq)
       end if
   end if
+
+#IFDEF CAL_AUTO
+  deallocate( totsz_bin )
+#ENDIF
 
 #IFDEF CUMC
   call deallocate_cumulate
