@@ -64,6 +64,7 @@ module blockc
   integer, save :: ltrot
   complex(dp), save :: phase
   real(dp), save :: weight_track
+  real(dp), save :: logweightf_old, logweightf_new, logweights_old, logweights_new
   complex(dp), allocatable, dimension(:,:), save :: Imat
   complex(dp), allocatable, dimension(:,:), save :: grup, grdn, grupc, grdnc
   real(dp), allocatable, dimension(:), save :: Ivec

@@ -4,9 +4,7 @@
       ! local variables
       integer :: nt, n, nf, nflag, i, j, nt_ob, ilq, it, nn_ilq, nn_it, inn_st, info, nt1, nt2
       logical :: lterminate 
-      real(dp) :: logweightf_old, logweightf_new, logweights_old, logweights_new, ratiof, logratiof
-      complex(dp) :: logweightf_up, logweightf_dn
-      integer :: ijs, i_1, i0, i1, i2, i3, i4
+      real(dp) :: ratiof, logratiof
 
       ! perform global update
       if( lstglobal ) then
@@ -21,63 +19,21 @@
              write(fout, '(a)') ' >>>>>>>>>> '
              write(fout,*)
 #ENDIF
-             ! WARNNING, make sure you are at tau=beta
-
-             !!============================================================================================
-             !!! calculate fermioin part ratio
-             !   WARNNING, s_logdet_z will replace the input matrix with L and U
-             Atmp = grup; Btmp = grdn
-             call s_logdet_z(ndim, Atmp, logweightf_up)
-             call s_logdet_z(ndim, Btmp, logweightf_dn)
-             logweightf_up = - logweightf_up
-             logweightf_dn = - logweightf_dn
-             logweightf_old = dble( logweightf_up + logweightf_dn )*2.d0
-#IFDEF TEST
-             write(fout,'(a,2e24.12)') ' without stablize, logweightf_up_old = ', logweightf_up
-             write(fout,'(a,2e24.12)') ' without stablize, logweightf_dn_old = ', logweightf_dn
-#ENDIF
-
-#IFDEF GEN_CONFC_LEARNING
-             ! calculate boson part ratio
-             ijs = 0
-!$OMP PARALLEL &
-!$OMP PRIVATE ( nt, nf, i_1, i0, i1, i2, i3, i4 )
-!$OMP DO REDUCTION ( + : ijs )
-             do nt = 1, ltrot
-                 do nf = 1,2
-                     do i_1 = 1,lq/4
-                         i0 = lthf(i_1,nf)
-                         i1 = nnlist(i0,1)
-                         i2 = nnlist(i0,2)
-                         i3 = nnlist(i0,3)
-                         i4 = nnlist(i0,4)
-                         ijs = ijs + nsigl_u(i0,nt)*nsigl_u(i1,nt) + &
-                                     nsigl_u(i0,nt)*nsigl_u(i2,nt) + &
-                                     nsigl_u(i0,nt)*nsigl_u(i3,nt) + &
-                                     nsigl_u(i0,nt)*nsigl_u(i4,nt)
-                     end do
-                 end do
-             end do
-!$OMP END DO
-!$OMP END PARALLEL
-             logweights_old = dtau*js*dble(ijs)
-
-             ijs = 0
-!$OMP PARALLEL &
-!$OMP PRIVATE ( nt, i )
-!$OMP DO REDUCTION ( + : ijs )
-             do nt = 1, ltrot
-                 do i = 1, lq
-                     ijs = ijs + nsigl_u(i,nt)*nsigl_u(i,mod(nt,ltrot)+1)
-                 end do
-             end do
-!$OMP END DO
-!$OMP END PARALLEL
-             logweights_old = logweights_old + gamma_s*dble(ijs)
-#ENDIF
 
              !! build the space-time cluster to be performed global update on
              !! use the Wolff algorithm
+
+             ! store UDV matrix and Green function
+             Ust_up_tmp(:,:,:) = Ust_up(:,:,:)
+             Dst_up_tmp(:,:)   = Dst_up(:,:)
+             Vst_up_tmp(:,:,:) = Vst_up(:,:,:)
+             grup_tmp(:,:) = grup(:,:)
+#IFDEF SPINDOWN
+             Ust_dn_tmp(:,:,:) = Ust_dn(:,:,:)
+             Dst_dn_tmp(:,:)   = Dst_dn(:,:)
+             Vst_dn_tmp(:,:,:) = Vst_dn(:,:,:)
+             grdn_tmp(:,:) = grdn(:,:)
+#ENDIF
 
              tentacle_old(:,:) = 0
              tentacle(:,:) = 0
@@ -142,64 +98,8 @@
              end do
              end do
 
-#IFDEF GEN_CONFC_LEARNING
-             ! calculate boson part ratio
-             ijs = 0
-!$OMP PARALLEL &
-!$OMP PRIVATE ( nt, nf, i_1, i0, i1, i2, i3, i4 )
-!$OMP DO REDUCTION ( + : ijs )
-             do nt = 1, ltrot
-                 do nf = 1,2
-                     do i_1 = 1,lq/4
-                         i0 = lthf(i_1,nf)
-                         i1 = nnlist(i0,1)
-                         i2 = nnlist(i0,2)
-                         i3 = nnlist(i0,3)
-                         i4 = nnlist(i0,4)
-                         ijs = ijs + nsigl_u(i0,nt)*nsigl_u(i1,nt) + &
-                                     nsigl_u(i0,nt)*nsigl_u(i2,nt) + &
-                                     nsigl_u(i0,nt)*nsigl_u(i3,nt) + &
-                                     nsigl_u(i0,nt)*nsigl_u(i4,nt)
-                     end do
-                 end do
-             end do
-!$OMP END DO
-!$OMP END PARALLEL
-#IFDEF TEST
-             write(fout,'(a,i20)') 'new ijs for spatial = ', ijs
-#ENDIF 
-             logweights_new = dtau*js*dble(ijs)
-
-             ijs = 0
-!$OMP PARALLEL &
-!$OMP PRIVATE ( nt, i )
-!$OMP DO REDUCTION ( + : ijs )
-             do nt = 1, ltrot
-                 do i = 1, lq
-                     ijs = ijs + nsigl_u(i,nt)*nsigl_u(i,mod(nt,ltrot)+1)
-                 end do
-             end do
-!$OMP END DO
-!$OMP END PARALLEL
-#IFDEF TEST
-             write(fout,'(a,i20)') 'new ijs for temporal = ', ijs
-#ENDIF 
-             logweights_new = logweights_new + gamma_s*dble(ijs)
-#ENDIF
-
-             !!============================================================================================
-             !!! calculate new fermioin part ratio
              call ftdqmc_sweep_start_b0   ! update B(beta,0)
-             Atmp = grup; Btmp = grdn
-             call s_logdet_z(ndim, Atmp, logweightf_up)
-             call s_logdet_z(ndim, Btmp, logweightf_dn)
-             logweightf_up = - logweightf_up
-             logweightf_dn = - logweightf_dn
-             logweightf_new = dble( logweightf_up + logweightf_dn )*2.d0
-#IFDEF TEST
-             write(fout,'(a,2e24.12)') ' without stablize, logweightf_up_new = ', logweightf_up
-             write(fout,'(a,2e24.12)') ' without stablize, logweightf_dn_new = ', logweightf_dn
-#ENDIF
+             call ftdqmc_calculate_weight( logweightf_new, logweights_new )
 
              !!============================================================================================
              !! calculate accept ratio
@@ -223,10 +123,17 @@
                  write(fout,'(a,e16.8,a,i8)') ' global update accepted, logratiof = ', logratiof, '  nstcluster = ',  nstcluster
                  write(fout,'(a,e16.8)') ' logweights_old = ', logweights_old
                  write(fout,'(a,e16.8)') ' logweights_new = ', logweights_new
+                 write(fout,'(a,e16.8)') ' logweightf_old = ', logweightf_old
+                 write(fout,'(a,e16.8)') ' logweightf_new = ', logweightf_new
                  write(fout,'(a,e16.8)') ' weight_track = ', weight_track
 #ENDIF
+                 ! update logweight
+                 logweightf_old = logweightf_new
+                 logweights_old = logweights_new
                  ! perform measurement
-                 call ftdqmc_sweep_0b(lupdate=.false., lmeasure=lmeas)
+                 if( lmeas ) then
+                     call ftdqmc_sweep_0b(lupdate=.false., lmeasure=lmeas)
+                 end if
              else
                  ! global update is rejected
 #IFDEF GEN_CONFC_LEARNING
@@ -237,6 +144,8 @@
                  write(fout,'(a,e16.8,a,i8)') ' global update rejected, logratiof = ', logratiof, '  nstcluster = ',  nstcluster
                  write(fout,'(a,e16.8)') ' logweights_old = ', logweights_old
                  write(fout,'(a,e16.8)') ' logweights_new = ', logweights_new
+                 write(fout,'(a,e16.8)') ' logweightf_old = ', logweightf_old
+                 write(fout,'(a,e16.8)') ' logweightf_new = ', logweightf_new
                  write(fout,'(a,e16.8)') ' weight_track = ', weight_track
 #ENDIF
                  ! global update is rejected, you need flip back the spin
@@ -248,10 +157,84 @@
                  end do
 
                  ! perform measurement  ! note no matter whether the update is aceepted, you should do measrement
-                 call ftdqmc_sweep_start_b0 ! recover old B matrix
-                 call ftdqmc_sweep_0b(lupdate=.false., lmeasure=lmeas)
+                 if( lmeas ) then
+                     call ftdqmc_sweep_start_b0 ! first, you should recover old B matrix at tau=0
+                     call ftdqmc_sweep_0b(lupdate=.false., lmeasure=lmeas)
+                 else
+                     ! if no meas, just recover old UDV matrix and Green functions
+                     Ust_up(:,:,:) =  Ust_up_tmp(:,:,:)
+                     Dst_up(:,:)   =  Dst_up_tmp(:,:)
+                     Vst_up(:,:,:) =  Vst_up_tmp(:,:,:)
+                     grup(:,:)     =  grup_tmp(:,:)
+#IFDEF SPINDOWN
+                     Ust_dn(:,:,:) =  Ust_dn_tmp(:,:,:)
+                     Dst_dn(:,:)   =  Dst_dn_tmp(:,:)
+                     Vst_dn(:,:,:) =  Vst_dn_tmp(:,:,:)
+                     grdn(:,:)     =  grdn_tmp(:,:)
+#ENDIF
+                 end if
              end if
 
          end if
       end if
     end subroutine ftdqmc_stglobal
+
+    subroutine ftdqmc_calculate_weight( logweightf, logweights )
+      implicit none
+      real(dp), intent(out) :: logweightf, logweights
+      integer :: nt, nf, i, ijs, i_1, i0, i1, i2, i3, i4
+      complex(dp) :: logweightf_up, logweightf_dn
+      !!============================================================================================
+      !!! calculate fermioin part ratio
+      !   WARNNING, s_logdet_z will replace the input matrix with L and U
+      Atmp = grup; Btmp = grdn
+      call s_logdet_z(ndim, Atmp, logweightf_up)
+      call s_logdet_z(ndim, Btmp, logweightf_dn)
+      logweightf_up = - logweightf_up
+      logweightf_dn = - logweightf_dn
+      logweightf = dble( logweightf_up + logweightf_dn )*2.d0
+#IFDEF TEST
+      write(fout,'(a,2e24.12)') ' without stablize, logweightf_up = ', logweightf_up
+      write(fout,'(a,2e24.12)') ' without stablize, logweightf_dn = ', logweightf_dn
+#ENDIF
+
+#IFDEF GEN_CONFC_LEARNING
+      !!============================================================================================
+      !!! calculate boson part ratio
+      ijs = 0
+!$OMP PARALLEL &
+!$OMP PRIVATE ( nt, nf, i_1, i0, i1, i2, i3, i4 )
+!$OMP DO REDUCTION ( + : ijs )
+      do nt = 1, ltrot
+          do nf = 1,2
+              do i_1 = 1,lq/4
+                  i0 = lthf(i_1,nf)
+                  i1 = nnlist(i0,1)
+                  i2 = nnlist(i0,2)
+                  i3 = nnlist(i0,3)
+                  i4 = nnlist(i0,4)
+                  ijs = ijs + nsigl_u(i0,nt)*nsigl_u(i1,nt) + &
+                              nsigl_u(i0,nt)*nsigl_u(i2,nt) + &
+                              nsigl_u(i0,nt)*nsigl_u(i3,nt) + &
+                              nsigl_u(i0,nt)*nsigl_u(i4,nt)
+              end do
+          end do
+      end do
+!$OMP END DO
+!$OMP END PARALLEL
+      logweights = dtau*js*dble(ijs)
+
+      ijs = 0
+!$OMP PARALLEL &
+!$OMP PRIVATE ( nt, i )
+!$OMP DO REDUCTION ( + : ijs )
+      do nt = 1, ltrot
+          do i = 1, lq
+              ijs = ijs + nsigl_u(i,nt)*nsigl_u(i,mod(nt,ltrot)+1)
+          end do
+      end do
+!$OMP END DO
+!$OMP END PARALLEL
+      logweights = logweights + gamma_s*dble(ijs)
+#ENDIF
+    end subroutine ftdqmc_calculate_weight
