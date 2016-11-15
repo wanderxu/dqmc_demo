@@ -136,6 +136,14 @@ subroutine prtau
           end do
           close(199)
 
+          open (unit=222,file='chijxjxtaur.bin',status='unknown', action="write", position="append")
+          do itau = 1, ltrot
+              do imj = 1, lq
+                  write(222,'(e22.12)') dble(chijxjx(imj,itau))
+              end do
+          end do
+          close(222)
+
 !!!          open(unit=299,file='chi0jxjx.bin',status='unknown', action="write", position="append")
 !!!          do iq = 1, lq
 !!!              qvec = dble(listk(iq,1))*b1_p + dble(listk(iq,2))*b2_p
