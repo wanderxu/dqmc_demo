@@ -115,7 +115,7 @@
                  logweightf_old = logweightf_new
                  logweights_old = logweights_new
                  ! perform measurement
-                 if( lmeas ) then
+                 if( lmeas .or. llocal ) then ! when we have local update, we also need perform an sweep back to beta
                      call ftdqmc_sweep_0b(lupdate=.false., lmeasure=lmeas)
                  end if
              else

@@ -131,7 +131,7 @@
                  logweightf_old = logweightf_new
                  logweights_old = logweights_new
                  ! perform measurement
-                 if( lmeas ) then
+                 if( lmeas .or. llocal ) then ! when we have local update, we also need perform an sweep back to beta
                      call ftdqmc_sweep_0b(lupdate=.false., lmeasure=lmeas)
                  end if
              else
@@ -198,6 +198,7 @@
       write(fout,'(a,2e24.12)') ' without stablize, logweightf_dn = ', logweightf_dn
 #ENDIF
 
+      logweights = 0.d0
 #IFDEF GEN_CONFC_LEARNING
       !!============================================================================================
       !!! calculate boson part ratio

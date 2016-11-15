@@ -674,7 +674,7 @@ module ftdqmc_core
               UR_up(:,:)  = Ust_up(:,:,n)
               DRvec_up(:) = Dst_up(:,n)
               VR_up(:,:)  = Vst_up(:,:,n)
-              if(.not. ltau ) then
+              if(.not. ltau .or. .not. lmeasure ) then
               !!!if(.not. ltau .or. nt .gt. ltrot/2) then
                   call green_equaltime( n, ndim, UR_up, DRvec_up, VR_up, VL_up, DLvec_up, UL_up, grtmp, info )
               else
@@ -774,7 +774,7 @@ module ftdqmc_core
               UR_dn(:,:)  = Ust_dn(:,:,n)
               DRvec_dn(:) = Dst_dn(:,n)
               VR_dn(:,:)  = Vst_dn(:,:,n)
-              if( .not. ltau ) then
+              if( .not. ltau .or. .not. lmeasure ) then
               !!!if(.not. ltau .or. nt .gt. ltrot/2) then
                   call green_equaltime( n, ndim, UR_dn, DRvec_dn, VR_dn, VL_dn, DLvec_dn, UL_dn, grtmp, info )
               else
