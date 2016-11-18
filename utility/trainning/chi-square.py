@@ -54,6 +54,8 @@ ydata = inmat[0]
 ydata_sigma =len(ydata)*[1.0]
 p0=ncol*[1.0]
 popt,perr,rchi_sq = chi_square( xdata, ydata, ydata_sigma, p0 )
-for i in range(ncol) :
-    print "p{} = {} +/- {}".format(i,popt[i],perr[i])
+for i in range(ncol-1) :
+    print " {} +/- {} for p{}".format(popt[i+1],perr[i+1],i+1)
+i=0
+print " {} +/- {} for p{}".format(popt[i],perr[i],i)
 print " x^2 = ", rchi_sq
