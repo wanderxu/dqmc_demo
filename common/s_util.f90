@@ -773,3 +773,36 @@
 
      return
   end subroutine s_time_analyzer
+
+real(8) function exp_numeric_d8(x)
+!! Written by Xiao Yan Xu (wanderxu@gmail.com)
+!! calculate exponentail within an approximation method.
+!! the relative error is controled by 'drange' in the following code
+!! 
+!! algorithm:
+!!    first reduce x to rsex = x/2^nlog2 to make |rsex| <= drange
+!!    then use the second order pade approximate equation: exp(z) ~ ( (z+3)^2+3 ) / ( (z-3)^2+3 )
+!!    to calculate exp(rsex) and exp(x) will be (exp(rsex)^(2^nlog2)
+  use constants, only : dp
+  implicit none
+  real(dp), intent(in) :: x
+  real(dp), parameter :: ee = 2.7182818284590452353602874713527d0
+  real(dp), parameter :: drange = 0.03d0 ! the relativ error is about 10^-8 for drange=0.03
+  
+  ! local
+  integer :: nlog2, ilog2
+  real(dp) :: rsex
+
+  nlog2 = 0
+  rsex = x
+  do while ( abs(rsex)>drange )  ! control precision
+      rsex = rsex / 2.d0
+      nlog2 = nlog2 + 1
+  end do
+
+  exp_numeric_d8 = ( (rsex+3.d0)*(rsex+3.d0) + 3.d0 ) / ( (rsex-3.d0)*(rsex-3.d0) + 3.d0 )
+  do ilog2 = 1, nlog2
+      exp_numeric_d8 = exp_numeric_d8*exp_numeric_d8
+  end do
+
+end function exp_numeric_d8
