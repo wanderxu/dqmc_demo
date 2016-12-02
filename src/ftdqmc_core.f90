@@ -271,13 +271,15 @@ module ftdqmc_core
       UR_up(:,:) = Ust_up(:,:,nst)
       DRvec_up(:)= Dst_up(:,nst)
       VR_up(:,:) = Vst_up(:,:,nst)
-      call green_equaltime( nst, ndim, UR_up, DRvec_up, VR_up, Imat, Ivec, Imat, grup, info )
+      !call green_equaltime( nst, ndim, UR_up, DRvec_up, VR_up, Imat, Ivec, Imat, grup, info )
+      call green_equaltimebb( nst, ndim, UR_up, DRvec_up, VR_up, grup, info )
 
 #IFDEF SPINDOWN
       UR_dn(:,:) = Ust_dn(:,:,nst)
       DRvec_dn(:)= Dst_dn(:,nst)
       VR_dn(:,:) = Vst_dn(:,:,nst)
-      call green_equaltime( nst, ndim, UR_dn, DRvec_dn, VR_dn, Imat, Ivec, Imat, grdn, info )
+      !call green_equaltime( nst, ndim, UR_dn, DRvec_dn, VR_dn, Imat, Ivec, Imat, grdn, info )
+      call green_equaltimebb( nst, ndim, UR_dn, DRvec_dn, VR_dn, grdn, info )
 #ENDIF
 
       if( info .eq. -1 ) then
@@ -363,13 +365,15 @@ module ftdqmc_core
       UL_up(:,:) = Ust_up(:,:,0)
       DLvec_up(:)= Dst_up(:,0)
       VL_up(:,:) = Vst_up(:,:,0)
-      call green_equaltime( nst, ndim, Imat, Ivec, Imat, VL_up, DLvec_up, UL_up, grup, info )
+      !call green_equaltime( nst, ndim, Imat, Ivec, Imat, VL_up, DLvec_up, UL_up, grup, info )
+      call green_equaltime00( nst, ndim, VL_up, DLvec_up, UL_up, grup, info )
 
 #IFDEF SPINDOWN
       UL_dn(:,:) = Ust_dn(:,:,0)
       DLvec_dn(:)= Dst_dn(:,0)
       VL_dn(:,:) = Vst_dn(:,:,0)
-      call green_equaltime( nst, ndim, Imat, Ivec, Imat, VL_dn, DLvec_dn, UL_dn, grdn, info )
+      !call green_equaltime( nst, ndim, Imat, Ivec, Imat, VL_dn, DLvec_dn, UL_dn, grdn, info )
+      call green_equaltime00( nst, ndim, VL_dn, DLvec_dn, UL_dn, grdn, info )
 #ENDIF
 
       if( info .eq. -1 ) then
@@ -1044,6 +1048,113 @@ module ftdqmc_core
 !!!      deallocate( Dvec1 )
 !!!      deallocate( Vmat1, Umat1 )
     end subroutine green_equaltime
+
+    subroutine green_equaltime00( nt, ndm, vle, dle, ule, gtt, infoe )
+      ! calcultate G(0,0), can save 3 matrix products when compare with green_equaltime
+      implicit none
+      integer, intent(in) :: nt, ndm
+      complex(dp), dimension(ndm,ndm), intent(in) :: vle, ule
+      real(dp), dimension(ndm), intent(in) :: dle
+      complex(dp), dimension(ndm,ndm), intent(out) :: gtt
+      integer, intent(out) :: infoe
+
+      ! local
+      integer :: i, j
+      complex(dp), allocatable, dimension(:,:) :: ulinv_tmp
+      real(dp), allocatable, dimension(:) :: dlmax, dlmin
+
+      allocate( ulinv_tmp(ndm,ndm) )
+      allocate( dlmax(ndm), dlmin(ndm) )
+
+      ! breakup dle = dlmax * dlmin
+      ! with <1 value set to 1 in dmax,  >1 value to 1 in dmin
+      call s_dvec_min_max(ndm,dle,dlmax,dlmin)
+
+#IFDEF TEST
+      write(fout,'(a)') '     dle(i)        dlmax(i)        dlmin(i) '
+      do i = 1, ndm
+          write(fout, '(3e16.8)') dle(i), dlmax(i), dlmin(i)
+      end do
+#ENDIF
+
+      !! >> g(0,0)
+      ! ule^-1 * dlmax^-1
+      ! vle * dlmin
+!$OMP PARALLEL &
+!$OMP PRIVATE ( j, i )
+!$OMP DO
+      do j = 1, ndm
+          do i = 1, ndm
+              ! note uutmp^-1 = uutmp ^ +
+              dvvdtmp(i,j) = dconjg(ule(j,i)) / dlmax(j) + vle(i,j) * dlmin(j)
+              ulinv_tmp(i,j) = dconjg(ule(j,i))
+          end do
+      end do
+!$OMP END DO
+!$OMP END PARALLEL
+      call s_inv_z(ndm,dvvdtmp)
+      call s_v_invd_u( ndm, ulinv_tmp, dlmax, dvvdtmp, gtt )
+
+      infoe = 0
+
+      deallocate( dlmin )
+      deallocate( dlmax )
+      deallocate( ulinv_tmp )
+    end subroutine green_equaltime00
+
+    subroutine green_equaltimebb( nt, ndm, ure, dre, vre, gtt, infoe )
+      ! calcultate G(beta,beta), can save 3 matrix products when compare with green_equaltime
+      implicit none
+      integer, intent(in) :: nt, ndm
+      complex(dp), dimension(ndm,ndm), intent(in) :: ure, vre
+      real(dp), dimension(ndm), intent(in) :: dre
+      complex(dp), dimension(ndm,ndm), intent(out) :: gtt
+      integer, intent(out) :: infoe
+
+      ! local
+      integer :: i, j
+      complex(dp), allocatable, dimension(:,:) :: urinv_tmp
+      real(dp), allocatable, dimension(:) :: drmax, drmin
+
+      allocate( urinv_tmp(ndm,ndm) )
+      allocate( drmax(ndm), drmin(ndm) )
+
+      ! breakup dre = drmax * drmin
+      ! with <1 value set to 1 in dmax,  >1 value to 1 in dmin
+      call s_dvec_min_max(ndm,dre,drmax,drmin)
+
+#IFDEF TEST
+      write(fout,*)
+      write(fout,'(a)') '     dre(i)        drmax(i)        drmin(i) '
+      do i = 1, ndm
+          write(fout, '(3e16.8)') dre(i), drmax(i), drmin(i)
+      end do
+#ENDIF
+
+      !! >> g(beta,beta)
+      ! drmax^-1 * ure^-1
+      ! drmin * vre
+!$OMP PARALLEL &
+!$OMP PRIVATE ( j, i )
+!$OMP DO
+      do j = 1, ndm
+          do i = 1, ndm
+              ! note uutmp^-1 = uutmp ^ +
+              dvvdtmp(i,j) = dconjg(ure(j,i)) / drmax(i) + vre(i,j) * drmin(i)
+              urinv_tmp(i,j) = dconjg(ure(j,i))
+          end do
+      end do
+!$OMP END DO
+!$OMP END PARALLEL
+      call s_inv_z(ndm,dvvdtmp)
+      call s_v_invd_u( ndm, dvvdtmp, drmax, urinv_tmp, gtt )
+
+      infoe = 0
+
+      deallocate( drmin )
+      deallocate( drmax )
+      deallocate( urinv_tmp )
+    end subroutine green_equaltimebb
 
     subroutine green_tau(nt, ndm, ure, dre, vre, vle, dle, ule, g00, gt0, g0t, gtt, infoe )
       implicit none
