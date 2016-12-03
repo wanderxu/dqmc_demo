@@ -122,57 +122,31 @@ module ftdqmc_core
 
       ! local
       integer :: i
-      complex(dp), allocatable, dimension(:,:) :: Umat1, Umat2, Vmat1, Vmat2
+      complex(dp), allocatable, dimension(:,:) :: Umat2, Vmat1, Vmat2
       real(dp), allocatable, dimension(:) :: Dvec1, Dvec2
 
-      allocate( Umat1(ndim,ndim), Umat2(ndim,ndim), Vmat1(ndim,ndim), Vmat2(ndim,ndim) )
+      allocate( Umat2(ndim,ndim), Vmat1(ndim,ndim), Vmat2(ndim,ndim) )
       allocate( Dvec1(ndim), Dvec2(ndim) )
 
-      call Bmat_tau( wrap_step(2,n), wrap_step(1,n), Bdtau1_up, Bdtau1_dn )
+      Bdtau1_up(:,:) = Ust_up(:,:,n-1)
+      Bdtau1_dn(:,:) = Ust_dn(:,:,n-1)
+      ! Bdtau1_up = Bup(tau+dtau,tau)*U_up
+      ! Bdtau1_dn = Bdn(tau+dtau,tau)*U_dn
+      call Bmat_tau_R( wrap_step(2,n), wrap_step(1,n), Bdtau1_up, Bdtau1_dn )
       
-#IFDEF TEST_LEVEL3
-      write(fout, '(a)') ' Bdtau1_up(:,:) = '
-      do i = 1, ndim
-          write(fout,'(4(2f8.3))') Bdtau1_up(i,:)
-      end do
-#ENDIF
-
-      Umat1(:,:) = Ust_up(:,:,n-1)
       Dvec1(:)   = Dst_up(:,n-1)
       Vmat1(:,:) = Vst_up(:,:,n-1)
-
-      ! Btmp = ( Bdtau1_up * Umat1 ) * Dmat1
-      call zgemm('n','n',ndim,ndim,ndim,cone,Bdtau1_up,ndim,Umat1,ndim,czero,Atmp,ndim)  ! Atmp = Bdtau1_up * Umat1
-      call s_z_x_diag_d(ndim,Atmp,Dvec1,Btmp) ! Btmp = Atmp * Dmat1
-
-#IFDEF TEST_LEVEL3
-      write(fout, '(a)') ' Btmp(:,:) = '
-      do i = 1, ndim
-          write(fout,'(4(2e16.8))') Btmp(i,:)
-      end do
-#ENDIF
+      call s_z_x_diag_d(ndim,Bdtau1_up,Dvec1,Btmp) ! Btmp = Bdtau1_up * Dmat1
       call s_svd_zg(ndim, ndim, ndim, Btmp, Umat2, Dvec2, Vtmp)
-!!!#IFDEF TEST
-!!!      ! test SVD
-!!!      call s_z_x_diag_d(ndim,Umat2,Dvec2,Atmp)  ! Atmp = Umat2 * Dmat2
-!!!      call zgemm('n','n',ndim,ndim,ndim,cone,Atmp,ndim,Vtmp,ndim,czero,Btmp,ndim)    ! Btmp = Atmp * Vtmp
-!!!      write(fout, '(a)') ' Btmp(:,:) = '
-!!!      do i = 1, ndim
-!!!          write(fout,'(4(2f8.3))') Btmp(i,:)
-!!!      end do
-!!!      stop
-!!!#ENDIF
       call zgemm('n','n',ndim,ndim,ndim,cone,Vtmp,ndim,Vmat1,ndim,czero,Vmat2,ndim)  ! Vmat2 = Vtmp * Vmat1
       Ust_up(:,:,n) = Umat2(:,:)
       Dst_up(:,n)   = Dvec2(:)
       Vst_up(:,:,n) = Vmat2(:,:)
 
 #IFDEF SPINDOWN
-      Umat1(:,:) = Ust_dn(:,:,n-1)
       Dvec1(:)   = Dst_dn(:,n-1)
       Vmat1(:,:) = Vst_dn(:,:,n-1)
-      call zgemm('n','n',ndim,ndim,ndim,cone,Bdtau1_dn,ndim,Umat1,ndim,czero,Atmp,ndim)  ! Atmp = Bdtau1_dn * Umat1
-      call s_z_x_diag_d(ndim,Atmp,Dvec1,Btmp) ! Btmp = Atmp * Dmat1
+      call s_z_x_diag_d(ndim,Bdtau1_dn,Dvec1,Btmp) ! Btmp = Bdtau1_dn * Dmat1
       call s_svd_zg(ndim, ndim, ndim, Btmp, Umat2, Dvec2, Vtmp)
       call zgemm('n','n',ndim,ndim,ndim,cone,Vtmp,ndim,Vmat1,ndim,czero,Vmat2,ndim)  ! Vmat2 = Vtmp * Vmat1
       Ust_dn(:,:,n) = Umat2(:,:)
@@ -181,7 +155,7 @@ module ftdqmc_core
 #ENDIF
 
       deallocate( Dvec2, Dvec1 )
-      deallocate( Vmat2, Vmat1, Umat2, Umat1 )
+      deallocate( Vmat2, Vmat1, Umat2 )
 
     end subroutine ftdqmc_stablize_0b_svd
   
@@ -192,28 +166,21 @@ module ftdqmc_core
 
       ! local
       integer :: i
-      complex(dp), allocatable, dimension(:,:) :: Umat1, Umat2, Vmat1, Vmat2
+      complex(dp), allocatable, dimension(:,:) :: Umat2, Vmat1, Vmat2
       real(dp), allocatable, dimension(:) :: Dvec1, Dvec2
 
-      allocate( Umat1(ndim,ndim), Umat2(ndim,ndim), Vmat1(ndim,ndim), Vmat2(ndim,ndim) )
+      allocate( Umat2(ndim,ndim), Vmat1(ndim,ndim), Vmat2(ndim,ndim) )
       allocate( Dvec1(ndim), Dvec2(ndim) )
 
-      call Bmat_tau( wrap_step(2,n), wrap_step(1,n), Bdtau1_up, Bdtau1_dn )
-
-#IFDEF TEST_LEVEL3
-      write(fout, '(a)') ' Bdtau1_up(:,:) = '
-      do i = 1, ndim
-          write(fout,'(4(2f8.3))') Bdtau1_up(i,:)
-      end do
-#ENDIF
+      Bdtau1_up(:,:) = Ust_up(:,:,n)
+      Bdtau1_dn(:,:) = Ust_dn(:,:,n)
+      ! Bdtau1_up = U_up*Bup(tau+dtau,tau)
+      ! Bdtau1_dn = U_dn*Bdn(tau+dtau,tau)
+      call Bmat_tau_L( wrap_step(2,n), wrap_step(1,n), Bdtau1_up, Bdtau1_dn )
 
       Vmat1(:,:) = Vst_up(:,:,n)
       Dvec1(:)   = Dst_up(:,n)
-      Umat1(:,:) = Ust_up(:,:,n)
-
-      ! Btmp = Dmat1 * Umat1 * Bdtau1_up
-      call zgemm('n','n',ndim,ndim,ndim,cone,Umat1,ndim,Bdtau1_up,ndim,czero,Atmp,ndim)  ! Atmp = Umat1 * Bdtau1_up
-      call s_diag_d_x_z(ndim,Dvec1,Atmp,Btmp) ! Btmp = Dmat1 * Atmp
+      call s_diag_d_x_z(ndim,Dvec1,Bdtau1_up,Btmp) ! Btmp = Dmat1 * Bdtau1_up
       call s_svd_zg(ndim, ndim, ndim, Btmp, Vtmp, Dvec2, Umat2)  ! Btmp = Vtmp * Dmat2 * Umat2
       call zgemm('n','n',ndim,ndim,ndim,cone,Vmat1,ndim,Vtmp,ndim,czero,Vmat2,ndim)  ! Vmat2 = Vmat1 * Vtmp 
       Vst_up(:,:,n-1) = Vmat2(:,:)
@@ -223,9 +190,7 @@ module ftdqmc_core
 #IFDEF SPINDOWN
       Vmat1(:,:) = Vst_dn(:,:,n)
       Dvec1(:)   = Dst_dn(:,n)
-      Umat1(:,:) = Ust_dn(:,:,n)
-      call zgemm('n','n',ndim,ndim,ndim,cone,Umat1,ndim,Bdtau1_dn,ndim,czero,Atmp,ndim)  ! Atmp = Umat1 * Bdtau1_dn
-      call s_diag_d_x_z(ndim,Dvec1,Atmp,Btmp) ! Btmp = Dmat1 * Atmp
+      call s_diag_d_x_z(ndim,Dvec1,Bdtau1_dn,Btmp) ! Btmp = Dmat1 * Bdtau1_dn
       call s_svd_zg(ndim, ndim, ndim, Btmp, Vtmp, Dvec2, Umat2)  ! Btmp = Vtmp * Dmat2 * Umat2
       call zgemm('n','n',ndim,ndim,ndim,cone,Vmat1,ndim,Vtmp,ndim,czero,Vmat2,ndim)  ! Vmat2 = Vmat1 * Vtmp 
       Vst_dn(:,:,n-1) = Vmat2(:,:)
@@ -234,7 +199,7 @@ module ftdqmc_core
 #ENDIF
 
       deallocate( Dvec2, Dvec1 )
-      deallocate( Vmat2, Vmat1, Umat2, Umat1 )
+      deallocate( Vmat2, Vmat1, Umat2 )
 
     end subroutine ftdqmc_stablize_b0_svd
   
@@ -317,7 +282,9 @@ module ftdqmc_core
 
      ELSE
 
-     call Bmat_tau( ltrot, 1, Bdtau1_up, Bdtau1_dn )
+     Bdtau1_up(:,:) = Imat(:,:)
+     Bdtau1_dn(:,:) = Imat(:,:)
+     call Bmat_tau_R( ltrot, 1, Bdtau1_up, Bdtau1_dn )
      do  i = 1, ndim
          Bdtau1_up(i,i) = Bdtau1_up(i,i) + cone
      end do
@@ -411,7 +378,9 @@ module ftdqmc_core
 
      ELSE
 
-     call Bmat_tau( ltrot, 1, Bdtau1_up, Bdtau1_dn )
+     Bdtau1_up(:,:) = Imat(:,:)
+     Bdtau1_dn(:,:) = Imat(:,:)
+     call Bmat_tau_R( ltrot, 1, Bdtau1_up, Bdtau1_dn )
      do  i = 1, ndim
          Bdtau1_up(i,i) = Bdtau1_up(i,i) + cone
      end do
@@ -686,16 +655,11 @@ module ftdqmc_core
                   ! B(nt1,nt2) with nt1 >= nt2
                   nt1 = nt
                   nt2 = nt
-                  call Bmat_tau( nt1, nt2, Bdtau1_up, Bdtau1_dn )
-
                   ! G(t',0) = B(t',t) * G(t,0)
-                  Btmp = gt0up
-                  call zgemm('n','n',ndim,ndim,ndim,cone,Bdtau1_up,ndim,Btmp,ndim,czero,gt0up,ndim)
+                  call Bmat_tau_R( nt1, nt2, gt0up, gt0dn)
 
                   ! G(0,t') = G(0,t) * B(t',t)^-1
-                  call s_inv_z(ndim,Bdtau1_up)
-                  Btmp = g0tup
-                  call zgemm('n','n',ndim,ndim,ndim,cone,Btmp,ndim,Bdtau1_up,ndim,czero,g0tup,ndim)
+                  call Bmatinv_tau_L( nt1, nt2, g0tup, g0tdn)
 #ENDIF
 
                   !call green_tau(n, ndim, UR_up, DRvec_up, VR_up, VL_up, DLvec_up, UL_up, g00up, gt0up,   g0tup,   grtmp, info )
@@ -782,22 +746,6 @@ module ftdqmc_core
               !!!if(.not. ltau .or. nt .gt. ltrot/2) then
                   call green_equaltime( n, ndim, UR_dn, DRvec_dn, VR_dn, VL_dn, DLvec_dn, UL_dn, grtmp, info )
               else
-#IFDEF DYNERROR
-                  ! B(nt1,nt2) with nt1 >= nt2
-                  !!!nt1 = nt
-                  !!!nt2 = nt
-                  !!!call Bmat_tau( nt1, nt2, Bdtau1_up, Bdtau1_dn )
-
-                  ! G(t',0) = B(t',t) * G(t,0)
-                  Btmp = gt0dn
-                  call zgemm('n','n',ndim,ndim,ndim,cone,Bdtau1_dn,ndim,Btmp,ndim,czero,gt0dn,ndim)
-
-                  ! G(0,t') = G(0,t) * B(t',t)^-1
-                  call s_inv_z(ndim,Bdtau1_dn)
-                  Btmp = g0tdn
-                  call zgemm('n','n',ndim,ndim,ndim,cone,Btmp,ndim,Bdtau1_dn,ndim,czero,g0tdn,ndim)
-#ENDIF
-
                   !call green_tau(n, ndim, UR_dn, DRvec_dn, VR_dn, VL_dn, DLvec_dn, UL_dn, g00dn, gt0dn,  g0tdn,  grtmp, info )
                   call  green_tau(n, ndim, UR_dn, DRvec_dn, VR_dn, VL_dn, DLvec_dn, UL_dn, g00dn, gt0tmp, g0ttmp, grtmp, info )
 #IFDEF TEST_LEVEL3
@@ -1357,20 +1305,19 @@ module ftdqmc_core
     !!!  deallocate( vrulmat )   ! 1
     !!!end subroutine green_tau
 
-    subroutine Bmat_tau( nt1, nt2, bmat_up, bmat_dn )
-      ! B(tau1,tau2)
+    subroutine Bmat_tau_R( nt1, nt2, bmat_up, bmat_dn )
+      ! B(tau1,tau2) * 
+      ! make sure nt1 > nt2
       implicit none
       integer, intent(in) :: nt1, nt2
-      complex(dp), dimension(ndim,ndim), intent(out) :: bmat_up
-      complex(dp), dimension(ndim,ndim), intent(out) :: bmat_dn
+      complex(dp), dimension(ndim,ndim), intent(inout) :: bmat_up
+      complex(dp), dimension(ndim,ndim), intent(inout) :: bmat_dn
 
       ! local
       integer :: nt, nf, nflag
       complex(dp) :: phaseu
 
       phaseu = cone
-      bmat_up(:,:) = Imat(:,:)
-      bmat_dn(:,:) = Imat(:,:)
       do nt = nt2, nt1
           call mmthr(bmat_up,bmat_dn)
           if( lwrapj ) then
@@ -1391,7 +1338,67 @@ module ftdqmc_core
       !phaseu = dcmplx( (0.5d0*exp(-dtau*rhub*0.5d0) ) ** (lq*(abs(nt1-nt2)+1)), 0.d0 )
       !write(fout,'(a,2e16.8)') ' phaseu = ', phaseu
       !bmat(:,:) = bmat(:,:) * phaseu
-    end subroutine Bmat_tau
+    end subroutine Bmat_tau_R
+
+    subroutine Bmat_tau_L( nt1, nt2, bmat_up, bmat_dn )
+      ! * B(tau1,tau2)
+      ! make sure nt1 > nt2
+      implicit none
+      integer, intent(in) :: nt1, nt2
+      complex(dp), dimension(ndim,ndim), intent(inout) :: bmat_up
+      complex(dp), dimension(ndim,ndim), intent(inout) :: bmat_dn
+
+      ! local
+      integer :: nt, nf, nflag
+      complex(dp) :: phaseu
+
+      phaseu = cone
+      do nt = nt1, nt2, -1
+          if( lwrapu ) then
+            nflag = 3 ! onsite
+            call mmuul(bmat_up, bmat_dn, nf, nt, nflag )
+          end if
+          if( lwrapj ) then
+            do nf = nfam, 1, -1
+                nflag = 2
+                call mmuul(bmat_up, bmat_dn, nf, nt, nflag)
+                nflag = 1
+                call mmuul(bmat_up, bmat_dn, nf, nt, nflag)
+            end do
+          end if
+          call mmthl(bmat_up,bmat_dn)
+      end do
+    end subroutine Bmat_tau_L
+
+    subroutine Bmatinv_tau_L( nt1, nt2, bmat_up, bmat_dn )
+      ! *B(tau1,tau2)^-1
+      ! make sure nt1 > nt2
+      implicit none
+      integer, intent(in) :: nt1, nt2
+      complex(dp), dimension(ndim,ndim), intent(inout) :: bmat_up
+      complex(dp), dimension(ndim,ndim), intent(inout) :: bmat_dn
+
+      ! local
+      integer :: nt, nf, nflag
+      complex(dp) :: phaseu
+
+      phaseu = cone
+      do nt = nt2, nt1
+          call mmthlm1(bmat_up,bmat_dn)
+          if( lwrapj ) then
+            do nf = 1, nfam
+                nflag = 2
+                call mmuulm1(bmat_up, bmat_dn, nf, nt, nflag)
+                nflag = 1
+                call mmuulm1(bmat_up, bmat_dn, nf, nt, nflag)
+            end do
+          end if
+          if( lwrapu ) then
+            nflag = 3 ! onsite
+            call mmuulm1(bmat_up, bmat_dn, nf, nt, nflag )
+          end if
+      end do
+    end subroutine Bmatinv_tau_L
 
 #IFDEF CUMC
 #include "stglobal_sl.f90"

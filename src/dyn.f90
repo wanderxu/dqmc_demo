@@ -42,26 +42,11 @@
                   ! B(nt1,nt2) with nt1 >= nt2
                   nt1 = nt
                   nt2 = nt
-                  call Bmat_tau( nt1, nt2, Bdtau1_up, Bdtau1_dn )
-
                   ! G(t',0) = B(t',t) * G(t,0)
-                  Btmp = gt0up
-                  call zgemm('n','n',ndim,ndim,ndim,cone,Bdtau1_up,ndim,Btmp,ndim,czero,gt0up,ndim)
+                  call Bmat_tau_R( nt1, nt2, gt0up, gt0dn)
 
                   ! G(0,t') = G(0,t) * B(t',t)^-1
-                  call s_inv_z(ndim,Bdtau1_up)
-                  Btmp = g0tup
-                  call zgemm('n','n',ndim,ndim,ndim,cone,Btmp,ndim,Bdtau1_up,ndim,czero,g0tup,ndim)
-#IFDEF SPINDOWN
-                  ! G(t',0) = B(t',t) * G(t,0)
-                  Btmp = gt0dn
-                  call zgemm('n','n',ndim,ndim,ndim,cone,Bdtau1_dn,ndim,Btmp,ndim,czero,gt0dn,ndim)
-
-                  ! G(0,t') = G(0,t) * B(t',t)^-1
-                  call s_inv_z(ndim,Bdtau1_dn)
-                  Btmp = g0tdn
-                  call zgemm('n','n',ndim,ndim,ndim,cone,Btmp,ndim,Bdtau1_dn,ndim,czero,g0tdn,ndim)
-#ENDIF
+                  call Bmatinv_tau_L( nt1, nt2, g0tup, g0tdn)
 
 !!!                  ! Bt2t1_up = Bdtau1_up * Bt2t1_up
 !!!                  call zgemm('n','n',ndim,ndim,ndim,cone,Bdtau1_up,ndim,Bt2t1_up,ndim,czero,Btmp,ndim)  ! Btmp =  Bdtau1_up * Bt2t1_up
