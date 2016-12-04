@@ -122,9 +122,11 @@ module ftdqmc_core
 
       ! local
       integer :: i
+      integer, allocatable, dimension(:) :: jpvt
       complex(dp), allocatable, dimension(:,:) :: Umat2, Vmat1, Vmat2
       real(dp), allocatable, dimension(:) :: Dvec1, Dvec2
 
+      allocate( jpvt(ndim) )
       allocate( Umat2(ndim,ndim), Vmat1(ndim,ndim), Vmat2(ndim,ndim) )
       allocate( Dvec1(ndim), Dvec2(ndim) )
 
@@ -134,28 +136,57 @@ module ftdqmc_core
       ! Bdtau1_dn = Bdn(tau+dtau,tau)*U_dn
       call Bmat_tau_R( wrap_step(2,n), wrap_step(1,n), Bdtau1_up, Bdtau1_dn )
       
-      Dvec1(:)   = Dst_up(:,n-1)
-      Vmat1(:,:) = Vst_up(:,:,n-1)
-      call s_z_x_diag_d(ndim,Bdtau1_up,Dvec1,Btmp) ! Btmp = Bdtau1_up * Dmat1
-      call s_svd_zg(ndim, ndim, ndim, Btmp, Umat2, Dvec2, Vtmp)
-      call zgemm('n','n',ndim,ndim,ndim,cone,Vtmp,ndim,Vmat1,ndim,czero,Vmat2,ndim)  ! Vmat2 = Vtmp * Vmat1
+      if( n.eq.1 ) then
+          call s_zgeQRPT(ndim, ndim, Bdtau1_up, Umat2, Vtmp, jpvt)
+          do i = 1, ndim
+              Dvec2(i) = Vtmp(i,i)
+          end do
+          call s_invdiag_d_x_zr( ndim, Dvec2, Vtmp, Vmat2 )
+          call s_zmp(ndim,ndim,Vmat2,jpvt)
+      else
+          Dvec1(:)   = Dst_up(:,n-1)
+          Vmat1(:,:) = Vst_up(:,:,n-1)
+          call s_z_x_diag_d(ndim,Bdtau1_up,Dvec1,Btmp) ! Btmp = Bdtau1_up * Dmat1
+          call s_zmcpt(ndim,ndim,Btmp,jpvt)
+          call s_zgeQR(ndim,ndim,Btmp,Umat2,Vmat2)
+          do i = 1, ndim
+              Dvec2(i) = Vmat2(i,i)
+          end do
+          call s_invdiag_d_x_zr( ndim, Dvec2, Vmat2, Vtmp )
+          call s_zpm(ndim,ndim,jpvt,Vmat1)
+          call zgemm('n','n',ndim,ndim,ndim,cone,Vtmp,ndim,Vmat1,ndim,czero,Vmat2,ndim)
+      end if
       Ust_up(:,:,n) = Umat2(:,:)
       Dst_up(:,n)   = Dvec2(:)
       Vst_up(:,:,n) = Vmat2(:,:)
-
 #IFDEF SPINDOWN
-      Dvec1(:)   = Dst_dn(:,n-1)
-      Vmat1(:,:) = Vst_dn(:,:,n-1)
-      call s_z_x_diag_d(ndim,Bdtau1_dn,Dvec1,Btmp) ! Btmp = Bdtau1_dn * Dmat1
-      call s_svd_zg(ndim, ndim, ndim, Btmp, Umat2, Dvec2, Vtmp)
-      call zgemm('n','n',ndim,ndim,ndim,cone,Vtmp,ndim,Vmat1,ndim,czero,Vmat2,ndim)  ! Vmat2 = Vtmp * Vmat1
+      if( n.eq.1 ) then
+          call s_zgeQRPT(ndim, ndim, Bdtau1_dn, Umat2, Vtmp, jpvt)
+          do i = 1, ndim
+              Dvec2(i) = Vtmp(i,i)
+          end do
+          call s_invdiag_d_x_zr( ndim, Dvec2, Vtmp, Vmat2 )
+          call s_zmp(ndim,ndim,Vmat2,jpvt)
+      else
+          Dvec1(:)   = Dst_dn(:,n-1)
+          Vmat1(:,:) = Vst_dn(:,:,n-1)
+          call s_z_x_diag_d(ndim,Bdtau1_dn,Dvec1,Btmp) ! Btmp = Bdtau1_dn * Dmat1
+          call s_zmcpt(ndim,ndim,Btmp,jpvt)
+          call s_zgeQR(ndim,ndim,Btmp,Umat2,Vmat2)
+          do i = 1, ndim
+              Dvec2(i) = Vmat2(i,i)
+          end do
+          call s_invdiag_d_x_zr( ndim, Dvec2, Vmat2, Vtmp )
+          call s_zpm(ndim,ndim,jpvt,Vmat1)
+          call zgemm('n','n',ndim,ndim,ndim,cone,Vtmp,ndim,Vmat1,ndim,czero,Vmat2,ndim)
+      end if
       Ust_dn(:,:,n) = Umat2(:,:)
       Dst_dn(:,n)   = Dvec2(:)
       Vst_dn(:,:,n) = Vmat2(:,:)
 #ENDIF
-
       deallocate( Dvec2, Dvec1 )
       deallocate( Vmat2, Vmat1, Umat2 )
+      deallocate( jpvt )
 
     end subroutine ftdqmc_stablize_0b_svd
   
@@ -166,9 +197,11 @@ module ftdqmc_core
 
       ! local
       integer :: i
+      integer, allocatable, dimension(:) :: jpvt
       complex(dp), allocatable, dimension(:,:) :: Umat2, Vmat1, Vmat2
       real(dp), allocatable, dimension(:) :: Dvec1, Dvec2
 
+      allocate( jpvt(ndim) )
       allocate( Umat2(ndim,ndim), Vmat1(ndim,ndim), Vmat2(ndim,ndim) )
       allocate( Dvec1(ndim), Dvec2(ndim) )
 
@@ -176,31 +209,61 @@ module ftdqmc_core
       Bdtau1_dn(:,:) = Ust_dn(:,:,n)
       ! Bdtau1_up = U_up*Bup(tau+dtau,tau)
       ! Bdtau1_dn = U_dn*Bdn(tau+dtau,tau)
-      call Bmat_tau_L( wrap_step(2,n), wrap_step(1,n), Bdtau1_up, Bdtau1_dn )
-
-      Vmat1(:,:) = Vst_up(:,:,n)
-      Dvec1(:)   = Dst_up(:,n)
-      call s_diag_d_x_z(ndim,Dvec1,Bdtau1_up,Btmp) ! Btmp = Dmat1 * Bdtau1_up
-      call s_svd_zg(ndim, ndim, ndim, Btmp, Vtmp, Dvec2, Umat2)  ! Btmp = Vtmp * Dmat2 * Umat2
-      call zgemm('n','n',ndim,ndim,ndim,cone,Vmat1,ndim,Vtmp,ndim,czero,Vmat2,ndim)  ! Vmat2 = Vmat1 * Vtmp 
+      ! call Bmat_tau_L( wrap_step(2,n), wrap_step(1,n), Bdtau1_up, Bdtau1_dn )
+      ! call Bmat_tau_RH( wrap_step(2,n), wrap_step(1,n), Bdtau1_up, Bdtau1_dn ) ! we need to get ( U*B(n*tau1,(n-1)*tau1) )^H = B^H * U^H
+      call Bmat_tau_R( wrap_step(2,n), wrap_step(1,n), Bdtau1_up, Bdtau1_dn ) ! we need to get ( U*B(n*tau1,(n-1)*tau1) )^H = B^H * U^H
+                                                                              ! for special model here, B^H = B
+      if( n.eq.1 ) then
+          call s_zgeQRPT(ndim, ndim, Bdtau1_up, Umat2, Vtmp, jpvt) ! we have Vtmp^+ and Umat^+, actually
+          do i = 1, ndim
+              Dvec2(i) = Vtmp(i,i)
+          end do
+          call s_invdiag_d_x_zr( ndim, Dvec2, Vtmp, Vmat2 )
+          call s_zmp(ndim,ndim,Vmat2,jpvt)  ! we have Vmat2^+, actually
+      else
+          Dvec1(:)   = Dst_up(:,n)
+          Vmat1(:,:) = Vst_up(:,:,n)
+          call s_z_x_diag_d(ndim,Bdtau1_up,Dvec1,Btmp) ! Btmp = Bdtau1_up * Dmat1
+          call s_zmcpt(ndim,ndim,Btmp,jpvt)
+          call s_zgeQR(ndim,ndim,Btmp,Umat2,Vmat2)
+          do i = 1, ndim
+              Dvec2(i) = Vmat2(i,i)
+          end do
+          call s_invdiag_d_x_zr( ndim, Dvec2, Vmat2, Vtmp )
+          call s_zpm(ndim,ndim,jpvt,Vmat1)
+          call zgemm('n','n',ndim,ndim,ndim,cone,Vtmp,ndim,Vmat1,ndim,czero,Vmat2,ndim)
+      end if
+      Ust_up(:,:,n-1) = Umat2(:,:)  ! note we have Umat2^+ and Vmat2^+
+      Dst_up(:,n-1)   = Dvec2(:)
       Vst_up(:,:,n-1) = Vmat2(:,:)
-      Dst_up(:,n-1) = Dvec2(:)
-      Ust_up(:,:,n-1) = Umat2(:,:)
-
 #IFDEF SPINDOWN
-      Vmat1(:,:) = Vst_dn(:,:,n)
-      Dvec1(:)   = Dst_dn(:,n)
-      call s_diag_d_x_z(ndim,Dvec1,Bdtau1_dn,Btmp) ! Btmp = Dmat1 * Bdtau1_dn
-      call s_svd_zg(ndim, ndim, ndim, Btmp, Vtmp, Dvec2, Umat2)  ! Btmp = Vtmp * Dmat2 * Umat2
-      call zgemm('n','n',ndim,ndim,ndim,cone,Vmat1,ndim,Vtmp,ndim,czero,Vmat2,ndim)  ! Vmat2 = Vmat1 * Vtmp 
+      if( n.eq.1 ) then
+          call s_zgeQRPT(ndim, ndim, Bdtau1_dn, Umat2, Vtmp, jpvt) ! we have Vtmp^+ and Umat^+, actually
+          do i = 1, ndim
+              Dvec2(i) = Vtmp(i,i)
+          end do
+          call s_invdiag_d_x_zr( ndim, Dvec2, Vtmp, Vmat2 )
+          call s_zmp(ndim,ndim,Vmat2,jpvt)  ! we have Vmat2^+, actually
+      else
+          Dvec1(:)   = Dst_dn(:,n)
+          Vmat1(:,:) = Vst_dn(:,:,n)
+          call s_z_x_diag_d(ndim,Bdtau1_dn,Dvec1,Btmp) ! Btmp = Bdtau1_dn * Dmat1
+          call s_zmcpt(ndim,ndim,Btmp,jpvt)
+          call s_zgeQR(ndim,ndim,Btmp,Umat2,Vmat2)
+          do i = 1, ndim
+              Dvec2(i) = Vmat2(i,i)
+          end do
+          call s_invdiag_d_x_zr( ndim, Dvec2, Vmat2, Vtmp )
+          call s_zpm(ndim,ndim,jpvt,Vmat1)
+          call zgemm('n','n',ndim,ndim,ndim,cone,Vtmp,ndim,Vmat1,ndim,czero,Vmat2,ndim)
+      end if
+      Ust_dn(:,:,n-1) = Umat2(:,:)  ! note we have Umat2^+ and Vmat2^+
+      Dst_dn(:,n-1)   = Dvec2(:)
       Vst_dn(:,:,n-1) = Vmat2(:,:)
-      Dst_dn(:,n-1) = Dvec2(:)
-      Ust_dn(:,:,n-1) = Umat2(:,:)
 #ENDIF
-
       deallocate( Dvec2, Dvec1 )
       deallocate( Vmat2, Vmat1, Umat2 )
-
+      deallocate( jpvt )
     end subroutine ftdqmc_stablize_b0_svd
   
     subroutine ftdqmc_sweep_start_0b
@@ -1008,10 +1071,8 @@ module ftdqmc_core
 
       ! local
       integer :: i, j
-      complex(dp), allocatable, dimension(:,:) :: ulinv_tmp
       real(dp), allocatable, dimension(:) :: dlmax, dlmin
 
-      allocate( ulinv_tmp(ndm,ndm) )
       allocate( dlmax(ndm), dlmin(ndm) )
 
       ! breakup dle = dlmax * dlmin
@@ -1034,20 +1095,18 @@ module ftdqmc_core
       do j = 1, ndm
           do i = 1, ndm
               ! note uutmp^-1 = uutmp ^ +
-              dvvdtmp(i,j) = dconjg(ule(j,i)) / dlmax(j) + vle(i,j) * dlmin(j)
-              ulinv_tmp(i,j) = dconjg(ule(j,i))
+              dvvdtmp(i,j) = ule(i,j) / dlmax(j) + dconjg( vle(j,i) ) * dlmin(j)
           end do
       end do
 !$OMP END DO
 !$OMP END PARALLEL
       call s_inv_z(ndm,dvvdtmp)
-      call s_v_invd_u( ndm, ulinv_tmp, dlmax, dvvdtmp, gtt )
+      call s_v_invd_u( ndm, ule, dlmax, dvvdtmp, gtt )
 
       infoe = 0
 
       deallocate( dlmin )
       deallocate( dlmax )
-      deallocate( ulinv_tmp )
     end subroutine green_equaltime00
 
     subroutine green_equaltimebb( nt, ndm, ure, dre, vre, gtt, infoe )
