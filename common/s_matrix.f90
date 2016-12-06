@@ -1928,12 +1928,21 @@
      complex(dp), allocatable :: work(:)
      real(dp), allocatable :: rwork(:)
 
-! initialize lwrok
-     lwork = max(1, 2 * min_mn + max(m,n))
+!!!!! initialize lwrok
+!!!!     lwork = max(1, 2 * min_mn + max(m,n))
 
 ! allocate memory
-     allocate(work(lwork),     stat=istat)
      allocate(rwork(5*min_mn), stat=istat)
+
+     ! lwork query
+     lwork = -1
+     allocate(work(1),  stat=istat)
+     call ZGESVD('S', 'S', m, n, amat, m, svec, umat, m, vmat, min_mn, work, lwork, rwork, info)
+     lwork = nint(dble(work(1)))
+     deallocate(work)
+
+     ! with optimal lwork, do SVD
+     allocate(work(lwork),  stat=istat)
      if ( istat /= 0 ) then
          call s_print_error('s_svd_zg','can not allocate enough memory')
      endif ! back if ( istat /= 0 ) block
@@ -2162,14 +2171,367 @@
     integer :: i
 
     do i = 1, ndim
-        if( dvec(i) .ge. one ) then
-            dmin(i) = one
-            dmax(i) = dvec(i)
-        end if
-        if( dvec(i) .le. one ) then
-            dmax(i) = one
+        if( abs(dvec(i)) .gt. one ) then
+            dmax(i) = abs( dvec(i) )
+            dmin(i) = sign(one,dvec(i))
+        else
+            dmax(i) = 1
             dmin(i) = dvec(i)
         end if
     end do
-
   end subroutine s_dvec_min_max
+
+  subroutine s_zmcpt(rdim,cdim,amat,jpvt)
+  ! make matrix amat to column norm decreasing
+  ! amat = amat*P
+  ! output amat and PT
+    use constants, only: dp
+    implicit none
+    integer, intent(in) :: rdim, cdim
+    complex(dp), dimension(rdim,cdim), intent(inout) :: amat
+    integer, dimension(cdim), intent(out) :: jpvt
+
+    ! external
+    integer, external :: idamax
+    real(dp), external :: dznrm2
+
+    ! local
+    integer :: k, pvt, itemp
+    real(dp), allocatable, dimension(:) :: vn1
+
+    allocate( vn1(cdim) )
+
+    do k = 1, cdim
+        vn1(k) = dznrm2(rdim,amat(1,k),1)
+        jpvt(k) = k
+    end do
+
+    do k = 1, cdim
+        pvt = (k-1) + idamax(cdim-k+1, vn1(k), 1)
+        if( pvt .ne. k ) then
+            call zswap( rdim, amat(1,pvt), 1, amat(1,k), 1 )
+            itemp = jpvt( pvt )
+            jpvt( pvt ) = jpvt( k )
+            jpvt( k ) = itemp
+            vn1(pvt) = vn1(k)
+        end if
+    end do
+    !write(*,*) ' after s_zmcpt, jpvt = '
+    !write(*,*) jpvt(:)
+    deallocate(vn1)
+  end subroutine s_zmcpt
+
+  subroutine s_zmrpt(rdim,cdim,amat,jpvt)
+  ! make matrix amat to row norm decreasing
+  ! amat = P*amat
+  ! output amat and PT
+    use constants, only: dp
+    implicit none
+    integer, intent(in) :: rdim, cdim
+    complex(dp), dimension(rdim,cdim), intent(inout) :: amat
+    integer, dimension(rdim), intent(out) :: jpvt
+
+    ! external
+    integer, external :: idamax
+    real(dp), external :: dznrm2
+
+    ! local
+    integer :: k, pvt, itemp
+    real(dp), allocatable, dimension(:) :: vn1
+
+
+    allocate( vn1(rdim) )
+
+    do k = 1, rdim
+        vn1(k) = dznrm2(cdim,amat(k,1),rdim)
+        jpvt(k) = k
+    end do
+
+    do k = 1, rdim
+        pvt = (k-1) + idamax(rdim-k+1, vn1(k), 1)
+        if( pvt .ne. k ) then
+            call zswap( cdim, amat(pvt,1), rdim, amat(k,1), rdim )
+            itemp = jpvt( pvt )
+            jpvt( pvt ) = jpvt( k )
+            jpvt( k ) = itemp
+            vn1(pvt) = vn1(k)
+        end if
+    end do
+    deallocate(vn1)
+  end subroutine s_zmrpt
+
+  subroutine s_zpm(rdim,cdim,jpv,amat)
+  ! amat = P * amat, where P is permutation
+  !       note P = (a1,a2,a3,....,an) and is defined with the right order when perform column permutation, namely, A*P.
+  !                ( 1, 2, 3,...., n)
+  !       if we want to use it to perform row permutation, we should first reverse the permutation order, which is
+  !       equivalent to do the transpose of P, P^T = ( 1, 2, 3,......, n) = ( b1,b2,b3,......,bn)
+  !                                                  (a1,a2,a3,......,an)   (  1, 2, 3,......, n)
+  !       then perform P^T on amat with row permutation
+    use constants, only: dp
+    implicit none
+    integer, intent(in) :: rdim, cdim
+    integer, dimension(rdim), intent(inout) :: jpv
+    complex(dp), dimension(rdim,cdim), intent(inout) :: amat
+
+    ! local
+    integer :: k, pv, itemp, npt
+    integer, dimension(:), allocatable :: jpvt
+
+    allocate(jpvt(rdim))
+
+    do k = 1, rdim
+        jpvt(k) = k
+    end do
+
+    !write(*,*) ' in zpm, input jpv = '
+    !write(*,*) jpv(:)
+    do
+        npt = 0
+        do k = 1, rdim
+            pv = jpv(k)
+            if( pv .ne. k ) then 
+                npt = npt + 1
+                ! jpv
+                itemp = jpv( pv )
+                jpv( pv ) = jpv( k )
+                jpv( k ) = itemp
+                ! jpvt
+                itemp = jpvt( pv )
+                jpvt( pv ) = jpvt( k )
+                jpvt( k ) = itemp
+            end if
+        end do
+        if( npt.eq.0) exit
+    end do
+    !write(*,*) ' in zpm, jpv^T = '
+    !write(*,*) jpvt(:)
+
+    do
+        npt = 0
+        do k = 1, rdim
+            pv = jpvt(k)
+            if( pv .ne. k ) then
+                npt = npt + 1
+                call zswap( cdim, amat(pv,1), rdim, amat(k,1), rdim )
+                itemp = jpvt( pv )
+                jpvt( pv) = jpvt( k )
+                jpvt( k ) = itemp
+            end if
+        end do
+        if( npt.eq.0) exit
+    end do
+    !write(*,*) ' after zpm, jpvt = '
+    !write(*,*) jpvt(:)
+
+    deallocate(jpvt)
+
+  end subroutine s_zpm
+
+  subroutine s_zmp(rdim,cdim,amat,jpv)
+  ! amat = amat * P, where P is permutation
+  ! note after the permutation, P will become (1234....)
+    use constants, only: dp
+    implicit none
+    integer, intent(in) :: rdim, cdim
+    integer, dimension(cdim), intent(inout) :: jpv
+    complex(dp), dimension(rdim,cdim), intent(inout) :: amat
+
+    ! local
+    integer :: k, pv, itemp, npt
+
+    do 
+        npt = 0
+        do k = 1, cdim
+            pv = jpv(k)
+            if( pv .ne. k ) then
+                npt = npt + 1
+                call zswap( rdim, amat(1,pv), 1, amat(1,k), 1)
+                itemp = jpv( pv )
+                jpv( pv ) = jpv( k )
+                jpv( k ) = itemp
+            end if
+        end do
+        if( npt.eq.0) exit
+    end do
+    !write(*,*) ' after zmp, jpv = '
+    !write(*,*) jpv(:)
+  end subroutine s_zmp
+
+  subroutine s_zgeQRPT(rdim, cdim, amat, qmat, rmat, jpvt)
+    use constants, only : dp, zero, czero, one
+    implicit none
+    integer, intent(in) :: rdim, cdim
+    integer, dimension(cdim), intent(out) :: jpvt
+    complex(dp), dimension(rdim,cdim), intent(inout) :: amat
+    complex(dp), dimension(min(rdim,cdim),cdim), intent(out) :: rmat
+    complex(dp), dimension(min(rdim,cdim), min(rdim,cdim) ), intent(out) :: qmat
+
+    ! local
+    integer  :: i, ierror, lwork, mindim
+    real(dp), dimension(:), allocatable :: rwork
+    complex(dp), dimension(:), allocatable :: work
+    complex(dp), dimension(:), allocatable :: tau
+
+    mindim = min(rdim,cdim)
+
+    !! perform QR factorization
+    lwork=-1
+    allocate( tau(mindim) )
+    allocate( rwork(2*cdim) )
+    allocate( work(1) )
+    ! perform lwork query
+    jpvt(:) = 0
+    call zgeqp3(rdim, cdim, amat, rdim, jpvt, tau, work, lwork, rwork, ierror)
+    lwork = nint(dble(work(1)))
+    !write(*,*) 'in zgeqp3, lwork =', lwork
+    deallocate(work)
+
+    ! perform QR factorization
+    allocate(work(lwork),stat=ierror)
+    if ( ierror /= 0 ) then
+        call s_print_error('s_zgeQRPT, above zgeqp3','can not allocate enough memory')
+    endif
+    jpvt(:) = 0
+    call zgeqp3(rdim, cdim, amat, rdim, jpvt, tau, work, lwork, rwork, ierror)
+    if ( ierror /= 0 ) then
+        call s_print_error('s_zgeQRPT, ','error in lapack subroutine zgeqp3')
+    endif
+    deallocate(work)
+    deallocate(rwork)
+
+    !! get R
+    rmat(:,:) = czero
+    do i = 1, mindim
+        rmat(1:i,i) = amat(1:i,i)
+    end do
+    do i = mindim+1, cdim
+        rmat(:,i) = amat(:,i)
+    end do
+
+    !! get Q
+    ! get reflectors, stored in qmat
+    call s_identity_z(mindim,qmat)
+    do i = 1, mindim-1
+        qmat(i+1:mindim,i) = amat(i+1:mindim,i)
+    end do
+    lwork = -1
+    allocate(work(1))
+    ! perform lwork query
+    call zungqr(mindim, mindim, mindim, qmat, mindim, tau, work, lwork, ierror)
+    lwork = nint(dble(work(1)))
+    !write(*,*) 'in dungqr, lwork =', lwork
+    deallocate(work)
+
+    ! get Q
+    allocate(work(lwork), stat=ierror)
+    if ( ierror /= 0 ) then
+        call s_print_error('s_zgeQRPT, above zungqr','can not allocate enough memory')
+    endif
+    call zungqr(mindim, mindim, mindim, qmat, mindim, tau, work, lwork, ierror)
+    if ( ierror /= 0 ) then
+        call s_print_error('s_zgeQRPT, ','error in lapack subroutine zungqr')
+    endif
+    deallocate(work)
+    deallocate(tau)
+
+  end subroutine s_zgeQRPT
+
+  subroutine s_invdiag_d_x_zr( ndim, dvec, Amat, Bmat )
+#IFDEF _OPENMP
+    USE OMP_LIB
+#ENDIF
+    use constants, only: dp, czero, zero
+    implicit none
+    integer, intent(in) :: ndim
+    real(dp), dimension(ndim), intent(in) :: dvec
+    complex(dp), dimension(ndim,ndim), intent(in) :: Amat
+    complex(dp), dimension(ndim,ndim), intent(out) :: Bmat
+    
+    ! local
+    integer :: i, j
+    Bmat=czero
+!$OMP PARALLEL &
+!$OMP PRIVATE ( i, j )
+!$OMP DO SCHEDULE(DYNAMIC)
+    do i = 1, ndim
+        do j = 1, i
+            Bmat(j,i) =  Amat(j,i) / dcmplx( dvec(j), zero )
+        end do
+    end do
+!$OMP END DO
+!$OMP END PARALLEL
+  end subroutine s_invdiag_d_x_zr
+
+  subroutine s_zgeQR(rdim, cdim, amat, qmat, rmat )
+    use constants, only : dp, zero, czero, one
+    implicit none
+    integer, intent(in) :: rdim, cdim
+    complex(dp), dimension(rdim,cdim), intent(inout) :: amat
+    complex(dp), dimension(min(rdim,cdim),cdim), intent(out) :: rmat
+    complex(dp), dimension(min(rdim,cdim), min(rdim,cdim) ), intent(out) :: qmat
+
+    ! local
+    integer  :: i, ierror, lwork, mindim
+    complex(dp), dimension(:), allocatable :: work
+    complex(dp), dimension(:), allocatable :: tau
+
+    mindim = min(rdim,cdim)
+
+    !! perform QR factorization
+    lwork=-1
+    allocate( tau(mindim) )
+    allocate( work(1) )
+    ! perform lwork query
+    call zgeqrf(rdim, cdim, amat, rdim, tau, work, lwork, ierror)
+    lwork = nint(dble(work(1)))
+    !write(*,*) 'in zgeqrf, lwork =', lwork
+    deallocate(work)
+
+    ! perform QR factorization
+    allocate(work(lwork),stat=ierror)
+    if ( ierror /= 0 ) then
+        call s_print_error('s_zgeQR, above zgeqrf','can not allocate enough memory')
+    endif
+    call zgeqrf(rdim, cdim, amat, rdim, tau, work, lwork, ierror)
+    if ( ierror /= 0 ) then
+        call s_print_error('s_zgeQR, ','error in lapack subroutine zgeqrf')
+    endif
+    deallocate(work)
+
+    !! get R
+    rmat(:,:) = czero
+    do i = 1, mindim
+        rmat(1:i,i) = amat(1:i,i)
+    end do
+    do i = mindim+1, cdim
+        rmat(:,i) = amat(:,i)
+    end do
+
+    !! get Q
+    ! get reflectors, stored in qmat
+    call s_identity_z(mindim,qmat)
+    do i = 1, mindim-1
+        qmat(i+1:mindim,i) = amat(i+1:mindim,i)
+    end do
+    lwork = -1
+    allocate(work(1))
+    ! perform lwork query
+    call zungqr(mindim, mindim, mindim, qmat, mindim, tau, work, lwork, ierror)
+    lwork = nint(dble(work(1)))
+    !write(*,*) 'in zungqr, lwork =', lwork
+    deallocate(work)
+
+    ! get Q
+    allocate(work(lwork), stat=ierror)
+    if ( ierror /= 0 ) then
+        call s_print_error('s_zgeQR, above zungqr','can not allocate enough memory')
+    endif
+    call zungqr(mindim, mindim, mindim, qmat, mindim, tau, work, lwork, ierror)
+    if ( ierror /= 0 ) then
+        call s_print_error('s_zgeQR, ','error in lapack subroutine zungqr')
+    endif
+    deallocate(work)
+    deallocate(tau)
+
+  end subroutine s_zgeQR
