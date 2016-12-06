@@ -100,3 +100,42 @@ subroutine mmuur(a_up, a_dn, nf, ntau, nflag)
   endif
 
 end subroutine mmuur
+
+subroutine mmuurH(a_up, a_dn, nf, ntau, nflag)
+
+  !	in a out u(nf) * a                if nflag = 1
+  !	in a out exp(d(nf)) * ut(nf) * a  if nflag = 2
+
+#IFDEF _OPENMP
+  USE OMP_LIB
+#ENDIF
+  use blockc
+  use data_tmp
+  implicit none
+
+  !arguments:
+  complex(dp), dimension(ndim,ndim), intent(inout) :: a_up
+  complex(dp), dimension(ndim,ndim), intent(inout) :: a_dn
+  integer, intent(in) :: nf,ntau,nflag
+
+  !	local
+  integer :: nl, i, j, nf1, nn, i1, i2
+  complex (dp) :: ut(2,2), u(2,2)
+
+  if (nflag.eq.3) then
+!$OMP PARALLEL &
+!$OMP PRIVATE ( i, nl )
+!$OMP DO
+     do nl= 1,ndim
+        do i = 1,ndim
+           a_up(i,nl) = a_up(i,nl) * dconjg( xsigma_u_up( nsigl_u(i,ntau) ) )
+#IFDEF SPINDOWN
+           a_dn(i,nl) = a_dn(i,nl) * dconjg( xsigma_u_dn( nsigl_u(i,ntau) ) )
+#ENDIF
+        enddo
+     enddo
+!$OMP END DO
+!$OMP END PARALLEL
+     return
+  endif
+end subroutine mmuurH
