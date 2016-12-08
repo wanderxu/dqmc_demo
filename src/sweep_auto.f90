@@ -4,6 +4,9 @@
               call ftdqmc_sweep_b0(lupdate=.true., lmeasure=.false.)
               call ftdqmc_sweep_0b(lupdate=.true., lmeasure=.false.)
               call ftdqmc_stglobal(lmeas=.false.)
+#IFDEF GEN_CONFC_LEARNING
+              call outconfc_bin(weight_track)
+#ENDIF
               totsz=0
 !$OMP PARALLEL &
 !$OMP PRIVATE ( n, i )
@@ -18,6 +21,9 @@
               totsz_bin(nsw) = totsz
           else if( lstglobal ) then
               call ftdqmc_stglobal(lmeas=.false.)
+#IFDEF GEN_CONFC_LEARNING
+              call outconfc_bin(weight_track)
+#ENDIF
               totsz=0
 !$OMP PARALLEL &
 !$OMP PRIVATE ( n, i )
@@ -32,6 +38,9 @@
               totsz_bin(nsw) = totsz
           else if ( llocal ) then
               call ftdqmc_sweep_b0(lupdate=.true., lmeasure=.false.)
+#IFDEF GEN_CONFC_LEARNING
+              call outconfc_bin(weight_track)
+#ENDIF
               totsz=0
 !$OMP PARALLEL &
 !$OMP PRIVATE ( n, i )
@@ -45,6 +54,9 @@
 !$OMP END PARALLEL
               totsz_bin(nsw*2-1) = totsz
               call ftdqmc_sweep_0b(lupdate=.true., lmeasure=.false.)
+#IFDEF GEN_CONFC_LEARNING
+              call outconfc_bin(weight_track)
+#ENDIF
               totsz=0
 !$OMP PARALLEL &
 !$OMP PRIVATE ( n, i )
