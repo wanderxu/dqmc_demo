@@ -1,3 +1,4 @@
+      call obser_init
       do nsw = 1, nsweep
           if(lstglobal .and. llocal ) then
               call ftdqmc_sweep_b0(lupdate=.true., lmeasure=.false.)

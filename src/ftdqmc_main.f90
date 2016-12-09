@@ -61,7 +61,9 @@ program ftdqmc_main
 
   call allocate_data_tmp
   call allocate_core
+#IFNDEF CAL_AUTO
   call allocate_obs
+#ENDIF
 
 #IFDEF CUMC
   call set_neighbor
@@ -117,7 +119,6 @@ program ftdqmc_main
 #ENDIF
   do nbc =  1, nbin
 
-      call obser_init
 #IFDEF CAL_AUTO
 #include 'sweep_auto.f90'
 #ELSE
@@ -175,6 +176,10 @@ program ftdqmc_main
 
 #IFDEF CUMC
   call deallocate_cumulate
+#ENDIF
+
+#IFNDEF CAL_AUTO
+  call deallocate_obs
 #ENDIF
 
   call deallocate_core
