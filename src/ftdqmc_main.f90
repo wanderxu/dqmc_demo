@@ -17,8 +17,10 @@ program ftdqmc_main
   character (len = 20) :: date_time_string
   real(dp) :: start_time, end_time, time1, time2
 #IFDEF CAL_AUTO
-  integer :: i, n, totsz
+  integer :: i, j, imj, n, totsz
   integer, allocatable, dimension(:) :: totsz_bin
+  integer, allocatable, dimension(:) :: nsiglR
+  real(dp), allocatable, dimension(:) :: jjcorr_R, mpi_jjcorr_R
 #ENDIF
 
   call MPI_INIT(ierr)                             
@@ -71,11 +73,17 @@ program ftdqmc_main
 #ENDIF
 
 #IFDEF CAL_AUTO
+#IFDEF GEN_CONFC_LEARNING
   if( llocal .and. .not. lstglobal ) then
       allocate( totsz_bin(2*nsweep) )
   else
       allocate( totsz_bin(nsweep) )
   end if
+#ELSE
+  allocate(nsiglR(lq))
+  allocate(jjcorr_R(lq))
+  allocate(mpi_jjcorr_R(lq))
+#ENDIF
 #ENDIF
 
   max_wrap_error = 0.d0
@@ -171,7 +179,13 @@ program ftdqmc_main
   end if
 
 #IFDEF CAL_AUTO
+#IFDEF GEN_CONFC_LEARNING
   deallocate( totsz_bin )
+#ELSE
+  deallocate(mpi_jjcorr_R)
+  deallocate(jjcorr_R)
+  deallocate(nsiglR)
+#ENDIF
 #ENDIF
 
 #IFDEF CUMC
