@@ -35,19 +35,19 @@
              nsigl_u_old(:,:) = nsigl_u(:,:)
              heff_old(:,:) = heff(:,:)
              ! also store UDV matrix and Green function
-             if(nst.gt.0) then
-             Ust_up_tmp(:,:,:) = Ust_up(:,:,:)
-             Dst_up_tmp(:,:)   = Dst_up(:,:)
-             Vst_up_tmp(:,:,:) = Vst_up(:,:,:)
+             if(nst.gt.0 .or. llocal) then
+                 Ust_up_tmp(:,:,:) = Ust_up(:,:,:)
+                 Dst_up_tmp(:,:)   = Dst_up(:,:)
+                 Vst_up_tmp(:,:,:) = Vst_up(:,:,:)
+                 grup_tmp(:,:) = grup(:,:)
              end if
-             grup_tmp(:,:) = grup(:,:)
 #IFDEF SPINDOWN
-             if(nst.gt.0) then
-             Ust_dn_tmp(:,:,:) = Ust_dn(:,:,:)
-             Dst_dn_tmp(:,:)   = Dst_dn(:,:)
-             Vst_dn_tmp(:,:,:) = Vst_dn(:,:,:)
+             if(nst.gt.0 .or. llocal) then
+                 Ust_dn_tmp(:,:,:) = Ust_dn(:,:,:)
+                 Dst_dn_tmp(:,:)   = Dst_dn(:,:)
+                 Vst_dn_tmp(:,:,:) = Vst_dn(:,:,:)
+                 grdn_tmp(:,:) = grdn(:,:)
              end if
-             grdn_tmp(:,:) = grdn(:,:)
 #ENDIF
              ! cumulate update
              Heff_diff = 0.d0
@@ -149,19 +149,19 @@
                      call ftdqmc_sweep_0b(lupdate=.false., lmeasure=lmeas)
                  else
                      ! if no meas, just recover old UDV matrix and Green functions
-                     if(nst.gt.0) then
-                     Ust_up(:,:,:) =  Ust_up_tmp(:,:,:)
-                     Dst_up(:,:)   =  Dst_up_tmp(:,:)
-                     Vst_up(:,:,:) =  Vst_up_tmp(:,:,:)
+                     if(nst.gt.0 .or. llocal) then
+                         Ust_up(:,:,:) =  Ust_up_tmp(:,:,:)
+                         Dst_up(:,:)   =  Dst_up_tmp(:,:)
+                         Vst_up(:,:,:) =  Vst_up_tmp(:,:,:)
+                         grup(:,:)     =  grup_tmp(:,:)
                      end if
-                     grup(:,:)     =  grup_tmp(:,:)
 #IFDEF SPINDOWN
-                     if(nst.gt.0) then
-                     Ust_dn(:,:,:) =  Ust_dn_tmp(:,:,:)
-                     Dst_dn(:,:)   =  Dst_dn_tmp(:,:)
-                     Vst_dn(:,:,:) =  Vst_dn_tmp(:,:,:)
+                     if(nst.gt.0 .or. llocal ) then
+                         Ust_dn(:,:,:) =  Ust_dn_tmp(:,:,:)
+                         Dst_dn(:,:)   =  Dst_dn_tmp(:,:)
+                         Vst_dn(:,:,:) =  Vst_dn_tmp(:,:,:)
+                         grdn(:,:)     =  grdn_tmp(:,:)
                      end if
-                     grdn(:,:)     =  grdn_tmp(:,:)
 #ENDIF
                  end if
              end if
@@ -181,15 +181,21 @@
       !!============================================================================================
       !!! calculate fermioin part ratio
       !   WARNNING, s_logdet_z will replace the input matrix with L and U
-      Atmp = grup; Btmp = grdn
-      call s_logdet_z(ndim, Atmp, logweightf_up)
-      call s_logdet_z(ndim, Btmp, logweightf_dn)
-      logweightf_up = - logweightf_up
-      logweightf_dn = - logweightf_dn
-      logweightf = dble( logweightf_up + logweightf_dn )*2.d0
+      if( nst.gt.0 .or. llocal ) then
+          Atmp = grup; Btmp = grdn
+          call s_logdet_z(ndim, Atmp, logweightf_up)
+          call s_logdet_z(ndim, Btmp, logweightf_dn)
+          logweightf_up = - logweightf_up
+          logweightf_dn = - logweightf_dn
+          logweightf = dble( logweightf_up + logweightf_dn )*2.d0
+      else
+          call s_logdet_z(ndim, grup, logweightf_up)
+          call s_logdet_z(ndim, grdn, logweightf_dn)
+          logweightf = dble( logweightf_up + logweightf_dn )*2.d0
+      end if
 #IFDEF TEST
-      write(fout,'(a,2e24.12)') ' without stablize, logweightf_up = ', logweightf_up
-      write(fout,'(a,2e24.12)') ' without stablize, logweightf_dn = ', logweightf_dn
+      write(fout,'(a,2e24.12)') ' logweightf_up = ', logweightf_up
+      write(fout,'(a,2e24.12)') ' logweightf_dn = ', logweightf_dn
 #ENDIF
 
       !!============================================================================================

@@ -32,7 +32,9 @@ module ftdqmc_core
           allocate( DLvec_up(ndim) )               ! 8
           allocate( UL_up(ndim,ndim) )             ! 9
       end if
-      allocate( Bdtau1_up(ndim,ndim) )       ! 16
+      if( nst.gt.0 .or. llocal ) then
+          allocate( Bdtau1_up(ndim,ndim) )       ! 16
+      end if
       if(ltau) then
           allocate( Bt2t1_up(ndim,ndim) )       ! 16
           allocate( gt0up(ndim,ndim) )
@@ -45,9 +47,13 @@ module ftdqmc_core
           allocate( Dst_up_tmp(ndim,0:nst) )      ! 18
           allocate( Vst_up_tmp(ndim,ndim,0:nst) ) ! 19
       end if
-      allocate( grup_tmp(ndim,ndim) )         ! 20
+      if( llocal ) then
+          allocate( grup_tmp(ndim,ndim) )         ! 20
+      end if
 
-      allocate( Bdtau1_dn(ndim,ndim) )       ! 16
+      if( nst.gt.0 .or. llocal ) then
+          allocate( Bdtau1_dn(ndim,ndim) )       ! 16
+      end if
 #IFDEF SPINDOWN
       if(nst.gt.0) then
           allocate( Ust_dn(ndim,ndim,0:nst) )     ! 1
@@ -72,16 +78,18 @@ module ftdqmc_core
           allocate( Dst_dn_tmp(ndim,0:nst) )      ! 18
           allocate( Vst_dn_tmp(ndim,ndim,0:nst) ) ! 19
       end if
-      allocate( grdn_tmp(ndim,ndim) )         ! 20
+      if( llocal ) then 
+          allocate( grdn_tmp(ndim,ndim) )         ! 20
+      end if
 #ENDIF
 
     end subroutine allocate_core
 
     subroutine deallocate_core
       implicit none
-      deallocate( Bdtau1_dn )      ! 16
+      if(allocated(Bdtau1_dn)) deallocate( Bdtau1_dn )      ! 16
 #IFDEF SPINDOWN
-      deallocate( grdn_tmp )         ! 20
+      if(allocated(grdn_tmp)) deallocate( grdn_tmp )         ! 20
       if(nst.gt.0) then
           deallocate( Vst_dn_tmp )       ! 19
           deallocate( Dst_dn_tmp )       ! 18
@@ -105,7 +113,7 @@ module ftdqmc_core
           deallocate( Ust_dn )         ! 1
       end if
 #ENDIF
-      deallocate( grup_tmp )         ! 20
+      if(allocated(grup_tmp)) deallocate( grup_tmp )         ! 20
       if(nst.gt.0) then
           deallocate( Vst_up_tmp )       ! 19
           deallocate( Dst_up_tmp )       ! 18
@@ -117,7 +125,7 @@ module ftdqmc_core
           deallocate( gt0up )
           deallocate( Bt2t1_up )      ! 16
       end if
-      deallocate( Bdtau1_up )      ! 16
+      if(allocated(Bdtau1_up)) deallocate( Bdtau1_up )      ! 16
       if(nst.gt.0) then
           deallocate( UL_up )             ! 9
           deallocate( DLvec_up )          ! 8
@@ -534,21 +542,32 @@ module ftdqmc_core
 
      ELSE
 
-     Bdtau1_up(:,:) = Imat(:,:)
-     Bdtau1_dn(:,:) = Imat(:,:)
-     call Bmat_tau_R( ltrot, 1, Bdtau1_up, Bdtau1_dn )
-     do  i = 1, ndim
-         Bdtau1_up(i,i) = Bdtau1_up(i,i) + cone
-     end do
-     call s_inv_z( ndim, Bdtau1_up )
-     grup(:,:) = Bdtau1_up
+     if ( llocal ) then
+         Bdtau1_up(:,:) = Imat(:,:)
+         Bdtau1_dn(:,:) = Imat(:,:)
+         call Bmat_tau_R( ltrot, 1, Bdtau1_up, Bdtau1_dn )
+         do  i = 1, ndim
+             Bdtau1_up(i,i) = Bdtau1_up(i,i) + cone
+         end do
+         call s_inv_z( ndim, Bdtau1_up )
+         grup(:,:) = Bdtau1_up
 #IFDEF SPINDOWN
-     do  i = 1, ndim
-         Bdtau1_dn(i,i) = Bdtau1_dn(i,i) + cone
-     end do
-     call s_inv_z( ndim, Bdtau1_dn )
-     grdn(:,:) = Bdtau1_dn
+         do  i = 1, ndim
+             Bdtau1_dn(i,i) = Bdtau1_dn(i,i) + cone
+         end do
+         call s_inv_z( ndim, Bdtau1_dn )
+         grdn(:,:) = Bdtau1_dn
 #ENDIF
+     else
+         grup(:,:) = Imat(:,:)
+         grdn(:,:) = Imat(:,:)
+         call Bmat_tau_R( ltrot, 1, grup, grdn)
+         do  i = 1, ndim
+             grup(i,i) = grup(i,i) + cone
+             grdn(i,i) = grdn(i,i) + cone
+         end do
+     end if
+
      END IF
   
     end subroutine ftdqmc_sweep_start_0b
@@ -630,21 +649,31 @@ module ftdqmc_core
 
      ELSE
 
-     Bdtau1_up(:,:) = Imat(:,:)
-     Bdtau1_dn(:,:) = Imat(:,:)
-     call Bmat_tau_R( ltrot, 1, Bdtau1_up, Bdtau1_dn )
-     do  i = 1, ndim
-         Bdtau1_up(i,i) = Bdtau1_up(i,i) + cone
-     end do
-     call s_inv_z( ndim, Bdtau1_up )
-     grup(:,:) = Bdtau1_up
+     if ( llocal ) then
+         Bdtau1_up(:,:) = Imat(:,:)
+         Bdtau1_dn(:,:) = Imat(:,:)
+         call Bmat_tau_R( ltrot, 1, Bdtau1_up, Bdtau1_dn )
+         do  i = 1, ndim
+             Bdtau1_up(i,i) = Bdtau1_up(i,i) + cone
+         end do
+         call s_inv_z( ndim, Bdtau1_up )
+         grup(:,:) = Bdtau1_up
 #IFDEF SPINDOWN
-     do  i = 1, ndim
-         Bdtau1_dn(i,i) = Bdtau1_dn(i,i) + cone
-     end do
-     call s_inv_z( ndim, Bdtau1_dn )
-     grdn(:,:) = Bdtau1_dn
+         do  i = 1, ndim
+             Bdtau1_dn(i,i) = Bdtau1_dn(i,i) + cone
+         end do
+         call s_inv_z( ndim, Bdtau1_dn )
+         grdn(:,:) = Bdtau1_dn
 #ENDIF
+     else
+         grup(:,:) = Imat(:,:)
+         grdn(:,:) = Imat(:,:)
+         call Bmat_tau_R( ltrot, 1, grup, grdn)
+         do  i = 1, ndim
+             grup(i,i) = grup(i,i) + cone
+             grdn(i,i) = grdn(i,i) + cone
+         end do
+     end if
      END IF
   
     end subroutine ftdqmc_sweep_start_b0
