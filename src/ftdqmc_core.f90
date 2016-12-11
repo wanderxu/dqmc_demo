@@ -21,15 +21,17 @@ module ftdqmc_core
 
     subroutine allocate_core
       implicit none
-      allocate( Ust_up(ndim,ndim,0:nst) )     ! 1
-      allocate( Dst_up(ndim,0:nst) )          ! 2
-      allocate( Vst_up(ndim,ndim,0:nst) )     ! 3
-      allocate( UR_up(ndim,ndim) )             ! 4
-      allocate( DRvec_up(ndim) )               ! 5
-      allocate( VR_up(ndim,ndim) )             ! 6
-      allocate( VL_up(ndim,ndim) )             ! 7
-      allocate( DLvec_up(ndim) )               ! 8
-      allocate( UL_up(ndim,ndim) )             ! 9
+      if(nst.gt.0) then
+          allocate( Ust_up(ndim,ndim,0:nst) )     ! 1
+          allocate( Dst_up(ndim,0:nst) )          ! 2
+          allocate( Vst_up(ndim,ndim,0:nst) )     ! 3
+          allocate( UR_up(ndim,ndim) )             ! 4
+          allocate( DRvec_up(ndim) )               ! 5
+          allocate( VR_up(ndim,ndim) )             ! 6
+          allocate( VL_up(ndim,ndim) )             ! 7
+          allocate( DLvec_up(ndim) )               ! 8
+          allocate( UL_up(ndim,ndim) )             ! 9
+      end if
       allocate( Bdtau1_up(ndim,ndim) )       ! 16
       if(ltau) then
           allocate( Bt2t1_up(ndim,ndim) )       ! 16
@@ -38,22 +40,26 @@ module ftdqmc_core
           allocate( g00up(ndim,ndim) )
       end if
 
-      allocate( Ust_up_tmp(ndim,ndim,0:nst) ) ! 17
-      allocate( Dst_up_tmp(ndim,0:nst) )      ! 18
-      allocate( Vst_up_tmp(ndim,ndim,0:nst) ) ! 19
+      if(nst.gt.0) then
+          allocate( Ust_up_tmp(ndim,ndim,0:nst) ) ! 17
+          allocate( Dst_up_tmp(ndim,0:nst) )      ! 18
+          allocate( Vst_up_tmp(ndim,ndim,0:nst) ) ! 19
+      end if
       allocate( grup_tmp(ndim,ndim) )         ! 20
 
       allocate( Bdtau1_dn(ndim,ndim) )       ! 16
 #IFDEF SPINDOWN
-      allocate( Ust_dn(ndim,ndim,0:nst) )     ! 1
-      allocate( Dst_dn(ndim,0:nst) )          ! 2
-      allocate( Vst_dn(ndim,ndim,0:nst) )     ! 3
-      allocate( UR_dn(ndim,ndim) )             ! 4
-      allocate( DRvec_dn(ndim) )               ! 5
-      allocate( VR_dn(ndim,ndim) )             ! 6
-      allocate( VL_dn(ndim,ndim) )             ! 7
-      allocate( DLvec_dn(ndim) )               ! 8
-      allocate( UL_dn(ndim,ndim) )             ! 9
+      if(nst.gt.0) then
+          allocate( Ust_dn(ndim,ndim,0:nst) )     ! 1
+          allocate( Dst_dn(ndim,0:nst) )          ! 2
+          allocate( Vst_dn(ndim,ndim,0:nst) )     ! 3
+          allocate( UR_dn(ndim,ndim) )             ! 4
+          allocate( DRvec_dn(ndim) )               ! 5
+          allocate( VR_dn(ndim,ndim) )             ! 6
+          allocate( VL_dn(ndim,ndim) )             ! 7
+          allocate( DLvec_dn(ndim) )               ! 8
+          allocate( UL_dn(ndim,ndim) )             ! 9
+      end if
       if(ltau) then
           allocate( Bt2t1_dn(ndim,ndim) )       ! 16
           allocate( gt0dn(ndim,ndim) )
@@ -61,9 +67,11 @@ module ftdqmc_core
           allocate( g00dn(ndim,ndim) )
       end if
 
-      allocate( Ust_dn_tmp(ndim,ndim,0:nst) ) ! 17
-      allocate( Dst_dn_tmp(ndim,0:nst) )      ! 18
-      allocate( Vst_dn_tmp(ndim,ndim,0:nst) ) ! 19
+      if(nst.gt.0) then
+          allocate( Ust_dn_tmp(ndim,ndim,0:nst) ) ! 17
+          allocate( Dst_dn_tmp(ndim,0:nst) )      ! 18
+          allocate( Vst_dn_tmp(ndim,ndim,0:nst) ) ! 19
+      end if
       allocate( grdn_tmp(ndim,ndim) )         ! 20
 #ENDIF
 
@@ -74,29 +82,35 @@ module ftdqmc_core
       deallocate( Bdtau1_dn )      ! 16
 #IFDEF SPINDOWN
       deallocate( grdn_tmp )         ! 20
-      deallocate( Vst_dn_tmp )       ! 19
-      deallocate( Dst_dn_tmp )       ! 18
-      deallocate( Ust_dn_tmp )       ! 17
+      if(nst.gt.0) then
+          deallocate( Vst_dn_tmp )       ! 19
+          deallocate( Dst_dn_tmp )       ! 18
+          deallocate( Ust_dn_tmp )       ! 17
+      end if
       if(ltau) then
           deallocate( g00dn )
           deallocate( g0tdn )
           deallocate( gt0dn )
           deallocate( Bt2t1_dn )      ! 16
       end if
-      deallocate( UL_dn )             ! 9
-      deallocate( DLvec_dn )          ! 8
-      deallocate( VL_dn )             ! 7
-      deallocate( VR_dn )             ! 6
-      deallocate( DRvec_dn )          ! 5
-      deallocate( UR_dn )             ! 4
-      deallocate( Vst_dn )         ! 3
-      deallocate( Dst_dn )         ! 2
-      deallocate( Ust_dn )         ! 1
+      if(nst.gt.0) then
+          deallocate( UL_dn )             ! 9
+          deallocate( DLvec_dn )          ! 8
+          deallocate( VL_dn )             ! 7
+          deallocate( VR_dn )             ! 6
+          deallocate( DRvec_dn )          ! 5
+          deallocate( UR_dn )             ! 4
+          deallocate( Vst_dn )         ! 3
+          deallocate( Dst_dn )         ! 2
+          deallocate( Ust_dn )         ! 1
+      end if
 #ENDIF
       deallocate( grup_tmp )         ! 20
-      deallocate( Vst_up_tmp )       ! 19
-      deallocate( Dst_up_tmp )       ! 18
-      deallocate( Ust_up_tmp )       ! 17
+      if(nst.gt.0) then
+          deallocate( Vst_up_tmp )       ! 19
+          deallocate( Dst_up_tmp )       ! 18
+          deallocate( Ust_up_tmp )       ! 17
+      end if
       if(ltau) then
           deallocate( g00up )
           deallocate( g0tup )
@@ -104,15 +118,17 @@ module ftdqmc_core
           deallocate( Bt2t1_up )      ! 16
       end if
       deallocate( Bdtau1_up )      ! 16
-      deallocate( UL_up )             ! 9
-      deallocate( DLvec_up )          ! 8
-      deallocate( VL_up )             ! 7
-      deallocate( VR_up )             ! 6
-      deallocate( DRvec_up )          ! 5
-      deallocate( UR_up )             ! 4
-      deallocate( Vst_up )         ! 3
-      deallocate( Dst_up )         ! 2
-      deallocate( Ust_up )         ! 1
+      if(nst.gt.0) then
+          deallocate( UL_up )             ! 9
+          deallocate( DLvec_up )          ! 8
+          deallocate( VL_up )             ! 7
+          deallocate( VR_up )             ! 6
+          deallocate( DRvec_up )          ! 5
+          deallocate( UR_up )             ! 4
+          deallocate( Vst_up )         ! 3
+          deallocate( Dst_up )         ! 2
+          deallocate( Ust_up )         ! 1
+      end if
     end subroutine deallocate_core
   
     subroutine ftdqmc_stablize_0b_svd(n)

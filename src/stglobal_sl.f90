@@ -35,14 +35,18 @@
              nsigl_u_old(:,:) = nsigl_u(:,:)
              heff_old(:,:) = heff(:,:)
              ! also store UDV matrix and Green function
+             if(nst.gt.0) then
              Ust_up_tmp(:,:,:) = Ust_up(:,:,:)
              Dst_up_tmp(:,:)   = Dst_up(:,:)
              Vst_up_tmp(:,:,:) = Vst_up(:,:,:)
+             end if
              grup_tmp(:,:) = grup(:,:)
 #IFDEF SPINDOWN
+             if(nst.gt.0) then
              Ust_dn_tmp(:,:,:) = Ust_dn(:,:,:)
              Dst_dn_tmp(:,:)   = Dst_dn(:,:)
              Vst_dn_tmp(:,:,:) = Vst_dn(:,:,:)
+             end if
              grdn_tmp(:,:) = grdn(:,:)
 #ENDIF
              ! cumulate update
@@ -145,14 +149,18 @@
                      call ftdqmc_sweep_0b(lupdate=.false., lmeasure=lmeas)
                  else
                      ! if no meas, just recover old UDV matrix and Green functions
+                     if(nst.gt.0) then
                      Ust_up(:,:,:) =  Ust_up_tmp(:,:,:)
                      Dst_up(:,:)   =  Dst_up_tmp(:,:)
                      Vst_up(:,:,:) =  Vst_up_tmp(:,:,:)
+                     end if
                      grup(:,:)     =  grup_tmp(:,:)
 #IFDEF SPINDOWN
+                     if(nst.gt.0) then
                      Ust_dn(:,:,:) =  Ust_dn_tmp(:,:,:)
                      Dst_dn(:,:)   =  Dst_dn_tmp(:,:)
                      Vst_dn(:,:,:) =  Vst_dn_tmp(:,:,:)
+                     end if
                      grdn(:,:)     =  grdn_tmp(:,:)
 #ENDIF
                  end if
