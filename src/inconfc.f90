@@ -73,9 +73,9 @@ subroutine inconfc
               enddo
           enddo
 	   else
-!!#IFDEF GEN_CONFC_LEARNING
+#IF DEFINED (CUMC) || DEFINED (GEN_CONFC_LEARNING)
            read(30) weight_track
-!!#ENDIF
+#ENDIF
           ! read all confins from node 0. 
           lwarnup = .false.
           write(fout,'(a)') ' start from old conf, do not need warnup '

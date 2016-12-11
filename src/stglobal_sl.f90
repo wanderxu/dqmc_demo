@@ -97,9 +97,7 @@
              ! update
              if( ratiof .gt. spring_sfmt_stream() ) then
                  ! global update is accepted
-#IFDEF GEN_CONFC_LEARNING
                  weight_track = logweightf_new + logweights_new
-#ENDIF
                  main_obs(3) = main_obs(3) + dcmplx(1.d0,1.d0)
                  main_obs(4) = main_obs(4) + dcmplx(dble(nstcluster),dble(ltrot*lq))
 #IFDEF TEST
@@ -120,9 +118,7 @@
                  end if
              else
                  ! global update is rejected
-#IFDEF GEN_CONFC_LEARNING
                  weight_track = logweightf_old + logweights_old
-#ENDIF
                  main_obs(3) = main_obs(3) + dcmplx(0.d0,1.d0)
 #IFDEF TEST
                  write(fout,'(a,e16.8,a,i8)') ' global update rejected, logratiof = ', logratiof, '  nstcluster = ',  nstcluster

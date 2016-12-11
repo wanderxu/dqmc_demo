@@ -31,9 +31,9 @@ subroutine outconfc
 	if (irank.eq.0)  then
 
        write(35) 1
-!!#IFDEF GEN_CONFC_LEARNING
+#IF DEFINED (CUMC) || DEFINED (GEN_CONFC_LEARNING)
        write(35) weight_track
-!!#ENDIF
+#ENDIF
 
        nbits2int = ltrot*lq/32
        if(mod(ltrot*lq,32).ne.0) nbits2int = nbits2int + 1

@@ -1,7 +1,7 @@
 #IFDEF GEN_CONFC_LEARNING
       totsz_bin(:) = 0
 #ELSE
-      jjcorr_R(:) = 0
+      jjcorr_Rtau(:,:) = 0
 #ENDIF
       do nsw = 1, nsweep
           if(lstglobal .and. llocal ) then
@@ -82,19 +82,19 @@
           end if
 #ENDIF
 #IFNDEF GEN_CONFC_LEARNING
-          !! first average over time
-          nsiglR(:) = 0
-          do n = 1, ltrot
-              do i = 1, lq
-                  nsiglR(i) = nsiglR(i) + nsigl_u(i,n)
-              end do
-          end do
           !! calculate spin-spin interaction
-          do j = 1, lq
-              do i = 1, lq
-                  imj = latt_imj(i,j)
-                  jjcorr_R(imj) = jjcorr_R(imj) + dble(nsiglR(i))*dble(nsiglR(j))/dble(ltrot*ltrot)
-              end do
+          do ntj = 1, ltrot
+            do nti = 1, ltrot
+              n = mod(nti-ntj + ltrot, ltrot) + 1
+              if( n .le. (ltrot/2+1) ) then
+                do j = 1, lq
+                  do i = 1, lq
+                    imj = latt_imj(i,j)
+                    jjcorr_Rtau(imj,n) = jjcorr_Rtau(imj,n) + nsigl_u(i,nti)*nsigl_u(j,ntj)
+                  end do
+                end do
+              end if
+            end do
           end do
 #ENDIF
       end do
@@ -113,12 +113,14 @@
           close(9091)
       end if
 #ELSE
-      call mpi_reduce( jjcorr_R, mpi_jjcorr_R, lq, mpi_real8, mpi_sum, 0, mpi_comm_world, ierr )
+      call mpi_reduce( jjcorr_Rtau, mpi_jjcorr_Rtau, lq*(ltrot/2+1), mpi_integer, mpi_sum, 0, mpi_comm_world, ierr )
       if( irank .eq. 0 ) then
-          jjcorr_R(:) = mpi_jjcorr_R(:) / dble( isize*nsweep )
-          open (unit=9095,file='jjcorrR.bin',status='unknown', action="write", position="append")
-          do i = 1, lq
-            write(9095, '(e16.8)') jjcorr_R(i)
+          jjcorr_Rtau_real(:,:) = dble( mpi_jjcorr_Rtau(:,:) ) / dble( isize*nsweep )
+          open (unit=9095,file='jjcorrRtau.bin',status='unknown', action="write", position="append")
+          do n = 1, ltrot/2+1
+              do i = 1, lq
+                write(9095, '(e16.8)') jjcorr_Rtau_real(i,n)
+              end do
           end do
       end if
 #ENDIF
