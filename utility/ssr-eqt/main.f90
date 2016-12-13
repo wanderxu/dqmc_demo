@@ -1,10 +1,10 @@
 program main
 ! calculate Ising spin correlation
 ! read confout.bin
-! for each bin, average over tau of s(i,t) to get s(i)
-! MC average s(i)*s(j) to get jjcorrR(i)
+! MC average \sum_t s(i,t)*s(j,t) /ltrot  to get jjcorrR(i)
 ! output jjcorrR(i) in X, Y, and XY direction
 ! output chi = \sum_{i} jjcorrR(i) / L^2
+
     implicit none
     integer :: l, ltrot, lq, nnimax, nntmax, nnimax_hyb, nntmax_hyb, zmax
     real(8) :: weight_track
@@ -68,10 +68,10 @@ program main
         end do
     end do
 
-    open( unit=1001, file='jjcorrx.bin', status='unknown' )
-    open( unit=1002, file='jjcorry.bin', status='unknown' )
-    open( unit=1003, file='jjcorrxy.bin', status='unknown')
-    open( unit=1004, file='chi.bin', status='unknown')
+    open( unit=1001, file='jjcorrx_eqt.bin', status='unknown' )
+    open( unit=1002, file='jjcorry_eqt.bin', status='unknown' )
+    open( unit=1003, file='jjcorrxy_eqt.bin', status='unknown')
+    open( unit=1004, file='chi_eqt.bin', status='unknown')
         
     open (unit=30,file='confout.bin', status='unknown', form='unformatted', access='sequential')
     nc = 0
@@ -104,30 +104,24 @@ program main
         !!! count number of configuration
         nc = nc + 1
 
-        !! first average over time
-        nsiglR(:) = 0
-        do nt = 1, ltrot
-            do i = 1, lq
-                nsiglR(i) = nsiglR(i) + nsigl_u(i,nt)
-            end do
-        end do
-
         !!! calculate spin-spin interaction
         jjcorr_R(:) = 0
-        do j = 1, lq
-            do i = 1, lq
-                imj = latt_imj(i,j)
-                jjcorr_R(imj) = jjcorr_R(imj) + nsiglR(i)*nsiglR(j)
+        do nt = 1, ltrot
+            do j = 1, lq
+                do i = 1, lq
+                    imj = latt_imj(i,j)
+                    jjcorr_R(imj) = jjcorr_R(imj) + nsigl_u(i,nt)*nsigl_u(j,nt)
+                end do
             end do
         end do
 
-        jjcorr_Y(1:l) = dble( jjcorr_R(lq:lq-l+1:-1) ) / dble( lq*ltrot*ltrot )
+        jjcorr_Y(1:l) = dble( jjcorr_R(lq:lq-l+1:-1) ) / dble( lq*ltrot )
         do i = 1, l
             j = lq - (i-1)*l
-            jjcorr_X(i) = dble( jjcorr_R(j) ) / dble( lq*ltrot*ltrot )
+            jjcorr_X(i) = dble( jjcorr_R(j) ) / dble( lq*ltrot)
 
             j = lq - (i-1)*l - i + 1
-            jjcorr_XY(i) = dble( jjcorr_R(j) ) / dble( lq*ltrot*ltrot )
+            jjcorr_XY(i) = dble( jjcorr_R(j) ) / dble( lq*ltrot)
         end do
 
         chi = 0.d0
@@ -139,7 +133,7 @@ program main
         write(1001,'(50e16.8)') jjcorr_X(1:l/2)
         write(1002,'(50e16.8)') jjcorr_Y(1:l/2)
         write(1003,'(50e16.8)') jjcorr_XY(1:l/2)
-        write(1004,'(e16.8)') dble(chi)/dble(lq*lq)/dble(ltrot*ltrot)
+        write(1004,'(e16.8)') dble(chi)/dble(lq*lq)/dble(ltrot)
     end do
 
     if(allocated(b2int)) deallocate(b2int)
