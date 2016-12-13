@@ -6,12 +6,13 @@ program main
 
     integer, dimension(:,:), allocatable :: list, invlist
     integer, dimension(:,:), allocatable ::  nsigl_u, latt_imj
-    integer, dimension(:), allocatable :: b2int, jjcorr_R
+    integer, dimension(:), allocatable :: b2int, nsiglR, jjcorr_R
     real(8), dimension(:), allocatable :: jjcorr_X, jjcorr_XY, jjcorr_Y
     integer :: i, nn, n, nf, nt, iit, ibt, icount, nbits2int, eof, n_re, nn_t, nn_i
     integer :: ncount, imj_nx, imj_ny, imj
 
     integer :: nx, ny, jx, jy, nc, ni, j, itmp, ntj
+    real(8) :: chi
     
     integer, external :: npbc
 
@@ -35,6 +36,7 @@ program main
     allocate( invlist(l,l) )
     allocate( latt_imj(lq,lq) )
     allocate( nsigl_u(lq,ltrot) )
+    allocate( nsiglR(lq) )
     allocate( jjcorr_R(lq) )
     allocate( jjcorr_X(l), jjcorr_Y(l), jjcorr_XY(l) )
     nbits2int = ltrot*lq/32
@@ -64,6 +66,7 @@ program main
     open( unit=1001, file='jjcorrx.bin', status='unknown' )
     open( unit=1002, file='jjcorry.bin', status='unknown' )
     open( unit=1003, file='jjcorrxy.bin', status='unknown')
+    open( unit=1004, file='chi.bin', status='unknown')
         
     open (unit=30,file='confout.bin', status='unknown', form='unformatted', access='sequential')
     nc = 0
@@ -96,30 +99,42 @@ program main
         !!! count number of configuration
         nc = nc + 1
 
-        !!! calculate spin-spin interaction
-        jjcorr_R(:) = 0
+        !! first average over time
+        nsiglR(:) = 0
         do nt = 1, ltrot
-            do j = 1, lq
-                do i = 1, lq
-                    imj = latt_imj(i,j)
-                    jjcorr_R(imj) = jjcorr_R(imj) + nsigl_u(i,nt)*nsigl_u(j,nt)
-                end do
+            do i = 1, lq
+                nsiglR(i) = nsiglR(i) + nsigl_u(i,nt)
             end do
         end do
 
-        jjcorr_Y(1:l) = dble( jjcorr_R(lq:lq-l+1:-1) ) / dble( lq*ltrot )
-        do i = 1, l
-            j = lq - (i-1)*l
-            jjcorr_X(i) = dble( jjcorr_R(j) ) / dble( lq*ltrot )
-
-            j = lq - (i-1)*l - i + 1
-            jjcorr_XY(i) = dble( jjcorr_R(j) ) / dble( lq*ltrot )
+        !!! calculate spin-spin interaction
+        jjcorr_R(:) = 0
+        do j = 1, lq
+            do i = 1, lq
+                imj = latt_imj(i,j)
+                jjcorr_R(imj) = jjcorr_R(imj) + nsiglR(i)*nsiglR(j)
+            end do
         end do
 
+        jjcorr_Y(1:l) = dble( jjcorr_R(lq:lq-l+1:-1) ) / dble( lq*ltrot*ltrot )
+        do i = 1, l
+            j = lq - (i-1)*l
+            jjcorr_X(i) = dble( jjcorr_R(j) ) / dble( lq*ltrot*ltrot )
+
+            j = lq - (i-1)*l - i + 1
+            jjcorr_XY(i) = dble( jjcorr_R(j) ) / dble( lq*ltrot*ltrot )
+        end do
+
+        chi = 0.d0
+        do imj = 1, lq
+            chi = chi + dble(jjcorr_R(imj))
+        end do
+            
         ! output
         write(1001,'(50e16.8)') jjcorr_X(1:l/2)
         write(1002,'(50e16.8)') jjcorr_Y(1:l/2)
         write(1003,'(50e16.8)') jjcorr_XY(1:l/2)
+        write(1004,'(e16.8)') dble(chi)/dble(lq*lq)/dble(ltrot*ltrot)
     end do
 
     if(allocated(b2int)) deallocate(b2int)
@@ -127,9 +142,11 @@ program main
     close(1001)
     close(1002)
     close(1003)
+    close(1004)
 
     deallocate( jjcorr_XY, jjcorr_Y, jjcorr_X )
     deallocate( jjcorr_R )
+    deallocate( nsiglR )
     deallocate( nsigl_u )
     deallocate( latt_imj )
     deallocate( invlist )
