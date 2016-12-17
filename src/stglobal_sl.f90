@@ -10,6 +10,7 @@
       integer, allocatable, dimension(:,:) :: nsigl_u_old
       real(dp), allocatable, dimension(:,:) :: heff_old
       real(dp) :: ediff, local_ratio, Heff_diff
+      integer :: ltrot_lq, iltlq
 
       ! perform global update
       if( lstglobal ) then
@@ -50,10 +51,14 @@
              end if
 #ENDIF
              ! cumulate update
+             ltrot_lq = ltrot*lq
              Heff_diff = 0.d0
-             do icum = 1, ncumulate
-                 do nt = 1, ltrot
-                     do i = 1, lq
+             do icum = 1, ncumulate*ltrot_lq
+                 !!do nt = 1, ltrot
+                 !!    do i = 1, lq
+                        iltlq = ceiling( spring_sfmt_stream() * ltrot*lq )
+                        nt =  (iltlq-1)/lq + 1
+                        i = mod(iltlq-1, lq) + 1
                         ediff=-2.d0*nsigl_u(i,nt)*heff(i,nt) 
                         if( ediff .gt. 0 ) then
                             local_ratio = 1.001d0
@@ -72,8 +77,8 @@
                             ! add ediff to Heff_diff
                             Heff_diff = Heff_diff + ediff
                         end if
-                     end do
-                 end do
+                 !!    end do
+                 !!end do
              end do
 
              nstcluster = 0
