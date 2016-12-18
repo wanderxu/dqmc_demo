@@ -138,6 +138,10 @@ module blockc
   integer, allocatable, dimension(:,:), save :: stcluster
   integer, dimension(:,:,:,:), allocatable, save :: stbonds_neib
   real(dp), save :: ratio_nn_st(6)
+
+  ! delay update
+  integer, save :: num_ublock
+  integer, save :: ublock_Nsites
   
   contains
 
