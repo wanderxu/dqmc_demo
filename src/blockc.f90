@@ -292,6 +292,10 @@ module blockc
     ndim = lq   ! the dimension of matrix inside determinant
     ltrot = nint( beta / dtau )
 
+    ! tune para for delay update
+    num_ublock = 16
+    ublock_Nsites = lq/num_ublock
+
     allocate( iwrap_nt(0:ltrot) )
     iwrap_nt(0:ltrot) = 0
     ! set nst, and wrap_step

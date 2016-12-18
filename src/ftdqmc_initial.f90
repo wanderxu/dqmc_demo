@@ -11,10 +11,10 @@ subroutine ftdqmc_initial
   !------------------------------------------------
   call system_clock(system_time)
   stream_seed = abs( system_time - ( irank * 1981 + 2008 ) * 951049 )
-#IFDEF TEST
+!#IFDEF TEST
   stream_seed = abs( 0 - ( irank * 1981 + 2008 ) * 951049 )
   write(fout, '(a,i20)') ' stream_seed = ', stream_seed
-#ENDIF
+!#ENDIF
   call spring_sfmt_init(stream_seed)
 
   call s_time_builder(date_time_string)
