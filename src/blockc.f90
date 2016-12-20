@@ -296,8 +296,21 @@ module blockc
     ndim = lq   ! the dimension of matrix inside determinant
     ltrot = nint( beta / dtau )
 
-    !!!! tune para for delay update
-    !!!nublock = 16
+    ! tune para for delay update
+    if( lq/5 .lt. 16) then
+        nublock = 4
+    else if( lq/5 .lt. 32 ) then
+        nublock = 8
+    else if( lq/5 .lt. 64 ) then
+        nublock = 16
+    else if( lq/5 .lt. 128 ) then
+        nublock = 32
+    else if( lq/5 .lt. 512 ) then
+        nublock = 64
+    else ! equal to or greater than 512
+        nublock = 128 ! cutoff
+    end if
+
 
     allocate( iwrap_nt(0:ltrot) )
     iwrap_nt(0:ltrot) = 0
