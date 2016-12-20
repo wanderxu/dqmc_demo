@@ -140,8 +140,7 @@ module blockc
   real(dp), save :: ratio_nn_st(6)
 
   ! delay update
-  integer, save :: num_ublock
-  integer, save :: ublock_Nsites
+  integer, save :: nublock
   
   contains
 
@@ -193,6 +192,8 @@ module blockc
     lstglobal = .false.
     llocal = .true.
 
+    nublock = 16
+
 #IFNDEF OLDCOMP
     ! read parameters
     if ( irank.eq.0 ) then
@@ -224,6 +225,7 @@ module blockc
             call p_get( 'ltau'     , ltau    )
             call p_get( 'ltauall'  , ltauall )
             call p_get( 'nuse'     , nuse    )
+            call p_get( 'nublock'  , nublock )
             call p_destroy()
         end if
     end if
@@ -251,6 +253,7 @@ module blockc
             read(1177,*) ltauall       
             read(1177,*) nwrap         
             read(1177,*) nuse          
+            read(1177,*) nublock
             close(1177)
         end if
     end if
@@ -279,6 +282,7 @@ module blockc
     call mp_bcast( ltau, 0 )
     call mp_bcast( ltauall, 0 )
     call mp_bcast( nuse, 0 )
+    call mp_bcast( nublock, 0 )
     call MPI_BARRIER(MPI_COMM_WORLD,ierr)
 
     ! tune parameters
@@ -292,9 +296,8 @@ module blockc
     ndim = lq   ! the dimension of matrix inside determinant
     ltrot = nint( beta / dtau )
 
-    ! tune para for delay update
-    num_ublock = 16
-    ublock_Nsites = lq/num_ublock
+    !!!! tune para for delay update
+    !!!nublock = 16
 
     allocate( iwrap_nt(0:ltrot) )
     iwrap_nt(0:ltrot) = 0
