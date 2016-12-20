@@ -303,12 +303,10 @@ module blockc
         nublock = 8
     else if( lq/5 .lt. 64 ) then
         nublock = 16
-    else if( lq/5 .lt. 128 ) then
+    else if( lq/5 .lt. 256 ) then
         nublock = 32
-    else if( lq/5 .lt. 512 ) then
+    else ! equal to or greater than 256
         nublock = 64
-    else ! equal to or greater than 512
-        nublock = 128 ! cutoff
     end if
 
 
