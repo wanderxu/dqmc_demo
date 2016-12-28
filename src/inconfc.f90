@@ -73,7 +73,7 @@ subroutine inconfc
               enddo
           enddo
 	   else
-#IFDEF GEN_CONFC_LEARNING
+#IF DEFINED (CUMC) || DEFINED (GEN_CONFC_LEARNING)
            read(30) weight_track
 #ENDIF
           ! read all confins from node 0. 

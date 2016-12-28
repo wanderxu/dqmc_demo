@@ -21,16 +21,20 @@ module ftdqmc_core
 
     subroutine allocate_core
       implicit none
-      allocate( Ust_up(ndim,ndim,0:nst) )     ! 1
-      allocate( Dst_up(ndim,0:nst) )          ! 2
-      allocate( Vst_up(ndim,ndim,0:nst) )     ! 3
-      allocate( UR_up(ndim,ndim) )             ! 4
-      allocate( DRvec_up(ndim) )               ! 5
-      allocate( VR_up(ndim,ndim) )             ! 6
-      allocate( VL_up(ndim,ndim) )             ! 7
-      allocate( DLvec_up(ndim) )               ! 8
-      allocate( UL_up(ndim,ndim) )             ! 9
-      allocate( Bdtau1_up(ndim,ndim) )       ! 16
+      if(nst.gt.0) then
+          allocate( Ust_up(ndim,ndim,0:nst) )     ! 1
+          allocate( Dst_up(ndim,0:nst) )          ! 2
+          allocate( Vst_up(ndim,ndim,0:nst) )     ! 3
+          allocate( UR_up(ndim,ndim) )             ! 4
+          allocate( DRvec_up(ndim) )               ! 5
+          allocate( VR_up(ndim,ndim) )             ! 6
+          allocate( VL_up(ndim,ndim) )             ! 7
+          allocate( DLvec_up(ndim) )               ! 8
+          allocate( UL_up(ndim,ndim) )             ! 9
+      end if
+      if( nst.gt.0 .or. llocal ) then
+          allocate( Bdtau1_up(ndim,ndim) )       ! 16
+      end if
       if(ltau) then
           allocate( Bt2t1_up(ndim,ndim) )       ! 16
           allocate( gt0up(ndim,ndim) )
@@ -38,22 +42,30 @@ module ftdqmc_core
           allocate( g00up(ndim,ndim) )
       end if
 
-      allocate( Ust_up_tmp(ndim,ndim,0:nst) ) ! 17
-      allocate( Dst_up_tmp(ndim,0:nst) )      ! 18
-      allocate( Vst_up_tmp(ndim,ndim,0:nst) ) ! 19
-      allocate( grup_tmp(ndim,ndim) )         ! 20
+      if(nst.gt.0) then
+          allocate( Ust_up_tmp(ndim,ndim,0:nst) ) ! 17
+          allocate( Dst_up_tmp(ndim,0:nst) )      ! 18
+          allocate( Vst_up_tmp(ndim,ndim,0:nst) ) ! 19
+      end if
+      if( llocal ) then
+          allocate( grup_tmp(ndim,ndim) )         ! 20
+      end if
 
-      allocate( Bdtau1_dn(ndim,ndim) )       ! 16
+      if( nst.gt.0 .or. llocal ) then
+          allocate( Bdtau1_dn(ndim,ndim) )       ! 16
+      end if
 #IFDEF SPINDOWN
-      allocate( Ust_dn(ndim,ndim,0:nst) )     ! 1
-      allocate( Dst_dn(ndim,0:nst) )          ! 2
-      allocate( Vst_dn(ndim,ndim,0:nst) )     ! 3
-      allocate( UR_dn(ndim,ndim) )             ! 4
-      allocate( DRvec_dn(ndim) )               ! 5
-      allocate( VR_dn(ndim,ndim) )             ! 6
-      allocate( VL_dn(ndim,ndim) )             ! 7
-      allocate( DLvec_dn(ndim) )               ! 8
-      allocate( UL_dn(ndim,ndim) )             ! 9
+      if(nst.gt.0) then
+          allocate( Ust_dn(ndim,ndim,0:nst) )     ! 1
+          allocate( Dst_dn(ndim,0:nst) )          ! 2
+          allocate( Vst_dn(ndim,ndim,0:nst) )     ! 3
+          allocate( UR_dn(ndim,ndim) )             ! 4
+          allocate( DRvec_dn(ndim) )               ! 5
+          allocate( VR_dn(ndim,ndim) )             ! 6
+          allocate( VL_dn(ndim,ndim) )             ! 7
+          allocate( DLvec_dn(ndim) )               ! 8
+          allocate( UL_dn(ndim,ndim) )             ! 9
+      end if
       if(ltau) then
           allocate( Bt2t1_dn(ndim,ndim) )       ! 16
           allocate( gt0dn(ndim,ndim) )
@@ -61,58 +73,70 @@ module ftdqmc_core
           allocate( g00dn(ndim,ndim) )
       end if
 
-      allocate( Ust_dn_tmp(ndim,ndim,0:nst) ) ! 17
-      allocate( Dst_dn_tmp(ndim,0:nst) )      ! 18
-      allocate( Vst_dn_tmp(ndim,ndim,0:nst) ) ! 19
-      allocate( grdn_tmp(ndim,ndim) )         ! 20
+      if(nst.gt.0) then
+          allocate( Ust_dn_tmp(ndim,ndim,0:nst) ) ! 17
+          allocate( Dst_dn_tmp(ndim,0:nst) )      ! 18
+          allocate( Vst_dn_tmp(ndim,ndim,0:nst) ) ! 19
+      end if
+      if( llocal ) then 
+          allocate( grdn_tmp(ndim,ndim) )         ! 20
+      end if
 #ENDIF
 
     end subroutine allocate_core
 
     subroutine deallocate_core
       implicit none
-      deallocate( Bdtau1_dn )      ! 16
+      if(allocated(Bdtau1_dn)) deallocate( Bdtau1_dn )      ! 16
 #IFDEF SPINDOWN
-      deallocate( grdn_tmp )         ! 20
-      deallocate( Vst_dn_tmp )       ! 19
-      deallocate( Dst_dn_tmp )       ! 18
-      deallocate( Ust_dn_tmp )       ! 17
+      if(allocated(grdn_tmp)) deallocate( grdn_tmp )         ! 20
+      if(nst.gt.0) then
+          deallocate( Vst_dn_tmp )       ! 19
+          deallocate( Dst_dn_tmp )       ! 18
+          deallocate( Ust_dn_tmp )       ! 17
+      end if
       if(ltau) then
           deallocate( g00dn )
           deallocate( g0tdn )
           deallocate( gt0dn )
           deallocate( Bt2t1_dn )      ! 16
       end if
-      deallocate( UL_dn )             ! 9
-      deallocate( DLvec_dn )          ! 8
-      deallocate( VL_dn )             ! 7
-      deallocate( VR_dn )             ! 6
-      deallocate( DRvec_dn )          ! 5
-      deallocate( UR_dn )             ! 4
-      deallocate( Vst_dn )         ! 3
-      deallocate( Dst_dn )         ! 2
-      deallocate( Ust_dn )         ! 1
+      if(nst.gt.0) then
+          deallocate( UL_dn )             ! 9
+          deallocate( DLvec_dn )          ! 8
+          deallocate( VL_dn )             ! 7
+          deallocate( VR_dn )             ! 6
+          deallocate( DRvec_dn )          ! 5
+          deallocate( UR_dn )             ! 4
+          deallocate( Vst_dn )         ! 3
+          deallocate( Dst_dn )         ! 2
+          deallocate( Ust_dn )         ! 1
+      end if
 #ENDIF
-      deallocate( grup_tmp )         ! 20
-      deallocate( Vst_up_tmp )       ! 19
-      deallocate( Dst_up_tmp )       ! 18
-      deallocate( Ust_up_tmp )       ! 17
+      if(allocated(grup_tmp)) deallocate( grup_tmp )         ! 20
+      if(nst.gt.0) then
+          deallocate( Vst_up_tmp )       ! 19
+          deallocate( Dst_up_tmp )       ! 18
+          deallocate( Ust_up_tmp )       ! 17
+      end if
       if(ltau) then
           deallocate( g00up )
           deallocate( g0tup )
           deallocate( gt0up )
           deallocate( Bt2t1_up )      ! 16
       end if
-      deallocate( Bdtau1_up )      ! 16
-      deallocate( UL_up )             ! 9
-      deallocate( DLvec_up )          ! 8
-      deallocate( VL_up )             ! 7
-      deallocate( VR_up )             ! 6
-      deallocate( DRvec_up )          ! 5
-      deallocate( UR_up )             ! 4
-      deallocate( Vst_up )         ! 3
-      deallocate( Dst_up )         ! 2
-      deallocate( Ust_up )         ! 1
+      if(allocated(Bdtau1_up)) deallocate( Bdtau1_up )      ! 16
+      if(nst.gt.0) then
+          deallocate( UL_up )             ! 9
+          deallocate( DLvec_up )          ! 8
+          deallocate( VL_up )             ! 7
+          deallocate( VR_up )             ! 6
+          deallocate( DRvec_up )          ! 5
+          deallocate( UR_up )             ! 4
+          deallocate( Vst_up )         ! 3
+          deallocate( Dst_up )         ! 2
+          deallocate( Ust_up )         ! 1
+      end if
     end subroutine deallocate_core
   
     subroutine ftdqmc_stablize_0b_svd(n)
@@ -122,40 +146,168 @@ module ftdqmc_core
 
       ! local
       integer :: i
+      integer, allocatable, dimension(:) :: jpvt
       complex(dp), allocatable, dimension(:,:) :: Umat2, Vmat1, Vmat2
       real(dp), allocatable, dimension(:) :: Dvec1, Dvec2
 
+      allocate( jpvt(ndim) )
       allocate( Umat2(ndim,ndim), Vmat1(ndim,ndim), Vmat2(ndim,ndim) )
       allocate( Dvec1(ndim), Dvec2(ndim) )
+#IFDEF TEST
+      write(fout,'(a)') ' '
+      write(fout,'(a)') ' ------------------- '
+      write(fout,'(a,i4)') ' In stablize_0b_svd, n = ', n
+#ENDIF
+#IFDEF TEST_LEVEL3
+      Bdtau1_up(:,:) = Imat(:,:)
+      Bdtau1_dn(:,:) = Imat(:,:)
+      call Bmat_tau_R( wrap_step(2,n), wrap_step(1,n), Bdtau1_up, Bdtau1_dn )
+      write(fout, '(a)') ' '
+      write(fout, '(a)') 'in stablize_0b_svd, Bmat_tau_R give Bdtau1_up(:,:) = '
+      do i = 1, ndim
+          write(fout,'(4(2e12.4))') Bdtau1_up(i,:)
+      end do
+      write(fout, '(a)') 'in stablize_0b_svd, Bmat_tau_R give Bdtau1_dn(:,:) = '
+      do i = 1, ndim
+          write(fout,'(4(2e12.4))') Bdtau1_dn(i,:)
+      end do
+#ENDIF
 
       Bdtau1_up(:,:) = Ust_up(:,:,n-1)
       Bdtau1_dn(:,:) = Ust_dn(:,:,n-1)
       ! Bdtau1_up = Bup(tau+dtau,tau)*U_up
       ! Bdtau1_dn = Bdn(tau+dtau,tau)*U_dn
       call Bmat_tau_R( wrap_step(2,n), wrap_step(1,n), Bdtau1_up, Bdtau1_dn )
-      
-      Dvec1(:)   = Dst_up(:,n-1)
-      Vmat1(:,:) = Vst_up(:,:,n-1)
-      call s_z_x_diag_d(ndim,Bdtau1_up,Dvec1,Btmp) ! Btmp = Bdtau1_up * Dmat1
-      call s_svd_zg(ndim, ndim, ndim, Btmp, Umat2, Dvec2, Vtmp)
-      call zgemm('n','n',ndim,ndim,ndim,cone,Vtmp,ndim,Vmat1,ndim,czero,Vmat2,ndim)  ! Vmat2 = Vtmp * Vmat1
+
+      if( n.eq.1 ) then
+#IFDEF TEST
+          write(fout, '(a)') 'B*U*D*V ='
+          call s_v_d_u(ndim, Bdtau1_up, Ivec, Imat, Btmp)
+          do i = 1, 1
+              write(fout,'(16(2e12.4))') Btmp(i,1:ndim)
+          end do
+#ENDIF
+          call s_zgeQRPT(ndim, ndim, Bdtau1_up, Umat2, Vtmp, jpvt)
+#IFDEF TEST_LEVEL3
+          write(fout, '(a)') 'B*U*D = Q * R * jpvt, with '
+          write(fout, '(a)') 'Q ='
+          do i = 1, ndim
+              write(fout,'(16(2e12.4))') Umat2(i,:)
+          end do
+          write(fout, '(a)') 'R ='
+          do i = 1, ndim
+              write(fout,'(16(2e12.4))') Vtmp(i,:)
+          end do
+#ENDIF
+#IFDEF TEST
+          write(fout,'(a,16(i6))') 'jpvt = ', jpvt(:)
+#ENDIF
+          do i = 1, ndim
+              Dvec2(i) = Vtmp(i,i)
+          end do
+          call s_invdiag_d_x_zr( ndim, Dvec2, Vtmp, Vmat2 )
+          call s_zmp(ndim,ndim,Vmat2,jpvt)
+      else
+          Dvec1(:)   = Dst_up(:,n-1)
+          Vmat1(:,:) = Vst_up(:,:,n-1)
+#IFDEF TEST
+          write(fout, '(a)') 'B*U*D*V ='
+          call s_v_d_u(ndim, Bdtau1_up, Dvec1, Vmat1, Btmp)
+          do i = 1, 1
+              write(fout,'(16(2e12.4))') Btmp(i,1:ndim)
+          end do
+#ENDIF
+          call s_z_x_diag_d(ndim,Bdtau1_up,Dvec1,Btmp) ! Btmp = Bdtau1_up * Dmat1
+          call s_zmcpt(ndim,ndim,Btmp,jpvt)
+#IFDEF TEST
+          write(fout,'(a)') 'after s_zmcpt, jpvt = '
+          write(fout,*) jpvt(:)
+#ENDIF
+          call s_zgeQR(ndim,ndim,Btmp,Umat2,Vmat2)
+#IFDEF TEST_LEVEL3
+          write(fout, '(a)') 'B*U*D = Q * R, with '
+          write(fout, '(a)') 'Q ='
+          do i = 1, ndim
+              write(fout,'(16(2e12.4))') Umat2(i,:)
+          end do
+          write(fout, '(a)') 'R ='
+          do i = 1, ndim
+              write(fout,'(16(2e12.4))') Vmat2(i,:)
+          end do
+#ENDIF
+          do i = 1, ndim
+              Dvec2(i) = Vmat2(i,i)
+          end do
+          call s_invdiag_d_x_zr( ndim, Dvec2, Vmat2, Vtmp )
+#IFDEF TEST_LEVEL3
+          write(fout, '(a)') 'Vmat1 ='
+          do i = 1, ndim
+              write(fout,'(16(2e12.4))') Vmat1(i,:)
+          end do
+#ENDIF
+          call s_zpm(ndim,ndim,jpvt,Vmat1)
+#IFDEF TEST_LEVEL3
+          write(fout, '(a)') 'after s_zpm, Vmat1 ='
+          do i = 1, ndim
+              write(fout,'(16(2e12.4))') Vmat1(i,:)
+          end do
+#ENDIF
+          call zgemm('n','n',ndim,ndim,ndim,cone,Vtmp,ndim,Vmat1,ndim,czero,Vmat2,ndim)
+      end if
+#IFDEF TEST
+      write(fout, '(a)') 'B*U*D*V = Up*Dp*Vp, with '
+      write(fout, '(a)') 'Up*Dp*Vp ='
+      call s_v_d_u(ndim, Umat2, Dvec2, Vmat2, Btmp)
+      do i = 1, 1
+          write(fout,'(16(2e12.4))') Btmp(i,1:ndim)
+      end do
+#ENDIF
+#IFDEF TEST_LEVEL3
+      write(fout, '(a)') 'Up ='
+      do i = 1, 4
+          write(fout,'(4(2e12.4))') Umat2(i,1:4)
+      end do
+      write(fout, '(a,4e12.4)') 'Dp =', Dvec2(1:4)
+      write(fout, '(a)') 'Vp ='
+      do i = 1, 4
+          write(fout,'(4(2e12.4))') Vmat2(i,1:4)
+      end do
+#ENDIF
       Ust_up(:,:,n) = Umat2(:,:)
       Dst_up(:,n)   = Dvec2(:)
       Vst_up(:,:,n) = Vmat2(:,:)
-
 #IFDEF SPINDOWN
-      Dvec1(:)   = Dst_dn(:,n-1)
-      Vmat1(:,:) = Vst_dn(:,:,n-1)
-      call s_z_x_diag_d(ndim,Bdtau1_dn,Dvec1,Btmp) ! Btmp = Bdtau1_dn * Dmat1
-      call s_svd_zg(ndim, ndim, ndim, Btmp, Umat2, Dvec2, Vtmp)
-      call zgemm('n','n',ndim,ndim,ndim,cone,Vtmp,ndim,Vmat1,ndim,czero,Vmat2,ndim)  ! Vmat2 = Vtmp * Vmat1
+      if( n.eq.1 ) then
+          call s_zgeQRPT(ndim, ndim, Bdtau1_dn, Umat2, Vtmp, jpvt)
+          do i = 1, ndim
+              Dvec2(i) = Vtmp(i,i)
+          end do
+          call s_invdiag_d_x_zr( ndim, Dvec2, Vtmp, Vmat2 )
+          call s_zmp(ndim,ndim,Vmat2,jpvt)
+      else
+          Dvec1(:)   = Dst_dn(:,n-1)
+          Vmat1(:,:) = Vst_dn(:,:,n-1)
+          call s_z_x_diag_d(ndim,Bdtau1_dn,Dvec1,Btmp) ! Btmp = Bdtau1_dn * Dmat1
+          call s_zmcpt(ndim,ndim,Btmp,jpvt)
+          call s_zgeQR(ndim,ndim,Btmp,Umat2,Vmat2)
+          do i = 1, ndim
+              Dvec2(i) = Vmat2(i,i)
+          end do
+          call s_invdiag_d_x_zr( ndim, Dvec2, Vmat2, Vtmp )
+          call s_zpm(ndim,ndim,jpvt,Vmat1)
+          call zgemm('n','n',ndim,ndim,ndim,cone,Vtmp,ndim,Vmat1,ndim,czero,Vmat2,ndim)
+      end if
       Ust_dn(:,:,n) = Umat2(:,:)
       Dst_dn(:,n)   = Dvec2(:)
       Vst_dn(:,:,n) = Vmat2(:,:)
 #ENDIF
-
+#IFDEF TEST
+      write(fout,'(a)') ' '
+      write(fout,'(a)') ' '
+#ENDIF
       deallocate( Dvec2, Dvec1 )
       deallocate( Vmat2, Vmat1, Umat2 )
+      deallocate( jpvt )
 
     end subroutine ftdqmc_stablize_0b_svd
   
@@ -166,41 +318,148 @@ module ftdqmc_core
 
       ! local
       integer :: i
+      integer, allocatable, dimension(:) :: jpvt
       complex(dp), allocatable, dimension(:,:) :: Umat2, Vmat1, Vmat2
       real(dp), allocatable, dimension(:) :: Dvec1, Dvec2
 
+      allocate( jpvt(ndim) )
       allocate( Umat2(ndim,ndim), Vmat1(ndim,ndim), Vmat2(ndim,ndim) )
       allocate( Dvec1(ndim), Dvec2(ndim) )
+#IFDEF TEST
+      write(fout,'(a)') ' '
+      write(fout,'(a)') ' ------------------- '
+      write(fout,'(a,i4)') ' In stablize_b0_svd, n = ', n
+#ENDIF
+#IFDEF TEST_LEVEL3
+      Bdtau1_up(:,:) = Imat(:,:)
+      Bdtau1_dn(:,:) = Imat(:,:)
+      call Bmat_tau_L( wrap_step(2,n), wrap_step(1,n), Bdtau1_up, Bdtau1_dn )
+      write(fout, '(a)') 'in stablize_b0_svd, Bmat_tau_L give Bdtau1_up(:,:) = '
+      do i = 1, ndim
+          write(fout,'(4(2e12.4))') Bdtau1_up(i,:)
+      end do
+      write(fout, '(a)') 'in stablize_b0_svd, Bmat_tau_L give Bdtau1_dn(:,:) = '
+      do i = 1, ndim
+          write(fout,'(4(2e12.4))') Bdtau1_dn(i,:)
+      end do
+
+      Bdtau1_up(:,:) = Imat(:,:)
+      Bdtau1_dn(:,:) = Imat(:,:)
+      call Bmat_tau_RH( wrap_step(2,n), wrap_step(1,n), Bdtau1_up, Bdtau1_dn )
+      write(fout, '(a)') 'in stablize_b0_svd, Bmat_tau_RH give Bdtau1_up(:,:) = '
+      do i = 1, ndim
+          write(fout,'(4(2e12.4))') Bdtau1_up(i,:)
+      end do
+      write(fout, '(a)') 'in stablize_b0_svd, Bmat_tau_RH give Bdtau1_dn(:,:) = '
+      do i = 1, ndim
+          write(fout,'(4(2e12.4))') Bdtau1_dn(i,:)
+      end do
+#ENDIF
 
       Bdtau1_up(:,:) = Ust_up(:,:,n)
       Bdtau1_dn(:,:) = Ust_dn(:,:,n)
       ! Bdtau1_up = U_up*Bup(tau+dtau,tau)
       ! Bdtau1_dn = U_dn*Bdn(tau+dtau,tau)
-      call Bmat_tau_L( wrap_step(2,n), wrap_step(1,n), Bdtau1_up, Bdtau1_dn )
+      ! call Bmat_tau_L( wrap_step(2,n), wrap_step(1,n), Bdtau1_up, Bdtau1_dn )
+      call Bmat_tau_RH( wrap_step(2,n), wrap_step(1,n), Bdtau1_up, Bdtau1_dn ) ! we need to get ( U*B(n*tau1,(n-1)*tau1) )^H = B^H * U^H
+                                                                              ! for special model here, (B1B2)^H = B2*B1
+      if( n.eq.nst ) then
+#IFDEF TEST
+          write(fout, '(a)') 'B*U*D*V ='
+          call s_v_d_u(ndim, Bdtau1_up, Ivec, Imat, Btmp)
+          do i = 1, 4
+              write(fout,'(4(2e12.4))') Btmp(i,1:4)
+          end do
+#ENDIF
+          call s_zgeQRPT(ndim, ndim, Bdtau1_up, Umat2, Vtmp, jpvt) ! we have Vtmp^+ and Umat^+, actually
+          do i = 1, ndim
+              Dvec2(i) = Vtmp(i,i)
+          end do
+          call s_invdiag_d_x_zr( ndim, Dvec2, Vtmp, Vmat2 )
+          call s_zmp(ndim,ndim,Vmat2,jpvt)  ! we have Vmat2^+, actually
+      else
+          Dvec1(:)   = Dst_up(:,n)
+          Vmat1(:,:) = Vst_up(:,:,n)
+#IFDEF TEST
+          write(fout, '(a)') 'B*U*D*V ='
+          call s_v_d_u(ndim, Bdtau1_up, Dvec1, Vmat1, Btmp)
+          do i = 1, 4
+              write(fout,'(4(2e12.4))') Btmp(i,1:4)
+          end do
+#ENDIF
+          call s_z_x_diag_d(ndim,Bdtau1_up,Dvec1,Btmp) ! Btmp = Bdtau1_up * Dmat1
+          call s_zmcpt(ndim,ndim,Btmp,jpvt)
+#IFDEF TEST
+          write(fout,'(a)') 'after s_zmcpt, jpvt = '
+          write(fout,*) jpvt(:)
+#ENDIF
+          call s_zgeQR(ndim,ndim,Btmp,Umat2,Vmat2)
+          do i = 1, ndim
+              Dvec2(i) = Vmat2(i,i)
+          end do
+          call s_invdiag_d_x_zr( ndim, Dvec2, Vmat2, Vtmp )
 
-      Vmat1(:,:) = Vst_up(:,:,n)
-      Dvec1(:)   = Dst_up(:,n)
-      call s_diag_d_x_z(ndim,Dvec1,Bdtau1_up,Btmp) ! Btmp = Dmat1 * Bdtau1_up
-      call s_svd_zg(ndim, ndim, ndim, Btmp, Vtmp, Dvec2, Umat2)  ! Btmp = Vtmp * Dmat2 * Umat2
-      call zgemm('n','n',ndim,ndim,ndim,cone,Vmat1,ndim,Vtmp,ndim,czero,Vmat2,ndim)  ! Vmat2 = Vmat1 * Vtmp 
-      Vst_up(:,:,n-1) = Vmat2(:,:)
-      Dst_up(:,n-1) = Dvec2(:)
-      Ust_up(:,:,n-1) = Umat2(:,:)
 
-#IFDEF SPINDOWN
-      Vmat1(:,:) = Vst_dn(:,:,n)
-      Dvec1(:)   = Dst_dn(:,n)
-      call s_diag_d_x_z(ndim,Dvec1,Bdtau1_dn,Btmp) ! Btmp = Dmat1 * Bdtau1_dn
-      call s_svd_zg(ndim, ndim, ndim, Btmp, Vtmp, Dvec2, Umat2)  ! Btmp = Vtmp * Dmat2 * Umat2
-      call zgemm('n','n',ndim,ndim,ndim,cone,Vmat1,ndim,Vtmp,ndim,czero,Vmat2,ndim)  ! Vmat2 = Vmat1 * Vtmp 
-      Vst_dn(:,:,n-1) = Vmat2(:,:)
-      Dst_dn(:,n-1) = Dvec2(:)
-      Ust_dn(:,:,n-1) = Umat2(:,:)
+#IFDEF TEST
+          write(fout, '(a)') 'Vmat1 ='
+          do i = 1, 16
+              write(fout,'(16(2e12.4))') Vmat1(i,1:16)
+          end do
+#ENDIF
+          call s_zpm(ndim,ndim,jpvt,Vmat1)
+#IFDEF TEST
+          write(fout, '(a)') 'after s_zpm, Vmat1 ='
+          do i = 1, 16
+              write(fout,'(16(2e12.4))') Vmat1(i,1:16)
+          end do
+          write(fout,'(a,16(i6))') ' jpvt = ', jpvt(:)
 #ENDIF
 
+          call zgemm('n','n',ndim,ndim,ndim,cone,Vtmp,ndim,Vmat1,ndim,czero,Vmat2,ndim)
+      end if
+#IFDEF TEST
+      write(fout, '(a)') 'B*U*D*V = Up*Dp*Vp, with '
+      write(fout, '(a)') 'Up*Dp*Vp ='
+      call s_v_d_u(ndim, Umat2, Dvec2, Vmat2, Btmp)
+      do i = 1, 4
+          write(fout,'(4(2e12.4))') Btmp(i,1:4)
+      end do
+#ENDIF
+      Ust_up(:,:,n-1) = Umat2(:,:)  ! note we have Umat2^+ and Vmat2^+
+      Dst_up(:,n-1)   = Dvec2(:)
+      Vst_up(:,:,n-1) = Vmat2(:,:)
+#IFDEF SPINDOWN
+      if( n.eq.nst ) then
+          call s_zgeQRPT(ndim, ndim, Bdtau1_dn, Umat2, Vtmp, jpvt) ! we have Vtmp^+ and Umat^+, actually
+          do i = 1, ndim
+              Dvec2(i) = Vtmp(i,i)
+          end do
+          call s_invdiag_d_x_zr( ndim, Dvec2, Vtmp, Vmat2 )
+          call s_zmp(ndim,ndim,Vmat2,jpvt)  ! we have Vmat2^+, actually
+      else
+          Dvec1(:)   = Dst_dn(:,n)
+          Vmat1(:,:) = Vst_dn(:,:,n)
+          call s_z_x_diag_d(ndim,Bdtau1_dn,Dvec1,Btmp) ! Btmp = Bdtau1_dn * Dmat1
+          call s_zmcpt(ndim,ndim,Btmp,jpvt)
+          call s_zgeQR(ndim,ndim,Btmp,Umat2,Vmat2)
+          do i = 1, ndim
+              Dvec2(i) = Vmat2(i,i)
+          end do
+          call s_invdiag_d_x_zr( ndim, Dvec2, Vmat2, Vtmp )
+          call s_zpm(ndim,ndim,jpvt,Vmat1)
+          call zgemm('n','n',ndim,ndim,ndim,cone,Vtmp,ndim,Vmat1,ndim,czero,Vmat2,ndim)
+      end if
+      Ust_dn(:,:,n-1) = Umat2(:,:)  ! note we have Umat2^+ and Vmat2^+
+      Dst_dn(:,n-1)   = Dvec2(:)
+      Vst_dn(:,:,n-1) = Vmat2(:,:)
+#ENDIF
+#IFDEF TEST
+      write(fout,'(a)') ' '
+      write(fout,'(a)') ' '
+#ENDIF
       deallocate( Dvec2, Dvec1 )
       deallocate( Vmat2, Vmat1, Umat2 )
-
+      deallocate( jpvt )
     end subroutine ftdqmc_stablize_b0_svd
   
     subroutine ftdqmc_sweep_start_0b
@@ -227,7 +486,7 @@ module ftdqmc_core
           ! at tau = n * tau1
           call ftdqmc_stablize_0b_svd(n)
 #IFDEF TEST
-          write(fout, '(a,i4,a)') ' Dst_up(:,', n, ' ) = '
+          write(fout, '(a,i4,a)') ' in ftdqmc_sweep_start_0b, Dst_up(:,', n, ' ) = '
           write(fout,'(4(e16.8))') Dst_up(:,n)
 #ENDIF
       end do
@@ -253,7 +512,7 @@ module ftdqmc_core
       end if
 
 #IFDEF TEST_LEVEL3
-      write(fout, '(a)') ' After sweep_start, grup(:,:) = '
+      write(fout, '(a)') ' After sweep_start_0b, grup(:,:) = '
       do i = 1, ndim
           write(fout,'(4(2e12.4))') grup(i,:)
       end do
@@ -266,6 +525,7 @@ module ftdqmc_core
       do i = 1, ndim
           tmp = tmp + real( cone - grup(i,i) )
       end do
+      write(fout, '(a)') ' After sweep_start_0b '
       write(fout,'(a,2e12.4)') ' grup(1,1) = ', grup(1,1)
       write(fout,'(a,e12.4)') ' ne_up = ', tmp
 
@@ -282,21 +542,32 @@ module ftdqmc_core
 
      ELSE
 
-     Bdtau1_up(:,:) = Imat(:,:)
-     Bdtau1_dn(:,:) = Imat(:,:)
-     call Bmat_tau_R( ltrot, 1, Bdtau1_up, Bdtau1_dn )
-     do  i = 1, ndim
-         Bdtau1_up(i,i) = Bdtau1_up(i,i) + cone
-     end do
-     call s_inv_z( ndim, Bdtau1_up )
-     grup(:,:) = Bdtau1_up
+     if ( llocal ) then
+         Bdtau1_up(:,:) = Imat(:,:)
+         Bdtau1_dn(:,:) = Imat(:,:)
+         call Bmat_tau_R( ltrot, 1, Bdtau1_up, Bdtau1_dn )
+         do  i = 1, ndim
+             Bdtau1_up(i,i) = Bdtau1_up(i,i) + cone
+         end do
+         call s_invlu_z( ndim, Bdtau1_up )
+         grup(:,:) = Bdtau1_up
 #IFDEF SPINDOWN
-     do  i = 1, ndim
-         Bdtau1_dn(i,i) = Bdtau1_dn(i,i) + cone
-     end do
-     call s_inv_z( ndim, Bdtau1_dn )
-     grdn(:,:) = Bdtau1_dn
+         do  i = 1, ndim
+             Bdtau1_dn(i,i) = Bdtau1_dn(i,i) + cone
+         end do
+         call s_invlu_z( ndim, Bdtau1_dn )
+         grdn(:,:) = Bdtau1_dn
 #ENDIF
+     else
+         grup(:,:) = Imat(:,:)
+         grdn(:,:) = Imat(:,:)
+         call Bmat_tau_R( ltrot, 1, grup, grdn)
+         do  i = 1, ndim
+             grup(i,i) = grup(i,i) + cone
+             grdn(i,i) = grdn(i,i) + cone
+         end do
+     end if
+
      END IF
   
     end subroutine ftdqmc_sweep_start_0b
@@ -378,28 +649,38 @@ module ftdqmc_core
 
      ELSE
 
-     Bdtau1_up(:,:) = Imat(:,:)
-     Bdtau1_dn(:,:) = Imat(:,:)
-     call Bmat_tau_R( ltrot, 1, Bdtau1_up, Bdtau1_dn )
-     do  i = 1, ndim
-         Bdtau1_up(i,i) = Bdtau1_up(i,i) + cone
-     end do
-     call s_inv_z( ndim, Bdtau1_up )
-     grup(:,:) = Bdtau1_up
+     if ( llocal ) then
+         Bdtau1_up(:,:) = Imat(:,:)
+         Bdtau1_dn(:,:) = Imat(:,:)
+         call Bmat_tau_R( ltrot, 1, Bdtau1_up, Bdtau1_dn )
+         do  i = 1, ndim
+             Bdtau1_up(i,i) = Bdtau1_up(i,i) + cone
+         end do
+         call s_invlu_z( ndim, Bdtau1_up )
+         grup(:,:) = Bdtau1_up
 #IFDEF SPINDOWN
-     do  i = 1, ndim
-         Bdtau1_dn(i,i) = Bdtau1_dn(i,i) + cone
-     end do
-     call s_inv_z( ndim, Bdtau1_dn )
-     grdn(:,:) = Bdtau1_dn
+         do  i = 1, ndim
+             Bdtau1_dn(i,i) = Bdtau1_dn(i,i) + cone
+         end do
+         call s_invlu_z( ndim, Bdtau1_dn )
+         grdn(:,:) = Bdtau1_dn
 #ENDIF
+     else
+         grup(:,:) = Imat(:,:)
+         grdn(:,:) = Imat(:,:)
+         call Bmat_tau_R( ltrot, 1, grup, grdn)
+         do  i = 1, ndim
+             grup(i,i) = grup(i,i) + cone
+             grdn(i,i) = grdn(i,i) + cone
+         end do
+     end if
      END IF
   
     end subroutine ftdqmc_sweep_start_b0
   
-    subroutine ftdqmc_sweep_b0(lupdate, lmeasure)
+    subroutine ftdqmc_sweep_b0(lupdate, lmeasure_equaltime)
       implicit none
-      logical, intent(in) :: lupdate, lmeasure
+      logical, intent(in) :: lupdate, lmeasure_equaltime
       ! local variables
       integer :: nt, n, nf, nflag, i, j, nt_ob, ilq, it, nn_ilq, nn_it, inn_st, info, nt1, nt2
       logical :: lterminate 
@@ -426,7 +707,7 @@ module ftdqmc_core
           write(fout,*)
 #ENDIF
           ! obser
-          if( lmeasure .and. ( abs(nt-nt_ob) .le. obs_segment_len .or. abs(nt-nt_ob) .ge. (ltrot-obs_segment_len) ) ) then
+          if( lmeasure_equaltime .and. ( abs(nt-nt_ob) .le. obs_segment_len .or. abs(nt-nt_ob) .ge. (ltrot-obs_segment_len) ) ) then
              call obser_equaltime(nt)
           end if
   
@@ -502,6 +783,16 @@ module ftdqmc_core
               write(fout,*)
               write(fout, '(a,i4,a)') ' Dst_up(:,', n, ' ) after wrap = '
               write(fout,'(4(e16.8))') Dst_up(:,n)
+              tmp = 0.d0
+              do i = 1, ndim
+                  tmp = tmp + real( cone - grup(i,i) )
+              end do
+              write(fout,'(a,e12.4)') ' progating  ne_up = ', tmp
+              tmp = 0.d0
+              do i = 1, ndim
+                  tmp = tmp + real( cone - grup(i,i) )
+              end do
+              write(fout,'(a,e12.4)') ' scratch  ne_up = ', tmp
 #ENDIF
 
 #IFDEF TEST
@@ -539,6 +830,20 @@ module ftdqmc_core
               write(fout,*)
               write(fout, '(a,i4,a)') ' Dst_dn(:,', n, ' ) after wrap = '
               write(fout,'(4(e16.8))') Dst_dn(:,n)
+
+              write(fout,*)
+              write(fout, '(a,i4,a)') ' Dst_dn(:,', n, ' ) after wrap = '
+              write(fout,'(4(e16.8))') Dst_dn(:,n)
+              tmp = 0.d0
+              do i = 1, ndim
+                  tmp = tmp + real( cone - grdn(i,i) )
+              end do
+              write(fout,'(a,e12.4)') ' progating  ne_dn = ', tmp
+              tmp = 0.d0
+              do i = 1, ndim
+                  tmp = tmp + real( cone - grdn(i,i) )
+              end do
+              write(fout,'(a,e12.4)') ' scratch  ne_dn = ', tmp
 #ENDIF
 
 #IFDEF TEST
@@ -554,9 +859,9 @@ module ftdqmc_core
       end do
     end subroutine ftdqmc_sweep_b0
   
-    subroutine ftdqmc_sweep_0b(lupdate, lmeasure)
+    subroutine ftdqmc_sweep_0b(lupdate, lmeasure_equaltime, lmeasure_dyn )
       implicit none
-      logical, intent(in) :: lupdate, lmeasure
+      logical, intent(in) :: lupdate, lmeasure_equaltime, lmeasure_dyn
       ! local variables
       integer :: nt, n, nf, nflag, i, j, nt_ob, ilq, it, nn_ilq, nn_it, inn_st, info, nt1, nt2
       logical :: lterminate 
@@ -607,9 +912,7 @@ module ftdqmc_core
                   nflag = 2
                   call mmuur   (grup, grdn, nf, nt, nflag)
                   call mmuulm1 (grup, grdn, nf, nt, nflag)
-                  if( lupdate .and. (.not.ltau .or. .not.lmeasure)) then
-                      call upgradej(nt,nf,grup,grdn)
-                  end if
+                  if( lupdate ) call upgradej(nt,nf,grup,grdn)
                   nflag = 1
                   call mmuur  (grup, grdn, nf, nt, nflag)
                   call mmuulm1(grup, grdn, nf, nt, nflag)
@@ -620,13 +923,11 @@ module ftdqmc_core
               nflag = 3 ! onsite
               call mmuur  ( grup, grdn, nf, nt, nflag )
               call mmuulm1( grup, grdn, nf, nt, nflag )
-              if( lupdate .and. (.not.ltau .or. .not.lmeasure)) then
-                  call upgradeu( nt, grup, grdn )
-              end if
+              if( lupdate ) call upgradeu( nt, grup, grdn )
           end if
   
           ! obser
-          if( lmeasure .and. ( abs(nt-nt_ob) .le. obs_segment_len .or. abs(nt-nt_ob) .ge. (ltrot-obs_segment_len) ) ) then
+          if( lmeasure_equaltime .and. ( abs(nt-nt_ob) .le. obs_segment_len .or. abs(nt-nt_ob) .ge. (ltrot-obs_segment_len) ) ) then
              call obser_equaltime(nt)
           end if
   
@@ -647,10 +948,10 @@ module ftdqmc_core
               UR_up(:,:)  = Ust_up(:,:,n)
               DRvec_up(:) = Dst_up(:,n)
               VR_up(:,:)  = Vst_up(:,:,n)
-              if(.not. ltau .or. .not. lmeasure ) then
-              !!!if(.not. ltau .or. nt .gt. ltrot/2) then
+              if( .not. ltau .or. .not. lmeasure_dyn ) then
                   call green_equaltime( n, ndim, UR_up, DRvec_up, VR_up, VL_up, DLvec_up, UL_up, grtmp, info )
               else
+              ! only when we need measure dynamical quantities, we will call green_tau
 #IFDEF DYNERROR
                   ! B(nt1,nt2) with nt1 >= nt2
                   nt1 = nt
@@ -742,8 +1043,7 @@ module ftdqmc_core
               UR_dn(:,:)  = Ust_dn(:,:,n)
               DRvec_dn(:) = Dst_dn(:,n)
               VR_dn(:,:)  = Vst_dn(:,:,n)
-              if( .not. ltau .or. .not. lmeasure ) then
-              !!!if(.not. ltau .or. nt .gt. ltrot/2) then
+              if( .not. ltau .or. .not. lmeasure_dyn ) then
                   call green_equaltime( n, ndim, UR_dn, DRvec_dn, VR_dn, VL_dn, DLvec_dn, UL_dn, grtmp, info )
               else
                   !call green_tau(n, ndim, UR_dn, DRvec_dn, VR_dn, VL_dn, DLvec_dn, UL_dn, g00dn, gt0dn,  g0tdn,  grtmp, info )
@@ -829,9 +1129,9 @@ module ftdqmc_core
       end do
     end subroutine ftdqmc_sweep_0b
   
-    subroutine green_equaltime( nt, ndm, ure, dre, vre, vle, dle, ule, gtt, infoe )
+    subroutine green_equaltime( n, ndm, ure, dre, vre, vle, dle, ule, gtt, infoe )
       implicit none
-      integer, intent(in) :: nt, ndm
+      integer, intent(in) :: n, ndm
       complex(dp), dimension(ndm,ndm), intent(in) :: ure, vre, vle, ule
       real(dp), dimension(ndm), intent(in) :: dre, dle
       complex(dp), dimension(ndm,ndm), intent(out) :: gtt
@@ -839,10 +1139,10 @@ module ftdqmc_core
 
       ! local
       integer :: i, j
-      complex(dp), allocatable, dimension(:,:) :: ulinv_tmp, urinv_tmp
+      complex(dp), allocatable, dimension(:,:) :: ulinv_tmp, vlhtr_tmp, urinv_tmp
       real(dp), allocatable, dimension(:) :: drmax, drmin, dlmax, dlmin
 
-      allocate( ulinv_tmp(ndm,ndm), urinv_tmp(ndm,ndm) )
+      allocate( ulinv_tmp(ndm,ndm), vlhtr_tmp(ndm,ndm), urinv_tmp(ndm,ndm) )
       allocate( drmax(ndm), drmin(ndm), dlmax(ndm), dlmin(ndm) )
 
       ! breakup dre = drmax * drmin
@@ -853,6 +1153,7 @@ module ftdqmc_core
 
 #IFDEF TEST
       write(fout,*)
+      write(fout,'(a,i6)') ' in green_equaltime, n = ', n
       write(fout,'(a)') '     dre(i)        drmax(i)        drmin(i) '
       do i = 1, ndm
           write(fout, '(3e16.8)') dre(i), drmax(i), drmin(i)
@@ -864,10 +1165,23 @@ module ftdqmc_core
       end do
 #ENDIF
 
+!$OMP PARALLEL &
+!$OMP PRIVATE ( j, i )
+!$OMP DO
+      do j = 1, ndm
+          do i = 1, ndm
+              ulinv_tmp(i,j) = dconjg(ule(j,i))
+              vlhtr_tmp(i,j) = dconjg(vle(j,i))
+              urinv_tmp(i,j) = dconjg(ure(j,i))
+          end do
+      end do
+!$OMP END DO
+!$OMP END PARALLEL
+
       ! uutmp = ule*ure
-      call zgemm('n','n',ndm,ndm,ndm,cone,ule,ndm,ure,ndm,czero,uutmp,ndm)  ! uutmp = ule*ure
+      call zgemm('n','n',ndm,ndm,ndm,cone,ulinv_tmp,ndm,ure,ndm,czero,uutmp,ndm)  ! uutmp = ule*ure
       ! vvtmp = vre*vle
-      call zgemm('n','n',ndm,ndm,ndm,cone,vre,ndm,vle,ndm,czero,vvtmp,ndm)  ! vvtmp = vre*vle
+      call zgemm('n','n',ndm,ndm,ndm,cone,vre,ndm,vlhtr_tmp,ndm,czero,vvtmp,ndm)  ! vvtmp = vre*vle
 
       !! >> g(t,t)
       ! drmax^-1 * ( ule * ure )^-1 dlmax^-1
@@ -879,14 +1193,13 @@ module ftdqmc_core
           do i = 1, ndm
               ! note uutmp^-1 = uutmp ^ +
               dvvdtmp(i,j) = dconjg(uutmp(j,i)) / ( drmax(i)*dlmax(j) ) + vvtmp(i,j) * drmin(i) * dlmin(j)
-              ulinv_tmp(i,j) = dconjg(ule(j,i))
-              urinv_tmp(i,j) = dconjg(ure(j,i))
           end do
       end do
 !$OMP END DO
 !$OMP END PARALLEL
-      call s_inv_z(ndm,dvvdtmp)
-      call s_v_invd_u( ndm, ulinv_tmp, dlmax, dvvdtmp, Btmp )
+
+      call s_invlu_z(ndm,dvvdtmp)
+      call s_v_invd_u( ndm, ule, dlmax, dvvdtmp, Btmp )
       call s_v_invd_u( ndm, Btmp, drmax, urinv_tmp, gtt )
 
       infoe = 0
@@ -896,111 +1209,14 @@ module ftdqmc_core
       deallocate( drmin )
       deallocate( drmax )
       deallocate( urinv_tmp )
+      deallocate( vlhtr_tmp )
       deallocate( ulinv_tmp )
-
-!!!      ! local
-!!!      integer :: i
-!!!      complex(dp), allocatable, dimension(:,:) :: Umat1, Vmat1
-!!!      real(dp), allocatable, dimension(:) :: Dvec1
-!!!
-!!!      allocate( Umat1(ndm,ndm), Vmat1(ndm,ndm) )
-!!!      allocate( Dvec1(ndm) )
-!!!
-!!!!!!#IFDEF TEST
-!!!!!!      write(fout,*)
-!!!!!!      write(fout, '(a)') ' before zgemm, ure(:,:) = '
-!!!!!!      do i = 1, ndm
-!!!!!!          write(fout,'(4(2e16.8))') ure(i,:)
-!!!!!!      end do
-!!!!!!#ENDIF
-!!!      call zgemm('n','n',ndm,ndm,ndm,cone,ule,ndm,ure,ndm,czero,Atmp,ndm)  ! Atmp = ule*ure
-!!!!!!#IFDEF TEST
-!!!!!!      write(fout,*)
-!!!!!!      write(fout, '(a)') ' after zgemm, ure(:,:) = '
-!!!!!!      do i = 1, ndm
-!!!!!!          write(fout,'(4(2e16.8))') ure(i,:)
-!!!!!!      end do
-!!!!!!#ENDIF
-!!!      call s_inv_z(ndm,Atmp)
-!!!      call zgemm('n','n',ndm,ndm,ndm,cone,vre,ndm,vle,ndm,czero,vvtmp,ndm)  ! vvtmp = vre*vle
-!!!      call s_diag_dvd(ndim, dre, vvtmp, dle, dvvdtmp )
-!!!      !!!if( nt .lt. nst/2 ) then
-!!!      !!!    call s_diag_d_x_z(ndm,dre,vvtmp,dvvtmp)  ! dvvtmp = dre * vvtmp
-!!!      !!!    call s_z_x_diag_d(ndm,dvvtmp,dle,dvvdtmp)  ! dvvdtmp = dvvtmp * dle
-!!!      !!!else
-!!!      !!!    call s_z_x_diag_d(ndm,vvtmp,dle,dvvtmp)  ! dvvtmp = vvtmp * dle
-!!!      !!!    call s_diag_d_x_z(ndm,dre,dvvtmp,dvvdtmp)  ! dvvdtmp = dre * dvvtmp
-!!!      !!!end if
-!!!
-!!!      Btmp(:,:) = Atmp(:,:) + dvvdtmp(:,:)
-!!!
-!!!#IFDEF TEST_LEVEL3
-!!!      write(fout,*)
-!!!      write(fout, '(a)') ' before svd, Btmp(:,:) = '
-!!!      do i = 1, ndm
-!!!          write(fout,'(4(2e16.8))') Btmp(i,:)
-!!!      end do
-!!!#ENDIF
-!!!
-!!!      call s_svd_zg(ndm, ndm, ndm, Btmp, Umat1, Dvec1, Vmat1)
-!!!
-!!!#IFDEF TEST
-!!!      write(fout,*)
-!!!      write(fout,'(a)') ' in green_equaltime, after svd, Dvec1 = '
-!!!      write(fout,'(4(e16.8))') Dvec1(:)
-!!!      write(fout,*)
-!!!#ENDIF
-!!!      ! check Dvec1
-!!!      infoe = 0
-!!!      do i = 1, ndim
-!!!          if( Dvec1(i) .eq. 0.d0 ) then
-!!!              infoe = -1
-!!!              write(fout,'(a,i5,a)') 'WARNING!!! Dvec1(',i, ' ) = 0 in green_equaltime !!! '
-!!!              return
-!!!          end if
-!!!      end do
-!!!
-!!!#IFDEF TEST_LEVEL3
-!!!      ! test SVD
-!!!      call s_z_x_diag_d(ndim,Umat1,Dvec1,Atmp)  ! Atmp = Umat1 * Dmat1
-!!!      call zgemm('n','n',ndim,ndim,ndim,cone,Atmp,ndim,Vmat1,ndim,czero,Btmp,ndim)    ! Btmp = Atmp * Vmat1
-!!!      write(fout, '(a)') ' after svd, Btmp(:,:) = '
-!!!      do i = 1, ndim
-!!!          write(fout,'(4(2e16.8))') Btmp(i,:)
-!!!      end do
-!!!#ENDIF
-!!!
-!!!      call zgemm('n','n',ndm,ndm,ndm,cone,Vmat1,ndm,ule,ndm,czero,Atmp,ndm)  ! Atmp = Vmat1 * ule
-!!!      call zgemm('n','n',ndm,ndm,ndm,cone,ure,ndm,Umat1,ndm,czero,Btmp,ndm)  ! Btmp = ure * Umat1
-!!!      call s_inv_z(ndm, Atmp)
-!!!      call s_inv_z(ndm, Btmp)
-!!!
-!!!      call s_v_invd_u(ndim, Atmp, Dvec1, Btmp, gtt)
-!!!
-!!!      !!!do i = 1, ndm
-!!!      !!!    Dvec1(i) = 1.d0 / Dvec1(i)
-!!!      !!!end do
-!!!      !!!call s_z_x_diag_d(ndm,Atmp,Dvec1,Vtmp) ! Vtmp = Atmp * Dmat2
-!!!      !!!call zgemm('n','n',ndm,ndm,ndm,cone,Vtmp,ndm,Btmp,ndm,czero,gtt,ndm)  ! gtt = Vtmp * Btmp
-!!!
-!!!!!!#IFDEF TEST
-!!!!!!      ! test 
-!!!!!!      call s_z_x_diag_d(ndm,ure,dre,Atmp)                                       ! Atmp = ure*dre
-!!!!!!      call zgemm('n','n',ndm,ndm,ndm,cone,Atmp,ndm,vre,ndm,czero,Btmp,ndm) ! Btmp = Atmp*vre
-!!!!!!      call zgemm('n','n',ndm,ndm,ndm,cone,Btmp,ndm,vle,ndm,czero,Atmp,ndm) ! Atmp = Btmp*vle
-!!!!!!      call s_z_x_diag_d(ndm,Atmp,dle,Btmp)                                      ! Btmp = Atmp*dle
-!!!!!!      call zgemm('n','n',ndm,ndm,ndm,cone,Btmp,ndm,ule,ndm,czero,Atmp,ndm) ! Atmp = Btmp*ule
-!!!!!!      gtt(:,:) = Imat(:,:) + Atmp(:,:)
-!!!!!!      call s_inv_z(ndm,gtt)
-!!!!!!#ENDIF
-!!!      deallocate( Dvec1 )
-!!!      deallocate( Vmat1, Umat1 )
     end subroutine green_equaltime
 
-    subroutine green_equaltime00( nt, ndm, vle, dle, ule, gtt, infoe )
+    subroutine green_equaltime00( n, ndm, vle, dle, ule, gtt, infoe )
       ! calcultate G(0,0), can save 3 matrix products when compare with green_equaltime
       implicit none
-      integer, intent(in) :: nt, ndm
+      integer, intent(in) :: n, ndm
       complex(dp), dimension(ndm,ndm), intent(in) :: vle, ule
       real(dp), dimension(ndm), intent(in) :: dle
       complex(dp), dimension(ndm,ndm), intent(out) :: gtt
@@ -1008,10 +1224,8 @@ module ftdqmc_core
 
       ! local
       integer :: i, j
-      complex(dp), allocatable, dimension(:,:) :: ulinv_tmp
       real(dp), allocatable, dimension(:) :: dlmax, dlmin
 
-      allocate( ulinv_tmp(ndm,ndm) )
       allocate( dlmax(ndm), dlmin(ndm) )
 
       ! breakup dle = dlmax * dlmin
@@ -1019,6 +1233,7 @@ module ftdqmc_core
       call s_dvec_min_max(ndm,dle,dlmax,dlmin)
 
 #IFDEF TEST
+      write(fout,'(a,i6)') ' in green_equaltime00, n = ', n
       write(fout,'(a)') '     dle(i)        dlmax(i)        dlmin(i) '
       do i = 1, ndm
           write(fout, '(3e16.8)') dle(i), dlmax(i), dlmin(i)
@@ -1034,26 +1249,24 @@ module ftdqmc_core
       do j = 1, ndm
           do i = 1, ndm
               ! note uutmp^-1 = uutmp ^ +
-              dvvdtmp(i,j) = dconjg(ule(j,i)) / dlmax(j) + vle(i,j) * dlmin(j)
-              ulinv_tmp(i,j) = dconjg(ule(j,i))
+              dvvdtmp(i,j) = ule(i,j) / dlmax(j) + dconjg( vle(j,i) ) * dlmin(j)
           end do
       end do
 !$OMP END DO
 !$OMP END PARALLEL
-      call s_inv_z(ndm,dvvdtmp)
-      call s_v_invd_u( ndm, ulinv_tmp, dlmax, dvvdtmp, gtt )
+      call s_invlu_z(ndm,dvvdtmp)
+      call s_v_invd_u( ndm, ule, dlmax, dvvdtmp, gtt )
 
       infoe = 0
 
       deallocate( dlmin )
       deallocate( dlmax )
-      deallocate( ulinv_tmp )
     end subroutine green_equaltime00
 
-    subroutine green_equaltimebb( nt, ndm, ure, dre, vre, gtt, infoe )
+    subroutine green_equaltimebb( n, ndm, ure, dre, vre, gtt, infoe )
       ! calcultate G(beta,beta), can save 3 matrix products when compare with green_equaltime
       implicit none
-      integer, intent(in) :: nt, ndm
+      integer, intent(in) :: n, ndm
       complex(dp), dimension(ndm,ndm), intent(in) :: ure, vre
       real(dp), dimension(ndm), intent(in) :: dre
       complex(dp), dimension(ndm,ndm), intent(out) :: gtt
@@ -1073,6 +1286,7 @@ module ftdqmc_core
 
 #IFDEF TEST
       write(fout,*)
+      write(fout,'(a,i6)') ' in green_equaltimebb, n = ', n
       write(fout,'(a)') '     dre(i)        drmax(i)        drmin(i) '
       do i = 1, ndm
           write(fout, '(3e16.8)') dre(i), drmax(i), drmin(i)
@@ -1094,7 +1308,7 @@ module ftdqmc_core
       end do
 !$OMP END DO
 !$OMP END PARALLEL
-      call s_inv_z(ndm,dvvdtmp)
+      call s_invlu_z(ndm,dvvdtmp)
       call s_v_invd_u( ndm, dvvdtmp, drmax, urinv_tmp, gtt )
 
       infoe = 0
@@ -1104,9 +1318,9 @@ module ftdqmc_core
       deallocate( urinv_tmp )
     end subroutine green_equaltimebb
 
-    subroutine green_tau(nt, ndm, ure, dre, vre, vle, dle, ule, g00, gt0, g0t, gtt, infoe )
+    subroutine green_tau(n, ndm, ure, dre, vre, vle, dle, ule, g00, gt0, g0t, gtt, infoe )
       implicit none
-      integer, intent(in) :: nt, ndm
+      integer, intent(in) :: n, ndm
       complex(dp), dimension(ndm,ndm), intent(inout) :: ure, vre, vle, ule
       real(dp), dimension(ndm), intent(in) :: dre, dle
       complex(dp), dimension(ndm,ndm), intent(out) :: g00, gt0, g0t, gtt
@@ -1114,11 +1328,10 @@ module ftdqmc_core
 
       ! local
       integer :: i, j
-      complex(dp), allocatable, dimension(:,:) :: ulinv_tmp, urinv_tmp, vrinv_tmp, vlinv_tmp
+      complex(dp), allocatable, dimension(:,:) :: ulinv_tmp, urinv_tmp, vlhtr_tmp
       real(dp), allocatable, dimension(:) :: drmax, drmin, dlmax, dlmin
 
-      allocate( ulinv_tmp(ndm,ndm), urinv_tmp(ndm,ndm) )
-      allocate( vrinv_tmp(ndm,ndm), vlinv_tmp(ndm,ndm) )
+      allocate( ulinv_tmp(ndm,ndm), urinv_tmp(ndm,ndm), vlhtr_tmp(ndm,ndm) )
       allocate( drmax(ndm), drmin(ndm), dlmax(ndm), dlmin(ndm) )
 
       ! breakup dre = drmax * drmin
@@ -1139,10 +1352,23 @@ module ftdqmc_core
           write(fout, '(3e16.8)') dle(i), dlmax(i), dlmin(i)
       end do
 #ENDIF
+!$OMP PARALLEL &
+!$OMP PRIVATE ( j, i )
+!$OMP DO
+      do j = 1, ndm
+          do i = 1, ndm
+              ulinv_tmp(i,j) = dconjg(ule(j,i))
+              vlhtr_tmp(i,j) = dconjg(vle(j,i))
+              urinv_tmp(i,j) = dconjg(ure(j,i))
+          end do
+      end do
+!$OMP END DO
+!$OMP END PARALLEL
+
       ! uutmp = ule*ure
-      call zgemm('n','n',ndm,ndm,ndm,cone,ule,ndm,ure,ndm,czero,uutmp,ndm)  ! uutmp = ule*ure
+      call zgemm('n','n',ndm,ndm,ndm,cone,ulinv_tmp,ndm,ure,ndm,czero,uutmp,ndm)  ! uutmp = ule*ure
       ! vvtmp = vre*vle
-      call zgemm('n','n',ndm,ndm,ndm,cone,vre,ndm,vle,ndm,czero,vvtmp,ndm)  ! vvtmp = vre*vle
+      call zgemm('n','n',ndm,ndm,ndm,cone,vre,ndm,vlhtr_tmp,ndm,czero,vvtmp,ndm)  ! vvtmp = vre*vle
 
       !! >> g(t,t)
       ! drmax^-1 * ( ule * ure )^-1 dlmax^-1
@@ -1154,25 +1380,22 @@ module ftdqmc_core
           do i = 1, ndm
               ! note uutmp^-1 = uutmp ^ +
               dvvdtmp(i,j) = dconjg(uutmp(j,i)) / ( drmax(i)*dlmax(j) ) + vvtmp(i,j) * drmin(i) * dlmin(j)
-              ulinv_tmp(i,j) = dconjg(ule(j,i))
-              urinv_tmp(i,j) = dconjg(ure(j,i))
           end do
       end do
 !$OMP END DO
 !$OMP END PARALLEL
-      call s_inv_z(ndm,dvvdtmp)
-      call s_v_invd_u( ndm, ulinv_tmp, dlmax, dvvdtmp, Btmp )
+      call s_invlu_z(ndm,dvvdtmp)
+      call s_v_invd_u( ndm, ule, dlmax, dvvdtmp, Btmp )
       call s_v_invd_u( ndm, Btmp, drmax, urinv_tmp, gtt )
 
       !! >> g(t,0)
       call s_v_d_u( ndm, Btmp, drmin, vre, gt0 )
 
-      !!!!! >> g(t,0)
-      !!!!  g(t,0) = g(t,t)B(t,0) = g(t,t) * ure * dre * vre
-      !!!call zgemm('n','n',ndm,ndm,ndm,cone,gtt,ndm,ure,ndm,czero,Atmp,ndm)  ! Atmp = gtt*ure
-      !!!call s_v_d_u( ndm, Atmp, dre, vre, gt0 )
 
-
+      call s_invlu_z(ndm,vre)       ! vre has been rewritten here.
+      call s_invlu_z(ndm,vlhtr_tmp) ! vlhtr_tmp has been rewritten here.
+      ! vvtmp = (vre*vle)^-1 = vle^-1 * vre^-1
+      call zgemm('n','n',ndm,ndm,ndm,cone,vlhtr_tmp,ndm,vre,ndm,czero,vvtmp,ndm)  ! vvtmp = vle^-1 * vre^-1
       !! >> g(0,0)
       ! dlmax^-1 * ( vre * vle )^-1 drmax^-1
       ! dlmin * ( ule * ure ) * drmin
@@ -1181,26 +1404,18 @@ module ftdqmc_core
 !$OMP DO
       do j = 1, ndm
           do i = 1, ndm
-              dvvdtmp(i,j) = dconjg(vvtmp(j,i)) / ( dlmax(i)*drmax(j) ) + uutmp(i,j) * dlmin(i) * drmin(j)
-              vrinv_tmp(i,j) = dconjg(vre(j,i))
-              vlinv_tmp(i,j) = dconjg(vle(j,i))
+              dvvdtmp(i,j) = vvtmp(i,j) / ( dlmax(i)*drmax(j) ) + uutmp(i,j) * dlmin(i) * drmin(j)
           end do
       end do
 !$OMP END DO
 !$OMP END PARALLEL
-      call s_inv_z(ndm,dvvdtmp)
-      call s_v_invd_u( ndm, vrinv_tmp, drmax, dvvdtmp, Btmp )
-      call s_v_invd_u( ndm, Btmp, dlmax, vlinv_tmp, g00 )
+      call s_invlu_z(ndm,dvvdtmp)
+      call s_v_invd_u( ndm, vre, drmax, dvvdtmp, Btmp )
+      call s_v_invd_u( ndm, Btmp, dlmax, vlhtr_tmp, g00 )
 
       !! >> g(0,t)
-      dlmin(:)=-dlmin(:)
-      call s_v_d_u( ndm, Btmp, dlmin, ule, g0t )
-
-      !!!!! >> g(0,t)
-      !!!!  g(0,t) = -B(t,0)^-1 * ( 1 - g(t,t) ) = - vre^-1 * dre^-1 * ure^-1 * ( 1- g(t,t) )
-      !!!Atmp(:,:) = gtt(:,:) - Imat(:,:)  ! note minus sign here
-      !!!call zgemm('n','n',ndm,ndm,ndm,cone,uinv_tmp,ndm,Atmp,ndm,czero,Btmp,ndm)  ! Btmp = ure^-1 * ( g(t,t) - 1 )
-      !!!call s_v_invd_u( ndm, vre, dre, Btmp, g0t )
+      dlmin(:)=-dlmin(:)  ! note minus sign here
+      call s_v_d_u( ndm, Btmp, dlmin, ulinv_tmp, g0t )
 
       infoe = 0
 
@@ -1208,8 +1423,7 @@ module ftdqmc_core
       deallocate( dlmax )
       deallocate( drmin )
       deallocate( drmax )
-      deallocate( vlinv_tmp )
-      deallocate( vrinv_tmp )
+      deallocate( vlhtr_tmp )
       deallocate( urinv_tmp )
       deallocate( ulinv_tmp )
 
@@ -1239,9 +1453,9 @@ module ftdqmc_core
     !!!  allocate(   d2vec( 2*ndm ) )          ! 8
 
     !!!  call zgemm('n','n',ndm,ndm,ndm,cone,vre,ndm,vle,ndm,czero,vvtmp,ndm)  ! vvtmp = vre*vle
-    !!!  call s_inv_z(ndm,vvtmp)
+    !!!  call s_invlu_z(ndm,vvtmp)
     !!!  call zgemm('n','n',ndm,ndm,ndm,cone,ule,ndm,ure,ndm,czero,Atmp,ndm)  ! Atmp = ule*ure
-    !!!  call s_inv_z(ndm,Atmp)
+    !!!  call s_invlu_z(ndm,Atmp)
     !!!  udvmat = czero
     !!!  do j = 1, ndm
     !!!      do i = 1, ndm
@@ -1264,14 +1478,14 @@ module ftdqmc_core
     !!!      end if
     !!!  end do
 
-    !!!  call s_inv_z(2*ndm, v2mat)
-    !!!  call s_inv_z(2*ndm, u2mat)
+    !!!  call s_invlu_z(2*ndm, v2mat)
+    !!!  call s_invlu_z(2*ndm, u2mat)
 
     !!!  !! attention here, we are now changing vre, ule, vle, ure
-    !!!  call s_inv_z(ndm,vre)
-    !!!  call s_inv_z(ndm,ule)
-    !!!  call s_inv_z(ndm,vle)
-    !!!  call s_inv_z(ndm,ure)
+    !!!  call s_invlu_z(ndm,vre)
+    !!!  call s_invlu_z(ndm,ule)
+    !!!  call s_invlu_z(ndm,vle)
+    !!!  call s_invlu_z(ndm,ure)
 
     !!!  vrulmat = czero
     !!!  vrulmat(1:ndm,1:ndm) = vre(1:ndm,1:ndm)
@@ -1340,6 +1554,36 @@ module ftdqmc_core
       !bmat(:,:) = bmat(:,:) * phaseu
     end subroutine Bmat_tau_R
 
+    subroutine Bmat_tau_RH( nt1, nt2, bmat_up, bmat_dn )
+      ! B(tau1,tau2) * 
+      ! make sure nt1 > nt2
+      implicit none
+      integer, intent(in) :: nt1, nt2
+      complex(dp), dimension(ndim,ndim), intent(inout) :: bmat_up
+      complex(dp), dimension(ndim,ndim), intent(inout) :: bmat_dn
+
+      ! local
+      integer :: nt, nf, nflag
+      complex(dp) :: phaseu
+
+      phaseu = cone
+      do nt = nt1, nt2, -1
+          if( lwrapu ) then
+            nflag = 3 ! onsite
+            call mmuurH(bmat_up, bmat_dn, nf, nt, nflag )
+          end if
+          !!!!if( lwrapj ) then
+          !!!!  do nf = nfam, 1, -1
+          !!!!      nflag = 2
+          !!!!      call mmuur(bmat_up, bmat_dn, nf, nt, nflag)
+          !!!!      nflag = 1
+          !!!!      call mmuur(bmat_up, bmat_dn, nf, nt, nflag)
+          !!!!  end do
+          !!!!end if
+          call mmthrH(bmat_up,bmat_dn)
+      end do
+    end subroutine Bmat_tau_RH
+
     subroutine Bmat_tau_L( nt1, nt2, bmat_up, bmat_dn )
       ! * B(tau1,tau2)
       ! make sure nt1 > nt2
@@ -1405,5 +1649,33 @@ module ftdqmc_core
 #ELSE
 #include "stglobal_wolff.f90"
 #ENDIF
+
+    subroutine push_stage
+      implicit none
+      Ust_up_tmp(:,:,:) = Ust_up(:,:,:)
+      Dst_up_tmp(:,:)   = Dst_up(:,:)
+      Vst_up_tmp(:,:,:) = Vst_up(:,:,:)
+      grup_tmp(:,:)     = grup(:,:)
+#IFDEF SPINDOWN
+      Ust_dn_tmp(:,:,:) = Ust_dn(:,:,:)
+      Dst_dn_tmp(:,:)   = Dst_dn(:,:)
+      Vst_dn_tmp(:,:,:) = Vst_dn(:,:,:)
+      grdn_tmp(:,:)     = grdn(:,:)
+#ENDIF
+    end subroutine
+
+    subroutine pop_stage
+      implicit none
+      Ust_up(:,:,:) =  Ust_up_tmp(:,:,:)
+      Dst_up(:,:)   =  Dst_up_tmp(:,:)
+      Vst_up(:,:,:) =  Vst_up_tmp(:,:,:)
+      grup(:,:)     =  grup_tmp(:,:)
+#IFDEF SPINDOWN
+      Ust_dn(:,:,:) =  Ust_dn_tmp(:,:,:)
+      Dst_dn(:,:)   =  Dst_dn_tmp(:,:)
+      Vst_dn(:,:,:) =  Vst_dn_tmp(:,:,:)
+      grdn(:,:)     =  grdn_tmp(:,:)
+#ENDIF
+    end subroutine pop_stage
 
 end module ftdqmc_core

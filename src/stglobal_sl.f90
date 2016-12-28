@@ -10,6 +10,7 @@
       integer, allocatable, dimension(:,:) :: nsigl_u_old
       real(dp), allocatable, dimension(:,:) :: heff_old
       real(dp) :: ediff, local_ratio, Heff_diff
+      integer :: ltrot_lq, iltlq
 
       ! perform global update
       if( lstglobal ) then
@@ -35,21 +36,29 @@
              nsigl_u_old(:,:) = nsigl_u(:,:)
              heff_old(:,:) = heff(:,:)
              ! also store UDV matrix and Green function
-             Ust_up_tmp(:,:,:) = Ust_up(:,:,:)
-             Dst_up_tmp(:,:)   = Dst_up(:,:)
-             Vst_up_tmp(:,:,:) = Vst_up(:,:,:)
-             grup_tmp(:,:) = grup(:,:)
+             if(nst.gt.0 .or. llocal) then
+                 Ust_up_tmp(:,:,:) = Ust_up(:,:,:)
+                 Dst_up_tmp(:,:)   = Dst_up(:,:)
+                 Vst_up_tmp(:,:,:) = Vst_up(:,:,:)
+                 grup_tmp(:,:) = grup(:,:)
+             end if
 #IFDEF SPINDOWN
-             Ust_dn_tmp(:,:,:) = Ust_dn(:,:,:)
-             Dst_dn_tmp(:,:)   = Dst_dn(:,:)
-             Vst_dn_tmp(:,:,:) = Vst_dn(:,:,:)
-             grdn_tmp(:,:) = grdn(:,:)
+             if(nst.gt.0 .or. llocal) then
+                 Ust_dn_tmp(:,:,:) = Ust_dn(:,:,:)
+                 Dst_dn_tmp(:,:)   = Dst_dn(:,:)
+                 Vst_dn_tmp(:,:,:) = Vst_dn(:,:,:)
+                 grdn_tmp(:,:) = grdn(:,:)
+             end if
 #ENDIF
              ! cumulate update
+             ltrot_lq = ltrot*lq
              Heff_diff = 0.d0
-             do icum = 1, ncumulate
-                 do nt = 1, ltrot
-                     do i = 1, lq
+             do icum = 1, ncumulate*ltrot_lq
+                 !!do nt = 1, ltrot
+                 !!    do i = 1, lq
+                        iltlq = ceiling( spring_sfmt_stream() * ltrot*lq )
+                        nt =  (iltlq-1)/lq + 1
+                        i = mod(iltlq-1, lq) + 1
                         ediff=-2.d0*nsigl_u(i,nt)*heff(i,nt) 
                         if( ediff .gt. 0 ) then
                             local_ratio = 1.001d0
@@ -68,8 +77,8 @@
                             ! add ediff to Heff_diff
                             Heff_diff = Heff_diff + ediff
                         end if
-                     end do
-                 end do
+                 !!    end do
+                 !!end do
              end do
 
              nstcluster = 0
@@ -97,9 +106,7 @@
              ! update
              if( ratiof .gt. spring_sfmt_stream() ) then
                  ! global update is accepted
-#IFDEF GEN_CONFC_LEARNING
                  weight_track = logweightf_new + logweights_new
-#ENDIF
                  main_obs(3) = main_obs(3) + dcmplx(1.d0,1.d0)
                  main_obs(4) = main_obs(4) + dcmplx(dble(nstcluster),dble(ltrot*lq))
 #IFDEF TEST
@@ -116,13 +123,11 @@
                  logweights_old = logweights_new
                  ! perform measurement
                  if( lmeas .or. llocal ) then ! when we have local update, we also need perform an sweep back to beta
-                     call ftdqmc_sweep_0b(lupdate=.false., lmeasure=lmeas)
+                     call ftdqmc_sweep_0b(lupdate=.false., lmeasure_equaltime=lmeas, lmeasure_dyn=ltau)
                  end if
              else
                  ! global update is rejected
-#IFDEF GEN_CONFC_LEARNING
                  weight_track = logweightf_old + logweights_old
-#ENDIF
                  main_obs(3) = main_obs(3) + dcmplx(0.d0,1.d0)
 #IFDEF TEST
                  write(fout,'(a,e16.8,a,i8)') ' global update rejected, logratiof = ', logratiof, '  nstcluster = ',  nstcluster
@@ -146,18 +151,22 @@
                  ! perform measurement  ! note no matter whether the update is aceepted, you should do measrement
                  if( lmeas ) then
                      call ftdqmc_sweep_start_b0 ! first, you should recover old B matrix at tau=0
-                     call ftdqmc_sweep_0b(lupdate=.false., lmeasure=lmeas)
+                     call ftdqmc_sweep_0b(lupdate=.false., lmeasure_equaltime=lmeas, lmeasure_dyn=ltau)
                  else
                      ! if no meas, just recover old UDV matrix and Green functions
-                     Ust_up(:,:,:) =  Ust_up_tmp(:,:,:)
-                     Dst_up(:,:)   =  Dst_up_tmp(:,:)
-                     Vst_up(:,:,:) =  Vst_up_tmp(:,:,:)
-                     grup(:,:)     =  grup_tmp(:,:)
+                     if(nst.gt.0 .or. llocal) then
+                         Ust_up(:,:,:) =  Ust_up_tmp(:,:,:)
+                         Dst_up(:,:)   =  Dst_up_tmp(:,:)
+                         Vst_up(:,:,:) =  Vst_up_tmp(:,:,:)
+                         grup(:,:)     =  grup_tmp(:,:)
+                     end if
 #IFDEF SPINDOWN
-                     Ust_dn(:,:,:) =  Ust_dn_tmp(:,:,:)
-                     Dst_dn(:,:)   =  Dst_dn_tmp(:,:)
-                     Vst_dn(:,:,:) =  Vst_dn_tmp(:,:,:)
-                     grdn(:,:)     =  grdn_tmp(:,:)
+                     if(nst.gt.0 .or. llocal ) then
+                         Ust_dn(:,:,:) =  Ust_dn_tmp(:,:,:)
+                         Dst_dn(:,:)   =  Dst_dn_tmp(:,:)
+                         Vst_dn(:,:,:) =  Vst_dn_tmp(:,:,:)
+                         grdn(:,:)     =  grdn_tmp(:,:)
+                     end if
 #ENDIF
                  end if
              end if
@@ -177,15 +186,21 @@
       !!============================================================================================
       !!! calculate fermioin part ratio
       !   WARNNING, s_logdet_z will replace the input matrix with L and U
-      Atmp = grup; Btmp = grdn
-      call s_logdet_z(ndim, Atmp, logweightf_up)
-      call s_logdet_z(ndim, Btmp, logweightf_dn)
-      logweightf_up = - logweightf_up
-      logweightf_dn = - logweightf_dn
-      logweightf = dble( logweightf_up + logweightf_dn )*2.d0
+      if( nst.gt.0 .or. llocal ) then
+          Atmp = grup; Btmp = grdn
+          call s_logdet_z(ndim, Atmp, logweightf_up)
+          call s_logdet_z(ndim, Btmp, logweightf_dn)
+          logweightf_up = - logweightf_up
+          logweightf_dn = - logweightf_dn
+          logweightf = dble( logweightf_up + logweightf_dn )*2.d0
+      else
+          call s_logdet_z(ndim, grup, logweightf_up)
+          call s_logdet_z(ndim, grdn, logweightf_dn)
+          logweightf = dble( logweightf_up + logweightf_dn )*2.d0
+      end if
 #IFDEF TEST
-      write(fout,'(a,2e24.12)') ' without stablize, logweightf_up = ', logweightf_up
-      write(fout,'(a,2e24.12)') ' without stablize, logweightf_dn = ', logweightf_dn
+      write(fout,'(a,2e24.12)') ' logweightf_up = ', logweightf_up
+      write(fout,'(a,2e24.12)') ' logweightf_dn = ', logweightf_dn
 #ENDIF
 
       !!============================================================================================

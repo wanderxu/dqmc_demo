@@ -138,6 +138,9 @@ module blockc
   integer, allocatable, dimension(:,:), save :: stcluster
   integer, dimension(:,:,:,:), allocatable, save :: stbonds_neib
   real(dp), save :: ratio_nn_st(6)
+
+  ! delay update
+  integer, save :: nublock
   
   contains
 
@@ -189,6 +192,8 @@ module blockc
     lstglobal = .false.
     llocal = .true.
 
+    nublock = 16
+
 #IFNDEF OLDCOMP
     ! read parameters
     if ( irank.eq.0 ) then
@@ -220,6 +225,7 @@ module blockc
             call p_get( 'ltau'     , ltau    )
             call p_get( 'ltauall'  , ltauall )
             call p_get( 'nuse'     , nuse    )
+            call p_get( 'nublock'  , nublock )
             call p_destroy()
         end if
     end if
@@ -247,6 +253,7 @@ module blockc
             read(1177,*) ltauall       
             read(1177,*) nwrap         
             read(1177,*) nuse          
+            read(1177,*) nublock
             close(1177)
         end if
     end if
@@ -275,6 +282,7 @@ module blockc
     call mp_bcast( ltau, 0 )
     call mp_bcast( ltauall, 0 )
     call mp_bcast( nuse, 0 )
+    call mp_bcast( nublock, 0 )
     call MPI_BARRIER(MPI_COMM_WORLD,ierr)
 
     ! tune parameters
@@ -287,6 +295,20 @@ module blockc
     nfam = 1
     ndim = lq   ! the dimension of matrix inside determinant
     ltrot = nint( beta / dtau )
+
+    ! tune para for delay update
+    if( lq/5 .lt. 16) then
+        nublock = 4
+    else if( lq/5 .lt. 32 ) then
+        nublock = 8
+    else if( lq/5 .lt. 64 ) then
+        nublock = 16
+    else if( lq/5 .lt. 256 ) then
+        nublock = 32
+    else ! equal to or greater than 256
+        nublock = 64
+    end if
+
 
     allocate( iwrap_nt(0:ltrot) )
     iwrap_nt(0:ltrot) = 0

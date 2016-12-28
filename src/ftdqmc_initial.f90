@@ -82,8 +82,11 @@ subroutine ftdqmc_initial_print
   write(fout,'(a,f7.3)')    ' mu     = ', mu
   write(fout,'(a,i6)')      ' ltrot  = ', ltrot
   write(fout,'(a,i6)')      ' nwrap  = ', nwrap
+  write(fout,'(a,i6)')      ' nsweep = ', nsweep
+  write(fout,'(a,i6)')      ' nbin   = ', nbin
   write(fout,'(a,i6)')      ' nst    = ', nst
   write(fout,'(a,i6)')      ' nsw_stglobal = ', nsw_stglobal
+  write(fout,'(a,i6)')      ' nublock = ', nublock
   write(fout,*)  ' lwrapu = ', lwrapu
   write(fout,*)  ' lwrapj = ', lwrapj
   write(fout,*)  ' llocal = ', llocal

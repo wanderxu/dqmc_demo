@@ -31,7 +31,7 @@ subroutine outconfc
 	if (irank.eq.0)  then
 
        write(35) 1
-#IFDEF GEN_CONFC_LEARNING
+#IF DEFINED (CUMC) || DEFINED (GEN_CONFC_LEARNING)
        write(35) weight_track
 #ENDIF
 

@@ -17,8 +17,10 @@ program ftdqmc_main
   character (len = 20) :: date_time_string
   real(dp) :: start_time, end_time, time1, time2
 #IFDEF CAL_AUTO
-  integer :: i, n, totsz
+  integer :: i, j, imj, n, totsz, nti, ntj
   integer, allocatable, dimension(:) :: totsz_bin
+  integer, allocatable, dimension(:,:) :: jjcorr_Rtau, mpi_jjcorr_Rtau
+  real(dp), allocatable, dimension(:,:) :: jjcorr_Rtau_real
 #ENDIF
 
   call MPI_INIT(ierr)                             
@@ -61,7 +63,9 @@ program ftdqmc_main
 
   call allocate_data_tmp
   call allocate_core
+#IFNDEF CAL_AUTO
   call allocate_obs
+#ENDIF
 
 #IFDEF CUMC
   call set_neighbor
@@ -69,11 +73,17 @@ program ftdqmc_main
 #ENDIF
 
 #IFDEF CAL_AUTO
+#IFDEF GEN_CONFC_LEARNING
   if( llocal .and. .not. lstglobal ) then
       allocate( totsz_bin(2*nsweep) )
   else
       allocate( totsz_bin(nsweep) )
   end if
+#ELSE
+  allocate(jjcorr_Rtau(lq,ltrot/2+1))
+  allocate(jjcorr_Rtau_real(lq,ltrot/2+1))
+  allocate(mpi_jjcorr_Rtau(lq,ltrot/2+1))
+#ENDIF
 #ENDIF
 
   max_wrap_error = 0.d0
@@ -90,7 +100,7 @@ program ftdqmc_main
   if( lwarnup ) then
       ! set nwarnup
       !nwarnup = nint( beta ) + 3
-      nwarnup = 20
+      nwarnup = 0
       if(rhub.le.0.d0) nwarnup = 0
 #IFDEF TEST
       nwarnup = 0
@@ -100,8 +110,8 @@ program ftdqmc_main
       end if
       do nsw = 1, nwarnup
           if(llocal) then
-              call ftdqmc_sweep_b0(lupdate=.true., lmeasure=.false.)
-              call ftdqmc_sweep_0b(lupdate=.true., lmeasure=.false.)
+              call ftdqmc_sweep_b0(lupdate=.true., lmeasure_equaltime=.false.)
+              call ftdqmc_sweep_0b(lupdate=.true., lmeasure_equaltime=.false., lmeasure_dyn=.false.)
           end if
           call ftdqmc_stglobal(lmeas=.false.)
       end do
@@ -117,7 +127,6 @@ program ftdqmc_main
 #ENDIF
   do nbc =  1, nbin
 
-      call obser_init
 #IFDEF CAL_AUTO
 #include 'sweep_auto.f90'
 #ELSE
@@ -170,11 +179,21 @@ program ftdqmc_main
   end if
 
 #IFDEF CAL_AUTO
+#IFDEF GEN_CONFC_LEARNING
   deallocate( totsz_bin )
+#ELSE
+  deallocate(mpi_jjcorr_Rtau)
+  deallocate(jjcorr_Rtau_real)
+  deallocate(jjcorr_Rtau)
+#ENDIF
 #ENDIF
 
 #IFDEF CUMC
   call deallocate_cumulate
+#ENDIF
+
+#IFNDEF CAL_AUTO
+  call deallocate_obs
 #ENDIF
 
   call deallocate_core
