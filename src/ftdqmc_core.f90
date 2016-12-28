@@ -549,13 +549,13 @@ module ftdqmc_core
          do  i = 1, ndim
              Bdtau1_up(i,i) = Bdtau1_up(i,i) + cone
          end do
-         call s_inv_z( ndim, Bdtau1_up )
+         call s_invlu_z( ndim, Bdtau1_up )
          grup(:,:) = Bdtau1_up
 #IFDEF SPINDOWN
          do  i = 1, ndim
              Bdtau1_dn(i,i) = Bdtau1_dn(i,i) + cone
          end do
-         call s_inv_z( ndim, Bdtau1_dn )
+         call s_invlu_z( ndim, Bdtau1_dn )
          grdn(:,:) = Bdtau1_dn
 #ENDIF
      else
@@ -656,13 +656,13 @@ module ftdqmc_core
          do  i = 1, ndim
              Bdtau1_up(i,i) = Bdtau1_up(i,i) + cone
          end do
-         call s_inv_z( ndim, Bdtau1_up )
+         call s_invlu_z( ndim, Bdtau1_up )
          grup(:,:) = Bdtau1_up
 #IFDEF SPINDOWN
          do  i = 1, ndim
              Bdtau1_dn(i,i) = Bdtau1_dn(i,i) + cone
          end do
-         call s_inv_z( ndim, Bdtau1_dn )
+         call s_invlu_z( ndim, Bdtau1_dn )
          grdn(:,:) = Bdtau1_dn
 #ENDIF
      else
@@ -1198,7 +1198,7 @@ module ftdqmc_core
 !$OMP END DO
 !$OMP END PARALLEL
 
-      call s_inv_z(ndm,dvvdtmp)
+      call s_invlu_z(ndm,dvvdtmp)
       call s_v_invd_u( ndm, ule, dlmax, dvvdtmp, Btmp )
       call s_v_invd_u( ndm, Btmp, drmax, urinv_tmp, gtt )
 
@@ -1254,7 +1254,7 @@ module ftdqmc_core
       end do
 !$OMP END DO
 !$OMP END PARALLEL
-      call s_inv_z(ndm,dvvdtmp)
+      call s_invlu_z(ndm,dvvdtmp)
       call s_v_invd_u( ndm, ule, dlmax, dvvdtmp, gtt )
 
       infoe = 0
@@ -1308,7 +1308,7 @@ module ftdqmc_core
       end do
 !$OMP END DO
 !$OMP END PARALLEL
-      call s_inv_z(ndm,dvvdtmp)
+      call s_invlu_z(ndm,dvvdtmp)
       call s_v_invd_u( ndm, dvvdtmp, drmax, urinv_tmp, gtt )
 
       infoe = 0
@@ -1384,7 +1384,7 @@ module ftdqmc_core
       end do
 !$OMP END DO
 !$OMP END PARALLEL
-      call s_inv_z(ndm,dvvdtmp)
+      call s_invlu_z(ndm,dvvdtmp)
       call s_v_invd_u( ndm, ule, dlmax, dvvdtmp, Btmp )
       call s_v_invd_u( ndm, Btmp, drmax, urinv_tmp, gtt )
 
@@ -1392,8 +1392,8 @@ module ftdqmc_core
       call s_v_d_u( ndm, Btmp, drmin, vre, gt0 )
 
 
-      call s_inv_z(ndm,vre)       ! vre has been rewritten here.
-      call s_inv_z(ndm,vlhtr_tmp) ! vlhtr_tmp has been rewritten here.
+      call s_invlu_z(ndm,vre)       ! vre has been rewritten here.
+      call s_invlu_z(ndm,vlhtr_tmp) ! vlhtr_tmp has been rewritten here.
       ! vvtmp = (vre*vle)^-1 = vle^-1 * vre^-1
       call zgemm('n','n',ndm,ndm,ndm,cone,vlhtr_tmp,ndm,vre,ndm,czero,vvtmp,ndm)  ! vvtmp = vle^-1 * vre^-1
       !! >> g(0,0)
@@ -1409,7 +1409,7 @@ module ftdqmc_core
       end do
 !$OMP END DO
 !$OMP END PARALLEL
-      call s_inv_z(ndm,dvvdtmp)
+      call s_invlu_z(ndm,dvvdtmp)
       call s_v_invd_u( ndm, vre, drmax, dvvdtmp, Btmp )
       call s_v_invd_u( ndm, Btmp, dlmax, vlhtr_tmp, g00 )
 
@@ -1453,9 +1453,9 @@ module ftdqmc_core
     !!!  allocate(   d2vec( 2*ndm ) )          ! 8
 
     !!!  call zgemm('n','n',ndm,ndm,ndm,cone,vre,ndm,vle,ndm,czero,vvtmp,ndm)  ! vvtmp = vre*vle
-    !!!  call s_inv_z(ndm,vvtmp)
+    !!!  call s_invlu_z(ndm,vvtmp)
     !!!  call zgemm('n','n',ndm,ndm,ndm,cone,ule,ndm,ure,ndm,czero,Atmp,ndm)  ! Atmp = ule*ure
-    !!!  call s_inv_z(ndm,Atmp)
+    !!!  call s_invlu_z(ndm,Atmp)
     !!!  udvmat = czero
     !!!  do j = 1, ndm
     !!!      do i = 1, ndm
@@ -1478,14 +1478,14 @@ module ftdqmc_core
     !!!      end if
     !!!  end do
 
-    !!!  call s_inv_z(2*ndm, v2mat)
-    !!!  call s_inv_z(2*ndm, u2mat)
+    !!!  call s_invlu_z(2*ndm, v2mat)
+    !!!  call s_invlu_z(2*ndm, u2mat)
 
     !!!  !! attention here, we are now changing vre, ule, vle, ure
-    !!!  call s_inv_z(ndm,vre)
-    !!!  call s_inv_z(ndm,ule)
-    !!!  call s_inv_z(ndm,vle)
-    !!!  call s_inv_z(ndm,ure)
+    !!!  call s_invlu_z(ndm,vre)
+    !!!  call s_invlu_z(ndm,ule)
+    !!!  call s_invlu_z(ndm,vle)
+    !!!  call s_invlu_z(ndm,ure)
 
     !!!  vrulmat = czero
     !!!  vrulmat(1:ndm,1:ndm) = vre(1:ndm,1:ndm)

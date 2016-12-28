@@ -1,6 +1,7 @@
       call obser_init
       do nsw = 1, nsweep
           if(lstglobal .and. llocal ) then
+              !! perform local and global update, only measure after global update
               call ftdqmc_sweep_b0(lupdate=.true., lmeasure_equaltime=.false.)
               call ftdqmc_sweep_0b(lupdate=.true., lmeasure_equaltime=.false.,lmeasure_dyn=.false.)
               call ftdqmc_stglobal(lmeas=.true.)
@@ -19,6 +20,7 @@
               call obser_init
 #ENDIF
           else if ( llocal ) then
+              !! only perform local update, measure equaltime quantities during sweeps, measure dyn quantities when turnning off updates
               call ftdqmc_sweep_b0(lupdate=.true., lmeasure_equaltime=.true.)
 #IFDEF GEN_CONFC_LEARNING
               ! output configuration for learning
