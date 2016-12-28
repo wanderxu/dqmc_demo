@@ -2328,6 +2328,133 @@
 
   end subroutine s_zpm
 
+  subroutine s_pp_R(ndim,jpv1,jpv2)
+  !! jpv1, jpv2 are column pivoting permutation
+  !! perform * jpv1 * jpv2, results store in jpv1
+  !! algorithm: push jpv1^T into jpv2, results store in jpv1
+    implicit none
+    integer, intent(in) :: ndim
+    integer, dimension(ndim), intent(inout) :: jpv1
+    integer, dimension(ndim), intent(in) :: jpv2
+
+    ! local 
+    integer :: k, pv, itemp, npt
+    integer, dimension(:), allocatable :: jpvt
+
+    allocate(jpvt(ndim) )
+
+    !write(*,'(a,16i6)') ' in s_pp_R, input jpv1 = ', jpv1(:)
+    !write(*,'(a,16i6)') '            input jpv2 = ', jpv2(:)
+    !! transpose on jpv1, store in jpvt
+    do k = 1, ndim
+        jpvt(k) = k
+    end do
+    do
+        npt = 0
+        do k = 1, ndim
+            pv = jpv1(k)
+            if( pv .ne. k ) then 
+                npt = npt + 1
+                ! jpv1
+                itemp = jpv1( pv )
+                jpv1( pv ) = jpv1( k )
+                jpv1( k ) = itemp
+                ! jpvt
+                itemp = jpvt( pv )
+                jpvt( pv ) = jpvt( k )
+                jpvt( k ) = itemp
+            end if
+        end do
+        if( npt.eq.0) exit
+    end do
+    !! push jpv1^T into jpv2
+    jpv1(:) = jpv2(:) ! copy jpv2 to jpv1, after push jpv1^T into it, directly return jpv1
+    do
+        npt = 0
+        do k = 1, ndim
+            pv = jpvt(k)
+            if( pv .ne. k ) then
+                npt = npt + 1
+                ! jpv1
+                itemp = jpv1( pv )
+                jpv1( pv ) = jpv1( k )
+                jpv1( k ) = itemp
+                ! jpvt
+                itemp = jpvt( pv )
+                jpvt( pv) = jpvt( k )
+                jpvt( k ) = itemp
+            end if
+        end do
+        if( npt.eq.0) exit
+    end do
+    !write(*,'(a,16i6)') '           jpv1 * jpv2 = ', jpv1(:)
+    deallocate(jpvt)
+  end subroutine s_pp_R
+
+  subroutine s_pp_L(ndim,jpv1,jpv2)
+  !! jpv1, jpv2 are row pivoting permutation
+  !! perform jpv1 * jpv2 * , results store in jpv2
+  !! algorithm: push jpv2^T into jpv1, results sotre in jpv2
+    implicit none
+    integer, intent(in) :: ndim
+    integer, dimension(ndim), intent(inout) :: jpv2
+    integer, dimension(ndim), intent(in) :: jpv1
+
+    ! local 
+    integer :: k, pv, itemp, npt
+    integer, dimension(:), allocatable :: jpvt
+
+    allocate(jpvt(ndim))
+
+    !write(*,'(a,4i6)') ' in s_pp_L, input jpv1 = ', jpv1(:)
+    !write(*,'(a,4i6)') '            input jpv2 = ', jpv2(:)
+
+    ! perform jpv2^T
+    do k = 1, ndim
+        jpvt(k) = k
+    end do
+    do
+        npt = 0
+        do k = 1, ndim
+            pv = jpv2(k)
+            if( pv .ne. k ) then
+                npt = npt + 1
+                ! jpvt
+                itemp = jpvt( pv )
+                jpvt( pv ) = jpvt( k )
+                jpvt( k ) = itemp
+                ! jpv2
+                itemp = jpv2( pv )
+                jpv2( pv) = jpv2( k )
+                jpv2( k ) = itemp
+            end if
+        end do
+        if( npt.eq.0) exit
+    end do
+    !! push jpv2^T into jpv1
+    jpv2(:) = jpv1(:) ! copy jpv1 to jpv2, after push jpv2^T into it, directly return jpv2
+    do
+        npt = 0
+        do k = 1, ndim
+            pv = jpvt(k)
+            if( pv .ne. k ) then
+                npt = npt + 1
+                ! jpv2
+                itemp = jpv2( pv )
+                jpv2( pv ) = jpv2( k )
+                jpv2( k ) = itemp
+                ! jpvt
+                itemp = jpvt( pv )
+                jpvt( pv) = jpvt( k )
+                jpvt( k ) = itemp
+            end if
+        end do
+        if( npt.eq.0) exit
+    end do
+    !write(*,'(a,4i6)') '           jpv1 * jpv2 = ', jpv2(:)
+    deallocate(jpvt)
+  end subroutine s_pp_L
+
   subroutine s_zmp(rdim,cdim,amat,jpv)
   ! amat = amat * P, where P is permutation
   ! note after the permutation, P will become (1234....)
@@ -2357,6 +2484,33 @@
     !write(*,*) ' after zmp, jpv = '
     !write(*,*) jpv(:)
   end subroutine s_zmp
+
+  subroutine s_dppd_z(ndim, dvecr, jpvrin, jpvlin, dvecl, amat)
+  !! amat = (dvecr*jpvr)*(jpvl*dvecl)
+    use constants, only: dp, czero
+    implicit none
+    integer, intent(in) :: ndim
+    integer, dimension(ndim), intent(in) :: jpvrin, jpvlin
+    real(dp), dimension(ndim), intent(in) :: dvecr, dvecl
+    complex(dp), dimension(ndim,ndim), intent(out) :: amat
+
+    ! local
+    integer :: i, j, k
+    integer, dimension(:), allocatable :: jpvr, jpvl
+    allocate(jpvr(ndim),jpvl(ndim))
+    jpvr(:) = jpvrin(:)
+    jpvl(:) = jpvlin(:)
+    amat(:,:) = czero
+    do i = 1, ndim
+        k = jpvr(i)
+        do j = 1, ndim
+            if( jpvl(j) .eq. k ) then
+                amat(i,j) = dcmplx( dvecr(i)*dvecl(j), 0.d0 )
+            end if
+        end do
+    end do
+    deallocate(jpvl,jpvr)
+  end subroutine s_dppd_z
 
   subroutine s_zgeQRPT(rdim, cdim, amat, qmat, rmat, jpvt)
     use constants, only : dp, zero, czero, one
@@ -2690,3 +2844,45 @@
 
      return
   end subroutine s_invlu_z
+
+  subroutine s_adfac_z( rdim, cdim, amat, dvec )
+  !! factorize matrix amat to a dense matrix * diagonal matrix
+  !! with i-th element of diagnoal matrix is norm of i-th column of matrix amat
+    use constants, only:dp
+    implicit none
+    integer, intent(in) :: rdim, cdim
+    complex(dp), dimension(rdim,cdim), intent(inout) :: amat
+    real(dp), dimension(cdim), intent(out) :: dvec
+
+    ! local
+    integer :: i
+
+    ! external
+    real(dp), external :: dznrm2
+
+    do i = 1, cdim
+        dvec(i) = dznrm2(rdim,amat(1,i),1)
+        amat(:,i) = amat(:,i)/dcmplx(dvec(i),0.d0)
+    end do
+  end subroutine s_adfac_z
+
+  subroutine s_dafac_z( rdim, cdim, dvec, amat )
+  !! factorize matrix amat to a diagonal matrix * dense matrix
+  !! with i-th element of diagnoal matrix is norm of i-th row of matrix amat
+    use constants, only:dp
+    implicit none
+    integer, intent(in) :: rdim, cdim
+    complex(dp), dimension(rdim,cdim), intent(inout) :: amat
+    real(dp), dimension(rdim), intent(out) :: dvec
+
+    ! local
+    integer :: i
+
+    ! external
+    real(dp), external :: dznrm2
+
+    do i = 1, rdim
+        dvec(i) = dznrm2(cdim,amat(i,1),rdim)
+        amat(i,:) = amat(i,:)/dcmplx(dvec(i),0.d0)
+    end do
+  end subroutine s_dafac_z
