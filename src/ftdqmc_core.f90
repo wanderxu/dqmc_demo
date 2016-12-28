@@ -678,9 +678,9 @@ module ftdqmc_core
   
     end subroutine ftdqmc_sweep_start_b0
   
-    subroutine ftdqmc_sweep_b0(lupdate, lmeasure)
+    subroutine ftdqmc_sweep_b0(lupdate, lmeasure_equaltime)
       implicit none
-      logical, intent(in) :: lupdate, lmeasure
+      logical, intent(in) :: lupdate, lmeasure_equaltime
       ! local variables
       integer :: nt, n, nf, nflag, i, j, nt_ob, ilq, it, nn_ilq, nn_it, inn_st, info, nt1, nt2
       logical :: lterminate 
@@ -707,7 +707,7 @@ module ftdqmc_core
           write(fout,*)
 #ENDIF
           ! obser
-          if( lmeasure .and. ( abs(nt-nt_ob) .le. obs_segment_len .or. abs(nt-nt_ob) .ge. (ltrot-obs_segment_len) ) ) then
+          if( lmeasure_equaltime .and. ( abs(nt-nt_ob) .le. obs_segment_len .or. abs(nt-nt_ob) .ge. (ltrot-obs_segment_len) ) ) then
              call obser_equaltime(nt)
           end if
   
@@ -859,9 +859,9 @@ module ftdqmc_core
       end do
     end subroutine ftdqmc_sweep_b0
   
-    subroutine ftdqmc_sweep_0b(lupdate, lmeasure)
+    subroutine ftdqmc_sweep_0b(lupdate, lmeasure_equaltime, lmeasure_dyn )
       implicit none
-      logical, intent(in) :: lupdate, lmeasure
+      logical, intent(in) :: lupdate, lmeasure_equaltime, lmeasure_dyn
       ! local variables
       integer :: nt, n, nf, nflag, i, j, nt_ob, ilq, it, nn_ilq, nn_it, inn_st, info, nt1, nt2
       logical :: lterminate 
@@ -912,9 +912,7 @@ module ftdqmc_core
                   nflag = 2
                   call mmuur   (grup, grdn, nf, nt, nflag)
                   call mmuulm1 (grup, grdn, nf, nt, nflag)
-                  if( lupdate .and. (.not.ltau .or. .not.lmeasure)) then
-                      call upgradej(nt,nf,grup,grdn)
-                  end if
+                  if( lupdate ) call upgradej(nt,nf,grup,grdn)
                   nflag = 1
                   call mmuur  (grup, grdn, nf, nt, nflag)
                   call mmuulm1(grup, grdn, nf, nt, nflag)
@@ -925,13 +923,11 @@ module ftdqmc_core
               nflag = 3 ! onsite
               call mmuur  ( grup, grdn, nf, nt, nflag )
               call mmuulm1( grup, grdn, nf, nt, nflag )
-              if( lupdate .and. (.not.ltau .or. .not.lmeasure)) then
-                  call upgradeu( nt, grup, grdn )
-              end if
+              if( lupdate ) call upgradeu( nt, grup, grdn )
           end if
   
           ! obser
-          if( lmeasure .and. ( abs(nt-nt_ob) .le. obs_segment_len .or. abs(nt-nt_ob) .ge. (ltrot-obs_segment_len) ) ) then
+          if( lmeasure_equaltime .and. ( abs(nt-nt_ob) .le. obs_segment_len .or. abs(nt-nt_ob) .ge. (ltrot-obs_segment_len) ) ) then
              call obser_equaltime(nt)
           end if
   
@@ -952,10 +948,10 @@ module ftdqmc_core
               UR_up(:,:)  = Ust_up(:,:,n)
               DRvec_up(:) = Dst_up(:,n)
               VR_up(:,:)  = Vst_up(:,:,n)
-              if(.not. ltau .or. .not. lmeasure ) then
-              !!!if(.not. ltau .or. nt .gt. ltrot/2) then
+              if( .not. ltau .or. .not. lmeasure_dyn ) then
                   call green_equaltime( n, ndim, UR_up, DRvec_up, VR_up, VL_up, DLvec_up, UL_up, grtmp, info )
               else
+              ! only when we need measure dynamical quantities, we will call green_tau
 #IFDEF DYNERROR
                   ! B(nt1,nt2) with nt1 >= nt2
                   nt1 = nt
@@ -1047,8 +1043,7 @@ module ftdqmc_core
               UR_dn(:,:)  = Ust_dn(:,:,n)
               DRvec_dn(:) = Dst_dn(:,n)
               VR_dn(:,:)  = Vst_dn(:,:,n)
-              if( .not. ltau .or. .not. lmeasure ) then
-              !!!if(.not. ltau .or. nt .gt. ltrot/2) then
+              if( .not. ltau .or. .not. lmeasure_dyn ) then
                   call green_equaltime( n, ndim, UR_dn, DRvec_dn, VR_dn, VL_dn, DLvec_dn, UL_dn, grtmp, info )
               else
                   !call green_tau(n, ndim, UR_dn, DRvec_dn, VR_dn, VL_dn, DLvec_dn, UL_dn, g00dn, gt0dn,  g0tdn,  grtmp, info )
@@ -1654,5 +1649,33 @@ module ftdqmc_core
 #ELSE
 #include "stglobal_wolff.f90"
 #ENDIF
+
+    subroutine push_stage
+      implicit none
+      Ust_up_tmp(:,:,:) = Ust_up(:,:,:)
+      Dst_up_tmp(:,:)   = Dst_up(:,:)
+      Vst_up_tmp(:,:,:) = Vst_up(:,:,:)
+      grup_tmp(:,:)     = grup(:,:)
+#IFDEF SPINDOWN
+      Ust_dn_tmp(:,:,:) = Ust_dn(:,:,:)
+      Dst_dn_tmp(:,:)   = Dst_dn(:,:)
+      Vst_dn_tmp(:,:,:) = Vst_dn(:,:,:)
+      grdn_tmp(:,:)     = grdn(:,:)
+#ENDIF
+    end subroutine
+
+    subroutine pop_stage
+      implicit none
+      Ust_up(:,:,:) =  Ust_up_tmp(:,:,:)
+      Dst_up(:,:)   =  Dst_up_tmp(:,:)
+      Vst_up(:,:,:) =  Vst_up_tmp(:,:,:)
+      grup(:,:)     =  grup_tmp(:,:)
+#IFDEF SPINDOWN
+      Ust_dn(:,:,:) =  Ust_dn_tmp(:,:,:)
+      Dst_dn(:,:)   =  Dst_dn_tmp(:,:)
+      Vst_dn(:,:,:) =  Vst_dn_tmp(:,:,:)
+      grdn(:,:)     =  grdn_tmp(:,:)
+#ENDIF
+    end subroutine pop_stage
 
 end module ftdqmc_core

@@ -110,8 +110,8 @@ program ftdqmc_main
       end if
       do nsw = 1, nwarnup
           if(llocal) then
-              call ftdqmc_sweep_b0(lupdate=.true., lmeasure=.false.)
-              call ftdqmc_sweep_0b(lupdate=.true., lmeasure=.false.)
+              call ftdqmc_sweep_b0(lupdate=.true., lmeasure_equaltime=.false.)
+              call ftdqmc_sweep_0b(lupdate=.true., lmeasure_equaltime=.false., lmeasure_dyn=.false.)
           end if
           call ftdqmc_stglobal(lmeas=.false.)
       end do

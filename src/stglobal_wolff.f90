@@ -130,7 +130,7 @@
                  logweights_old = logweights_new
                  ! perform measurement
                  if( lmeas .or. llocal ) then ! when we have local update, we also need perform an sweep back to beta
-                     call ftdqmc_sweep_0b(lupdate=.false., lmeasure=lmeas)
+                     call ftdqmc_sweep_0b(lupdate=.false., lmeasure_equaltime=lmeas, lmeasure_dyn=ltau)
                  end if
              else
                  ! global update is rejected
@@ -155,7 +155,7 @@
                  ! perform measurement  ! note no matter whether the update is aceepted, you should do measrement
                  if( lmeas ) then
                      call ftdqmc_sweep_start_b0 ! first, you should recover old B matrix at tau=0
-                     call ftdqmc_sweep_0b(lupdate=.false., lmeasure=lmeas)
+                     call ftdqmc_sweep_0b(lupdate=.false., lmeasure_equaltime=lmeas, lmeasure_dyn=ltau)
                  else
                      ! if no meas, just recover old UDV matrix and Green functions
                      Ust_up(:,:,:) =  Ust_up_tmp(:,:,:)
