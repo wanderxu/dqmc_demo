@@ -1216,104 +1216,6 @@ module ftdqmc_core
       deallocate( urinv_tmp )
       deallocate( vlhtr_tmp )
       deallocate( ulinv_tmp )
-
-!!!      ! local
-!!!      integer :: i
-!!!      complex(dp), allocatable, dimension(:,:) :: Umat1, Vmat1
-!!!      real(dp), allocatable, dimension(:) :: Dvec1
-!!!
-!!!      allocate( Umat1(ndm,ndm), Vmat1(ndm,ndm) )
-!!!      allocate( Dvec1(ndm) )
-!!!
-!!!!!!#IFDEF TEST
-!!!!!!      write(fout,*)
-!!!!!!      write(fout, '(a)') ' before zgemm, ure(:,:) = '
-!!!!!!      do i = 1, ndm
-!!!!!!          write(fout,'(4(2e16.8))') ure(i,:)
-!!!!!!      end do
-!!!!!!#ENDIF
-!!!      call zgemm('n','n',ndm,ndm,ndm,cone,ule,ndm,ure,ndm,czero,Atmp,ndm)  ! Atmp = ule*ure
-!!!!!!#IFDEF TEST
-!!!!!!      write(fout,*)
-!!!!!!      write(fout, '(a)') ' after zgemm, ure(:,:) = '
-!!!!!!      do i = 1, ndm
-!!!!!!          write(fout,'(4(2e16.8))') ure(i,:)
-!!!!!!      end do
-!!!!!!#ENDIF
-!!!      call s_inv_z(ndm,Atmp)
-!!!      call zgemm('n','n',ndm,ndm,ndm,cone,vre,ndm,vle,ndm,czero,vvtmp,ndm)  ! vvtmp = vre*vle
-!!!      call s_diag_dvd(ndim, dre, vvtmp, dle, dvvdtmp )
-!!!      !!!if( nt .lt. nst/2 ) then
-!!!      !!!    call s_diag_d_x_z(ndm,dre,vvtmp,dvvtmp)  ! dvvtmp = dre * vvtmp
-!!!      !!!    call s_z_x_diag_d(ndm,dvvtmp,dle,dvvdtmp)  ! dvvdtmp = dvvtmp * dle
-!!!      !!!else
-!!!      !!!    call s_z_x_diag_d(ndm,vvtmp,dle,dvvtmp)  ! dvvtmp = vvtmp * dle
-!!!      !!!    call s_diag_d_x_z(ndm,dre,dvvtmp,dvvdtmp)  ! dvvdtmp = dre * dvvtmp
-!!!      !!!end if
-!!!
-!!!      Btmp(:,:) = Atmp(:,:) + dvvdtmp(:,:)
-!!!
-!!!#IFDEF TEST_LEVEL3
-!!!      write(fout,*)
-!!!      write(fout, '(a)') ' before svd, Btmp(:,:) = '
-!!!      do i = 1, ndm
-!!!          write(fout,'(4(2e16.8))') Btmp(i,:)
-!!!      end do
-!!!#ENDIF
-!!!
-!!!      call s_svd_zg(ndm, ndm, ndm, Btmp, Umat1, Dvec1, Vmat1)
-!!!
-!!!#IFDEF TEST
-!!!      write(fout,*)
-!!!      write(fout,'(a)') ' in green_equaltime, after svd, Dvec1 = '
-!!!      write(fout,'(4(e16.8))') Dvec1(:)
-!!!      write(fout,*)
-!!!#ENDIF
-!!!      ! check Dvec1
-!!!      infoe = 0
-!!!      do i = 1, ndim
-!!!          if( Dvec1(i) .eq. 0.d0 ) then
-!!!              infoe = -1
-!!!              write(fout,'(a,i5,a)') 'WARNING!!! Dvec1(',i, ' ) = 0 in green_equaltime !!! '
-!!!              return
-!!!          end if
-!!!      end do
-!!!
-!!!#IFDEF TEST_LEVEL3
-!!!      ! test SVD
-!!!      call s_z_x_diag_d(ndim,Umat1,Dvec1,Atmp)  ! Atmp = Umat1 * Dmat1
-!!!      call zgemm('n','n',ndim,ndim,ndim,cone,Atmp,ndim,Vmat1,ndim,czero,Btmp,ndim)    ! Btmp = Atmp * Vmat1
-!!!      write(fout, '(a)') ' after svd, Btmp(:,:) = '
-!!!      do i = 1, ndim
-!!!          write(fout,'(4(2e16.8))') Btmp(i,:)
-!!!      end do
-!!!#ENDIF
-!!!
-!!!      call zgemm('n','n',ndm,ndm,ndm,cone,Vmat1,ndm,ule,ndm,czero,Atmp,ndm)  ! Atmp = Vmat1 * ule
-!!!      call zgemm('n','n',ndm,ndm,ndm,cone,ure,ndm,Umat1,ndm,czero,Btmp,ndm)  ! Btmp = ure * Umat1
-!!!      call s_inv_z(ndm, Atmp)
-!!!      call s_inv_z(ndm, Btmp)
-!!!
-!!!      call s_v_invd_u(ndim, Atmp, Dvec1, Btmp, gtt)
-!!!
-!!!      !!!do i = 1, ndm
-!!!      !!!    Dvec1(i) = 1.d0 / Dvec1(i)
-!!!      !!!end do
-!!!      !!!call s_z_x_diag_d(ndm,Atmp,Dvec1,Vtmp) ! Vtmp = Atmp * Dmat2
-!!!      !!!call zgemm('n','n',ndm,ndm,ndm,cone,Vtmp,ndm,Btmp,ndm,czero,gtt,ndm)  ! gtt = Vtmp * Btmp
-!!!
-!!!!!!#IFDEF TEST
-!!!!!!      ! test 
-!!!!!!      call s_z_x_diag_d(ndm,ure,dre,Atmp)                                       ! Atmp = ure*dre
-!!!!!!      call zgemm('n','n',ndm,ndm,ndm,cone,Atmp,ndm,vre,ndm,czero,Btmp,ndm) ! Btmp = Atmp*vre
-!!!!!!      call zgemm('n','n',ndm,ndm,ndm,cone,Btmp,ndm,vle,ndm,czero,Atmp,ndm) ! Atmp = Btmp*vle
-!!!!!!      call s_z_x_diag_d(ndm,Atmp,dle,Btmp)                                      ! Btmp = Atmp*dle
-!!!!!!      call zgemm('n','n',ndm,ndm,ndm,cone,Btmp,ndm,ule,ndm,czero,Atmp,ndm) ! Atmp = Btmp*ule
-!!!!!!      gtt(:,:) = Imat(:,:) + Atmp(:,:)
-!!!!!!      call s_inv_z(ndm,gtt)
-!!!!!!#ENDIF
-!!!      deallocate( Dvec1 )
-!!!      deallocate( Vmat1, Umat1 )
     end subroutine green_equaltime
 
     subroutine green_equaltime00( n, ndm, vle, dle, ule, gtt, infoe )
@@ -1431,11 +1333,10 @@ module ftdqmc_core
 
       ! local
       integer :: i, j
-      complex(dp), allocatable, dimension(:,:) :: ulinv_tmp, urinv_tmp, vrinv_tmp, vlinv_tmp
+      complex(dp), allocatable, dimension(:,:) :: ulinv_tmp, urinv_tmp, vlhtr_tmp
       real(dp), allocatable, dimension(:) :: drmax, drmin, dlmax, dlmin
 
-      allocate( ulinv_tmp(ndm,ndm), urinv_tmp(ndm,ndm) )
-      allocate( vrinv_tmp(ndm,ndm), vlinv_tmp(ndm,ndm) )
+      allocate( ulinv_tmp(ndm,ndm), urinv_tmp(ndm,ndm), vlhtr_tmp(ndm,ndm) )
       allocate( drmax(ndm), drmin(ndm), dlmax(ndm), dlmin(ndm) )
 
       ! breakup dre = drmax * drmin
@@ -1456,10 +1357,23 @@ module ftdqmc_core
           write(fout, '(3e16.8)') dle(i), dlmax(i), dlmin(i)
       end do
 #ENDIF
+!$OMP PARALLEL &
+!$OMP PRIVATE ( j, i )
+!$OMP DO
+      do j = 1, ndm
+          do i = 1, ndm
+              ulinv_tmp(i,j) = dconjg(ule(j,i))
+              vlhtr_tmp(i,j) = dconjg(vle(j,i))
+              urinv_tmp(i,j) = dconjg(ure(j,i))
+          end do
+      end do
+!$OMP END DO
+!$OMP END PARALLEL
+
       ! uutmp = ule*ure
-      call zgemm('n','n',ndm,ndm,ndm,cone,ule,ndm,ure,ndm,czero,uutmp,ndm)  ! uutmp = ule*ure
+      call zgemm('n','n',ndm,ndm,ndm,cone,ulinv_tmp,ndm,ure,ndm,czero,uutmp,ndm)  ! uutmp = ule*ure
       ! vvtmp = vre*vle
-      call zgemm('n','n',ndm,ndm,ndm,cone,vre,ndm,vle,ndm,czero,vvtmp,ndm)  ! vvtmp = vre*vle
+      call zgemm('n','n',ndm,ndm,ndm,cone,vre,ndm,vlhtr_tmp,ndm,czero,vvtmp,ndm)  ! vvtmp = vre*vle
 
       !! >> g(t,t)
       ! drmax^-1 * ( ule * ure )^-1 dlmax^-1
@@ -1471,25 +1385,22 @@ module ftdqmc_core
           do i = 1, ndm
               ! note uutmp^-1 = uutmp ^ +
               dvvdtmp(i,j) = dconjg(uutmp(j,i)) / ( drmax(i)*dlmax(j) ) + vvtmp(i,j) * drmin(i) * dlmin(j)
-              ulinv_tmp(i,j) = dconjg(ule(j,i))
-              urinv_tmp(i,j) = dconjg(ure(j,i))
           end do
       end do
 !$OMP END DO
 !$OMP END PARALLEL
       call s_inv_z(ndm,dvvdtmp)
-      call s_v_invd_u( ndm, ulinv_tmp, dlmax, dvvdtmp, Btmp )
+      call s_v_invd_u( ndm, ule, dlmax, dvvdtmp, Btmp )
       call s_v_invd_u( ndm, Btmp, drmax, urinv_tmp, gtt )
 
       !! >> g(t,0)
       call s_v_d_u( ndm, Btmp, drmin, vre, gt0 )
 
-      !!!!! >> g(t,0)
-      !!!!  g(t,0) = g(t,t)B(t,0) = g(t,t) * ure * dre * vre
-      !!!call zgemm('n','n',ndm,ndm,ndm,cone,gtt,ndm,ure,ndm,czero,Atmp,ndm)  ! Atmp = gtt*ure
-      !!!call s_v_d_u( ndm, Atmp, dre, vre, gt0 )
 
-
+      call s_inv_z(ndm,vre)       ! vre has been rewritten here.
+      call s_inv_z(ndm,vlhtr_tmp) ! vlhtr_tmp has been rewritten here.
+      ! vvtmp = (vre*vle)^-1 = vle^-1 * vre^-1
+      call zgemm('n','n',ndm,ndm,ndm,cone,vlhtr_tmp,ndm,vre,ndm,czero,vvtmp,ndm)  ! vvtmp = vle^-1 * vre^-1
       !! >> g(0,0)
       ! dlmax^-1 * ( vre * vle )^-1 drmax^-1
       ! dlmin * ( ule * ure ) * drmin
@@ -1498,26 +1409,18 @@ module ftdqmc_core
 !$OMP DO
       do j = 1, ndm
           do i = 1, ndm
-              dvvdtmp(i,j) = dconjg(vvtmp(j,i)) / ( dlmax(i)*drmax(j) ) + uutmp(i,j) * dlmin(i) * drmin(j)
-              vrinv_tmp(i,j) = dconjg(vre(j,i))
-              vlinv_tmp(i,j) = dconjg(vle(j,i))
+              dvvdtmp(i,j) = vvtmp(i,j) / ( dlmax(i)*drmax(j) ) + uutmp(i,j) * dlmin(i) * drmin(j)
           end do
       end do
 !$OMP END DO
 !$OMP END PARALLEL
       call s_inv_z(ndm,dvvdtmp)
-      call s_v_invd_u( ndm, vrinv_tmp, drmax, dvvdtmp, Btmp )
-      call s_v_invd_u( ndm, Btmp, dlmax, vlinv_tmp, g00 )
+      call s_v_invd_u( ndm, vre, drmax, dvvdtmp, Btmp )
+      call s_v_invd_u( ndm, Btmp, dlmax, vlhtr_tmp, g00 )
 
       !! >> g(0,t)
-      dlmin(:)=-dlmin(:)
-      call s_v_d_u( ndm, Btmp, dlmin, ule, g0t )
-
-      !!!!! >> g(0,t)
-      !!!!  g(0,t) = -B(t,0)^-1 * ( 1 - g(t,t) ) = - vre^-1 * dre^-1 * ure^-1 * ( 1- g(t,t) )
-      !!!Atmp(:,:) = gtt(:,:) - Imat(:,:)  ! note minus sign here
-      !!!call zgemm('n','n',ndm,ndm,ndm,cone,uinv_tmp,ndm,Atmp,ndm,czero,Btmp,ndm)  ! Btmp = ure^-1 * ( g(t,t) - 1 )
-      !!!call s_v_invd_u( ndm, vre, dre, Btmp, g0t )
+      dlmin(:)=-dlmin(:)  ! note minus sign here
+      call s_v_d_u( ndm, Btmp, dlmin, ulinv_tmp, g0t )
 
       infoe = 0
 
@@ -1525,8 +1428,7 @@ module ftdqmc_core
       deallocate( dlmax )
       deallocate( drmin )
       deallocate( drmax )
-      deallocate( vlinv_tmp )
-      deallocate( vrinv_tmp )
+      deallocate( vlhtr_tmp )
       deallocate( urinv_tmp )
       deallocate( ulinv_tmp )
 
