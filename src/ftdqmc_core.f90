@@ -47,9 +47,7 @@ module ftdqmc_core
           allocate( Dst_up_tmp(ndim,0:nst) )      ! 18
           allocate( Vst_up_tmp(ndim,ndim,0:nst) ) ! 19
       end if
-      if( llocal ) then
-          allocate( grup_tmp(ndim,ndim) )         ! 20
-      end if
+      allocate( grup_tmp(ndim,ndim) )         ! 20
 
       if( nst.gt.0 .or. llocal ) then
           allocate( Bdtau1_dn(ndim,ndim) )       ! 16
@@ -78,9 +76,7 @@ module ftdqmc_core
           allocate( Dst_dn_tmp(ndim,0:nst) )      ! 18
           allocate( Vst_dn_tmp(ndim,ndim,0:nst) ) ! 19
       end if
-      if( llocal ) then 
-          allocate( grdn_tmp(ndim,ndim) )         ! 20
-      end if
+      allocate( grdn_tmp(ndim,ndim) )         ! 20
 #ENDIF
 
     end subroutine allocate_core

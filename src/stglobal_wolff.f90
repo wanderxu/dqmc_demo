@@ -190,8 +190,8 @@
       logweightf_dn = - logweightf_dn
       logweightf = dble( logweightf_up + logweightf_dn )*2.d0
 #IFDEF TEST
-      write(fout,'(a,2e24.12)') ' without stablize, logweightf_up = ', logweightf_up
-      write(fout,'(a,2e24.12)') ' without stablize, logweightf_dn = ', logweightf_dn
+      write(fout,'(a,2e24.12)') 'logweightf_up = ', logweightf_up
+      write(fout,'(a,2e24.12)') 'logweightf_dn = ', logweightf_dn
 #ENDIF
 
       logweights = 0.d0
