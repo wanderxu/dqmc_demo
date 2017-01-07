@@ -91,6 +91,7 @@ program ftdqmc_main
 
   call ftdqmc_sweep_start_0b
   call ftdqmc_calculate_weight( logweightf_old, logweights_old )
+  weight_track = logweightf_old + logweights_old
 
   if( irank .eq. 0 ) then
       write(fout,'(a)') ' ftdqmc_sweep_start done '

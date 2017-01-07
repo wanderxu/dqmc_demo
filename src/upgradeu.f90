@@ -77,6 +77,8 @@ subroutine upgradeu(ntau, green_up, green_dn)
      if ( ratio_re_abs .gt. random ) then
         accm  = accm + 1.d0
         weight_track = weight_track + log( ratio_re_abs )
+        logweightf_old = logweightf_old + log( (ratioup*ratiodn)*dconjg(ratioup*ratiodn) )
+        logweights_old = logweights_old + log( wsxsz(id) )
         ! update greep_up
         do nl = 1, ndim
             u1(nl) = green_up(nl,i4)/ratioup

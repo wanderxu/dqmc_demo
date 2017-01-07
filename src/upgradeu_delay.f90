@@ -111,6 +111,8 @@ subroutine upgradeu(ntau, green_up, green_dn)
       ! update accepted
           accm  = accm + 1.d0
           weight_track = weight_track + log( ratio_re_abs )
+          logweightf_old = logweightf_old + log( (ratioup*ratiodn)*dconjg(ratioup*ratiodn) )
+          logweights_old = logweights_old + log( wsxsz(id) )
 
           ik = ik + 1
           ! store avec(:,ik) and bvec(:,ik)
