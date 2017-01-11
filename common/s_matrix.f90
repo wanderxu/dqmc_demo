@@ -902,6 +902,70 @@
      return
   end subroutine s_logdet_z
 
+!!>>> s_logdet_z: calculate the log of determinant of a complex(dp) matrix
+  subroutine s_logdet_zc2(ndim, zmat, zlogdet)
+     use constants, only : dp, czero, pi
+
+     implicit none
+
+! external arguments
+! dimension of zmat matrix
+     integer, intent(in)        :: ndim
+
+! determinant of zmat matrix
+     complex(dp), intent(out)   :: zlogdet
+
+! object matrix, on entry, it contains the original matrix, on exit,
+! it is destroyed and replaced with the L and U matrix
+     complex(dp), intent(inout) :: zmat(ndim,ndim)
+
+! local variables
+! loop index
+     integer :: i
+
+     ! tmp for imaginary part
+     real(dp) :: im_zlogdet
+
+! error flag
+     integer :: ierror
+
+! working arrays for lapack subroutines
+     integer, allocatable :: ipiv(:), jpiv(:)
+
+! allocate memory
+     allocate(ipiv(ndim), jpiv(ndim), stat=ierror)
+     if ( ierror /= 0 ) then
+         call s_print_error('s_logdet_zc2','can not allocate enough memory')
+     endif ! back if ( ierror /= 0 ) block
+
+! computes the LU factorization of a general m-by-n matrix, need lapack
+! package, zgetc2 subroutine
+     call ZGETC2(ndim, zmat, ndim, ipiv, jpiv, ierror)
+     if ( ierror /= 0 ) then
+         call s_print_error('s_logdet_zc2','error in lapack subroutine zgetrf')
+     endif ! back if ( ierror /= 0 ) block
+
+! calculate determinant
+     zlogdet = czero
+     do i=1,ndim
+         if ( ( (ipiv(i) .eq. i) .and. (jpiv(i) .eq. i) ) .and. ( (ipiv(i) .ne. i) .and. (jpiv(i) .ne. i) ) ) then
+             zlogdet = zlogdet + log( +zmat(i,i) )
+         else
+             zlogdet = zlogdet + log( -zmat(i,i) )
+         endif ! back if ( ipiv(i) == i ) block
+     enddo ! over i={1,ndim} loop
+     im_zlogdet = aimag(zlogdet)
+     i=nint(im_zlogdet/2.d0/pi)
+     im_zlogdet = im_zlogdet - 2.d0*pi*dble(i)
+     zlogdet = dcmplx( real(zlogdet), im_zlogdet )
+
+! deallocate memory
+     if ( allocated(jpiv) ) deallocate(jpiv)
+     if ( allocated(ipiv) ) deallocate(ipiv)
+
+     return
+  end subroutine s_logdet_zc2
+
 !!========================================================================
 !!>>> matrix manipulation: calculate matrix's inversion                <<<
 !!========================================================================
