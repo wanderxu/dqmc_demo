@@ -854,7 +854,7 @@
 
 ! object matrix, on entry, it contains the original matrix, on exit,
 ! it is destroyed and replaced with the L and U matrix
-     complex(dp), intent(inout) :: zmat(ndim,ndim)
+     complex(dp), intent(in) :: zmat(ndim,ndim)
 
 ! local variables
 ! loop index
@@ -868,16 +868,19 @@
 
 ! working arrays for lapack subroutines
      integer, allocatable :: ipiv(:)
+     complex(dp), allocatable, dimension(:,:) :: zmat_tmp
 
 ! allocate memory
+     allocate( zmat_tmp(ndim,ndim) )
      allocate(ipiv(ndim), stat=ierror)
      if ( ierror /= 0 ) then
          call s_print_error('s_logdet_z','can not allocate enough memory')
      endif ! back if ( ierror /= 0 ) block
+     zmat_tmp = zmat
 
 ! computes the LU factorization of a general m-by-n matrix, need lapack
 ! package, zgetrf subroutine
-     call ZGETRF(ndim, ndim, zmat, ndim, ipiv, ierror)
+     call ZGETRF(ndim, ndim, zmat_tmp, ndim, ipiv, ierror)
      if ( ierror /= 0 ) then
          call s_print_error('s_logdet_z','error in lapack subroutine zgetrf')
      endif ! back if ( ierror /= 0 ) block
@@ -886,18 +889,19 @@
      zlogdet = czero
      do i=1,ndim
          if ( ipiv(i) == i ) then
-             zlogdet = zlogdet + log( +zmat(i,i) )
+             zlogdet = zlogdet + log( +zmat_tmp(i,i) )
          else
-             zlogdet = zlogdet + log( -zmat(i,i) )
+             zlogdet = zlogdet + log( -zmat_tmp(i,i) )
          endif ! back if ( ipiv(i) == i ) block
      enddo ! over i={1,ndim} loop
-     im_zlogdet = aimag(zlogdet)
+     im_zlogdet = dimag(zlogdet)
      i=nint(im_zlogdet/2.d0/pi)
      im_zlogdet = im_zlogdet - 2.d0*pi*dble(i)
-     zlogdet = dcmplx( real(zlogdet), im_zlogdet )
+     zlogdet = dcmplx( dble(zlogdet), im_zlogdet )
 
 ! deallocate memory
      if ( allocated(ipiv) ) deallocate(ipiv)
+     if ( allocated(zmat_tmp) ) deallocate(zmat_tmp)
 
      return
   end subroutine s_logdet_z
@@ -954,10 +958,10 @@
              zlogdet = zlogdet + log( -zmat(i,i) )
          endif ! back if ( ipiv(i) == i ) block
      enddo ! over i={1,ndim} loop
-     im_zlogdet = aimag(zlogdet)
+     im_zlogdet = dimag(zlogdet)
      i=nint(im_zlogdet/2.d0/pi)
      im_zlogdet = im_zlogdet - 2.d0*pi*dble(i)
-     zlogdet = dcmplx( real(zlogdet), im_zlogdet )
+     zlogdet = dcmplx( dble(zlogdet), im_zlogdet )
 
 ! deallocate memory
      if ( allocated(jpiv) ) deallocate(jpiv)
@@ -2655,6 +2659,94 @@
 
   end subroutine s_zgeQRPT
 
+  subroutine s_zgeQRPT_logdetQ(rdim, cdim, amat, qmat, rmat, jpvt, zlogdet)
+    use constants, only : dp, zero, czero, one, cone
+    implicit none
+    integer, intent(in) :: rdim, cdim
+    integer, dimension(cdim), intent(out) :: jpvt
+    complex(dp), dimension(rdim,cdim), intent(inout) :: amat
+    complex(dp), dimension(min(rdim,cdim),cdim), intent(out) :: rmat
+    complex(dp), dimension(min(rdim,cdim), min(rdim,cdim) ), intent(out) :: qmat
+    complex(dp),intent(out) :: zlogdet
+
+    ! local
+    integer  :: i, ierror, lwork, mindim
+    real(dp), dimension(:), allocatable :: rwork
+    complex(dp), dimension(:), allocatable :: work
+    complex(dp), dimension(:), allocatable :: tau
+
+    mindim = min(rdim,cdim)
+
+    !! perform QR factorization
+    lwork=-1
+    allocate( tau(mindim) )
+    allocate( rwork(2*cdim) )
+    allocate( work(1) )
+    ! perform lwork query
+    jpvt(:) = 0
+    call zgeqp3(rdim, cdim, amat, rdim, jpvt, tau, work, lwork, rwork, ierror)
+    lwork = nint(dble(work(1)))
+    !write(*,*) 'in zgeqp3, lwork =', lwork
+    deallocate(work)
+
+    ! perform QR factorization
+    allocate(work(lwork),stat=ierror)
+    if ( ierror /= 0 ) then
+        call s_print_error('s_zgeQRPT, above zgeqp3','can not allocate enough memory')
+    endif
+    jpvt(:) = 0
+    call zgeqp3(rdim, cdim, amat, rdim, jpvt, tau, work, lwork, rwork, ierror)
+    if ( ierror /= 0 ) then
+        call s_print_error('s_zgeQRPT, ','error in lapack subroutine zgeqp3')
+    endif
+    deallocate(work)
+    deallocate(rwork)
+
+    !! get determinant of Q
+    zlogdet = czero
+    do i = 1, mindim
+        if(abs(tau(i)).ne.0.d0) then
+            zlogdet = zlogdet + log( cone - tau(i)*dcmplx(2.d0*dble(tau(i)), 0.d0 ) / (tau(i)*dconjg(tau(i))) )
+        end if
+    end do
+
+    !! get R
+    rmat(:,:) = czero
+    do i = 1, mindim
+        rmat(1:i,i) = amat(1:i,i)
+    end do
+    do i = mindim+1, cdim
+        rmat(:,i) = amat(:,i)
+    end do
+
+    !! get Q
+    ! get reflectors, stored in qmat
+    call s_identity_z(mindim,qmat)
+    do i = 1, mindim-1
+        qmat(i+1:mindim,i) = amat(i+1:mindim,i)
+    end do
+    lwork = -1
+    allocate(work(1))
+    ! perform lwork query
+    call zungqr(mindim, mindim, mindim, qmat, mindim, tau, work, lwork, ierror)
+    lwork = nint(dble(work(1)))
+    !write(*,*) 'in dungqr, lwork =', lwork
+    deallocate(work)
+
+    ! get Q
+    allocate(work(lwork), stat=ierror)
+    if ( ierror /= 0 ) then
+        call s_print_error('s_zgeQRPT, above zungqr','can not allocate enough memory')
+    endif
+    call zungqr(mindim, mindim, mindim, qmat, mindim, tau, work, lwork, ierror)
+    if ( ierror /= 0 ) then
+        call s_print_error('s_zgeQRPT, ','error in lapack subroutine zungqr')
+    endif
+    deallocate(work)
+    deallocate(tau)
+
+  end subroutine s_zgeQRPT_logdetQ
+
   subroutine s_invdiag_d_x_zr( ndim, dvec, Amat, Bmat )
 #IFDEF _OPENMP
     USE OMP_LIB
@@ -2754,6 +2846,88 @@
 
   end subroutine s_zgeQR
 
+  subroutine s_zgeQR_logdetQ(rdim, cdim, amat, qmat, rmat, zlogdet )
+    use constants, only : dp, zero, czero, one, cone
+    implicit none
+    integer, intent(in) :: rdim, cdim
+    complex(dp), dimension(rdim,cdim), intent(inout) :: amat
+    complex(dp), dimension(min(rdim,cdim),cdim), intent(out) :: rmat
+    complex(dp), dimension(min(rdim,cdim), min(rdim,cdim) ), intent(out) :: qmat
+    complex(dp), intent(out) :: zlogdet
+
+    ! local
+    integer  :: i, ierror, lwork, mindim
+    complex(dp), dimension(:), allocatable :: work
+    complex(dp), dimension(:), allocatable :: tau
+
+    mindim = min(rdim,cdim)
+
+    !! perform QR factorization
+    lwork=-1
+    allocate( tau(mindim) )
+    allocate( work(1) )
+    ! perform lwork query
+    call zgeqrf(rdim, cdim, amat, rdim, tau, work, lwork, ierror)
+    lwork = nint(dble(work(1)))
+    !write(*,*) 'in zgeqrf, lwork =', lwork
+    deallocate(work)
+
+    ! perform QR factorization
+    allocate(work(lwork),stat=ierror)
+    if ( ierror /= 0 ) then
+        call s_print_error('s_zgeQR, above zgeqrf','can not allocate enough memory')
+    endif
+    call zgeqrf(rdim, cdim, amat, rdim, tau, work, lwork, ierror)
+    if ( ierror /= 0 ) then
+        call s_print_error('s_zgeQR, ','error in lapack subroutine zgeqrf')
+    endif
+    deallocate(work)
+
+    !! get determinant of Q
+    zlogdet = czero
+    do i = 1, mindim
+        if(abs(tau(i)).ne.0.d0) then
+            zlogdet = zlogdet + log( cone - tau(i)*dcmplx(2.d0*dble(tau(i)), 0.d0 ) / (tau(i)*dconjg(tau(i))) )
+        end if
+    end do
+
+    !! get R
+    rmat(:,:) = czero
+    do i = 1, mindim
+        rmat(1:i,i) = amat(1:i,i)
+    end do
+    do i = mindim+1, cdim
+        rmat(:,i) = amat(:,i)
+    end do
+
+    !! get Q
+    ! get reflectors, stored in qmat
+    call s_identity_z(mindim,qmat)
+    do i = 1, mindim-1
+        qmat(i+1:mindim,i) = amat(i+1:mindim,i)
+    end do
+    lwork = -1
+    allocate(work(1))
+    ! perform lwork query
+    call zungqr(mindim, mindim, mindim, qmat, mindim, tau, work, lwork, ierror)
+    lwork = nint(dble(work(1)))
+    !write(*,*) 'in zungqr, lwork =', lwork
+    deallocate(work)
+
+    ! get Q
+    allocate(work(lwork), stat=ierror)
+    if ( ierror /= 0 ) then
+        call s_print_error('s_zgeQR, above zungqr','can not allocate enough memory')
+    endif
+    call zungqr(mindim, mindim, mindim, qmat, mindim, tau, work, lwork, ierror)
+    if ( ierror /= 0 ) then
+        call s_print_error('s_zgeQR, ','error in lapack subroutine zungqr')
+    endif
+    deallocate(work)
+    deallocate(tau)
+
+  end subroutine s_zgeQR_logdetQ
+
   subroutine s_invqr_z(ndim, amat )
     use constants, only : dp, zero, czero, one, cone
     implicit none
@@ -2830,6 +3004,107 @@
     deallocate(rmat)
     deallocate(qmat)
   end subroutine s_invqr_z
+
+  subroutine s_inv_logdet_qr_z(ndim, amat, zlogdet )
+    use constants, only : dp, zero, czero, one, cone, pi
+    implicit none
+    integer, intent(in) :: ndim
+    complex(dp), dimension(ndim,ndim), intent(inout) :: amat
+    complex(dp), intent(out) :: zlogdet
+
+    ! local
+    integer  :: i, ierror, lwork
+    real(dp) :: im_zlogdet
+    complex(dp) :: zlogtmp
+    complex(dp), dimension(:), allocatable :: work
+    complex(dp), dimension(:), allocatable :: tau
+    complex(dp), dimension(:,:), allocatable :: qmat
+    complex(dp), dimension(:,:), allocatable :: rmat
+
+    allocate( qmat(ndim,ndim) )
+    allocate( rmat(ndim,ndim) )
+
+    !! perform QR factorization
+    lwork=-1
+    allocate( tau(ndim) )
+    allocate( work(1) )
+    ! perform lwork query
+    call zgeqrf(ndim, ndim, amat, ndim, tau, work, lwork, ierror)
+    lwork = nint(dble(work(1)))
+    !write(*,*) 'in zgeqrf, lwork =', lwork
+    deallocate(work)
+
+    ! perform QR factorization
+    allocate(work(lwork),stat=ierror)
+    if ( ierror /= 0 ) then
+        call s_print_error('s_zgeQR, above zgeqrf','can not allocate enough memory')
+    endif
+    call zgeqrf(ndim, ndim, amat, ndim, tau, work, lwork, ierror)
+    if ( ierror /= 0 ) then
+        call s_print_error('s_zgeQR, ','error in lapack subroutine zgeqrf')
+    endif
+    deallocate(work)
+
+    !! get Q
+    ! get reflectors, stored in qmat
+    call s_identity_z(ndim,qmat)
+    do i = 1, ndim-1
+        qmat(i+1:ndim,i) = amat(i+1:ndim,i)
+    end do
+    lwork = -1
+    allocate(work(1))
+    ! perform lwork query
+    call zungqr(ndim, ndim, ndim, qmat, ndim, tau, work, lwork, ierror)
+    lwork = nint(dble(work(1)))
+    !write(*,*) 'in zungqr, lwork =', lwork
+    deallocate(work)
+
+    !! get determinant of Q
+    zlogtmp = czero
+    do i = 1, ndim
+        if(abs(tau(i)).ne.0.d0) then
+            zlogtmp = zlogtmp + log( cone - tau(i)*dcmplx(2.d0*dble(tau(i)), 0.d0 ) / (tau(i)*dconjg(tau(i))) )
+        end if
+    end do
+
+    ! get Q
+    allocate(work(lwork), stat=ierror)
+    if ( ierror /= 0 ) then
+        call s_print_error('s_zgeQR, above zungqr','can not allocate enough memory')
+    endif
+    call zungqr(ndim, ndim, ndim, qmat, ndim, tau, work, lwork, ierror)
+    if ( ierror /= 0 ) then
+        call s_print_error('s_zgeQR, ','error in lapack subroutine zungqr')
+    endif
+    deallocate(work)
+    deallocate(tau)
+
+    zlogdet = czero
+    !! get determinant of R
+    do i = 1, ndim
+        zlogdet = zlogdet + log(amat(i,i))
+    end do
+
+    !! get total determinant
+    zlogdet = zlogdet + zlogtmp
+    im_zlogdet = dimag(zlogdet)
+    i=nint(im_zlogdet/2.d0/pi)
+    im_zlogdet = im_zlogdet - 2.d0*pi*dble(i)
+    zlogdet = dcmplx( dble(zlogdet), im_zlogdet )
+
+    !! get inverse of R
+    call ztrtri('U','N',ndim,amat,ndim,ierror)
+    rmat(:,:) = czero
+    do i = 1, ndim
+        rmat(1:i,i) = amat(1:i,i)
+    end do
+
+    !! get A^-1 = R^-1*Q^H
+    call zgemm('n','c',ndim,ndim,ndim,cone,rmat,ndim,qmat,ndim,czero,amat,ndim)
+
+    deallocate(rmat)
+    deallocate(qmat)
+  end subroutine s_inv_logdet_qr_z
 
   !!>>> s_invlu_z: invert complex(dp) matrix using lapack subroutines
   subroutine s_invlu_z(ndim, zmat)
@@ -2908,6 +3183,102 @@
 
      return
   end subroutine s_invlu_z
+
+  !!>>> s_invlu_z: invert complex(dp) matrix using lapack subroutines
+  subroutine s_inv_logdet_lu_z(ndim, zmat, zlogdet)
+     use constants, only : dp, czero, cone, pi
+
+     implicit none
+
+     ! external arguments
+     ! dimension of zmat matrix
+     integer, intent(in)        :: ndim
+
+     ! object matrix, on entry, it contains the original matrix, on exit,
+     ! it is destroyed and replaced with the inversed matrix
+     complex(dp), intent(inout) :: zmat(ndim,ndim)
+     complex(dp), intent(out) :: zlogdet
+
+     ! local variables
+     ! error flag
+     integer     :: ierror
+     integer :: i
+
+     ! tmp for imaginary part
+     real(dp) :: im_zlogdet
+
+     ! working arrays for lapack subroutines
+     integer, allocatable     :: ipiv(:)
+     complex(dp), allocatable :: work(:)
+
+     complex(dp), allocatable, dimension(:,:) :: umat, lmat
+
+     integer :: k, pv
+
+     allocate(umat(ndim,ndim))
+     allocate(lmat(ndim,ndim))
+
+     ! allocate memory
+     allocate(ipiv(ndim), stat=ierror)
+     allocate(work(ndim), stat=ierror)
+     if ( ierror /= 0 ) then
+         call s_print_error('s_inv_z','can not allocate enough memory')
+     endif ! back if ( ierror /= 0 ) block
+
+     ! computes the LU factorization of a general m-by-n matrix, need lapack
+     ! package, zgetrf subroutine
+     call ZGETRF(ndim, ndim, zmat, ndim, ipiv, ierror)
+     if ( ierror /= 0 ) then
+         call s_print_error('s_inv_z','error in lapack subroutine zgetrf')
+     endif ! back if ( ierror /= 0 ) block
+
+     ! calculate determinant
+     zlogdet = czero
+     do i=1,ndim
+         if ( ipiv(i) == i ) then
+             zlogdet = zlogdet + log( +zmat(i,i) )
+         else
+             zlogdet = zlogdet + log( -zmat(i,i) )
+         endif ! back if ( ipiv(i) == i ) block
+     enddo ! over i={1,ndim} loop
+     im_zlogdet = dimag(zlogdet)
+     i=nint(im_zlogdet/2.d0/pi)
+     im_zlogdet = im_zlogdet - 2.d0*pi*dble(i)
+     zlogdet = dcmplx( dble(zlogdet), im_zlogdet )
+
+     !! get inverse of U
+     call ztrtri('U','N',ndim,zmat,ndim,ierror)
+     umat(:,:) = czero
+     do i = 1, ndim
+         umat(1:i,i) = zmat(1:i,i)
+     end do
+
+     !! get inverse of L
+     call ztrtri('L','U',ndim,zmat,ndim,ierror)
+     call s_identity_z(ndim,lmat)
+     do i = 1, ndim-1
+         lmat(i+1:ndim,i) = zmat(i+1:ndim,i)
+     end do
+
+     !! L*PT, this part is get from lapack: zgetri
+     do k = ndim-1, 1, -1
+         pv = ipiv(k)
+         if( pv .ne. k ) then
+             call zswap( ndim, lmat(1,k), 1, lmat(1,pv), 1)
+         end if
+     end do
+
+     !! A^-1 = U^-1 * L^-1 * PT
+     call zgemm('n','n',ndim,ndim,ndim,cone,umat,ndim,lmat,ndim,czero,zmat,ndim)
+
+     ! deallocate memory
+     if ( allocated(ipiv) ) deallocate(ipiv)
+     if ( allocated(work) ) deallocate(work)
+     deallocate(lmat)
+     deallocate(umat)
+
+     return
+  end subroutine s_inv_logdet_lu_z
 
   subroutine s_adfac_z( rdim, cdim, amat, dvec )
   !! factorize matrix amat to a dense matrix * diagonal matrix
