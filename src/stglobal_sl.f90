@@ -37,7 +37,7 @@
              heff_old(:,:) = heff(:,:)
              ! also store UDV matrix and Green function
              call push_stage
-#ENDIF
+
              ! cumulate update
              ltrot_lq = ltrot*lq
              Heff_diff = 0.d0
