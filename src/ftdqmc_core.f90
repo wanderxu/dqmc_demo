@@ -9,12 +9,16 @@ module ftdqmc_core
   complex(dp), allocatable, dimension(:,:,:), save :: Ust_dn, Vst_dn, Ust_dn_tmp, Vst_dn_tmp
   real(dp), allocatable, dimension(:,:), save :: Dst_up, Dst_up_tmp
   real(dp), allocatable, dimension(:,:), save :: Dst_dn, Dst_dn_tmp
+  complex(dp), allocatable, dimension(:), save :: logdetQst_up, logdetQst_up_tmp
+  complex(dp), allocatable, dimension(:), save :: logdetQst_dn, logdetQst_dn_tmp
   complex(dp), dimension(:,:), allocatable, save :: UR_up, VR_up, VL_up, UL_up, Bdtau1_up, grup_tmp
   complex(dp), dimension(:,:), allocatable, save :: UR_dn, VR_dn, VL_dn, UL_dn, Bdtau1_dn, grdn_tmp
   real(dp), dimension(:), allocatable, save :: DRvec_up, DLvec_up
   real(dp), dimension(:), allocatable, save :: DRvec_dn, DLvec_dn
   complex(dp), dimension(:,:), allocatable, save :: Bt2t1_up, gt0up, g0tup, g00up
   complex(dp), dimension(:,:), allocatable, save :: Bt2t1_dn, gt0dn, g0tdn, g00dn
+  complex(dp), save :: logdetQR_up, logdetQL_up
+  complex(dp), save :: logdetQR_dn, logdetQL_dn
 
 
   contains
@@ -31,6 +35,8 @@ module ftdqmc_core
           allocate( VL_up(ndim,ndim) )             ! 7
           allocate( DLvec_up(ndim) )               ! 8
           allocate( UL_up(ndim,ndim) )             ! 9
+          allocate( logdetQst_up(0:nst) )
+          allocate( logdetQst_up_tmp(0:nst) )
       end if
       if( nst.gt.0 .or. llocal ) then
           allocate( Bdtau1_up(ndim,ndim) )       ! 16
@@ -63,6 +69,8 @@ module ftdqmc_core
           allocate( VL_dn(ndim,ndim) )             ! 7
           allocate( DLvec_dn(ndim) )               ! 8
           allocate( UL_dn(ndim,ndim) )             ! 9
+          allocate( logdetQst_dn(0:nst) )
+          allocate( logdetQst_dn_tmp(0:nst) )
       end if
       if(ltau) then
           allocate( Bt2t1_dn(ndim,ndim) )       ! 16
@@ -98,6 +106,8 @@ module ftdqmc_core
           deallocate( Bt2t1_dn )      ! 16
       end if
       if(nst.gt.0) then
+          deallocate( logdetQst_dn )
+          deallocate( logdetQst_dn_tmp )
           deallocate( UL_dn )             ! 9
           deallocate( DLvec_dn )          ! 8
           deallocate( VL_dn )             ! 7
@@ -123,6 +133,8 @@ module ftdqmc_core
       end if
       if(allocated(Bdtau1_up)) deallocate( Bdtau1_up )      ! 16
       if(nst.gt.0) then
+          deallocate( logdetQst_up )
+          deallocate( logdetQst_up_tmp )
           deallocate( UL_up )             ! 9
           deallocate( DLvec_up )          ! 8
           deallocate( VL_up )             ! 7
@@ -183,7 +195,8 @@ module ftdqmc_core
               write(fout,'(16(2e12.4))') Btmp(i,1:ndim)
           end do
 #ENDIF
-          call s_zgeQRPT(ndim, ndim, Bdtau1_up, Umat2, Vtmp, jpvt)
+          !call s_zgeQRPT(ndim, ndim, Bdtau1_up, Umat2, Vtmp, jpvt)
+          call s_zgeQRPT_logdetQ(ndim, ndim, Bdtau1_up, Umat2, Vtmp, jpvt, logdetQst_up(n) )
 #IFDEF TEST_LEVEL3
           write(fout, '(a)') 'B*U*D = Q * R * jpvt, with '
           write(fout, '(a)') 'Q ='
@@ -219,7 +232,8 @@ module ftdqmc_core
           write(fout,'(a)') 'after s_zmcpt, jpvt = '
           write(fout,*) jpvt(:)
 #ENDIF
-          call s_zgeQR(ndim,ndim,Btmp,Umat2,Vmat2)
+          !call s_zgeQR(ndim,ndim,Btmp,Umat2,Vmat2)
+          call s_zgeQR_logdetQ(ndim,ndim,Btmp,Umat2,Vmat2,logdetQst_up(n))
 #IFDEF TEST_LEVEL3
           write(fout, '(a)') 'B*U*D = Q * R, with '
           write(fout, '(a)') 'Q ='
@@ -274,7 +288,8 @@ module ftdqmc_core
       Vst_up(:,:,n) = Vmat2(:,:)
 #IFDEF SPINDOWN
       if( n.eq.1 ) then
-          call s_zgeQRPT(ndim, ndim, Bdtau1_dn, Umat2, Vtmp, jpvt)
+          !call s_zgeQRPT(ndim, ndim, Bdtau1_dn, Umat2, Vtmp, jpvt)
+          call s_zgeQRPT_logdetQ(ndim, ndim, Bdtau1_dn, Umat2, Vtmp, jpvt,logdetQst_dn(n))
           do i = 1, ndim
               Dvec2(i) = Vtmp(i,i)
           end do
@@ -285,7 +300,8 @@ module ftdqmc_core
           Vmat1(:,:) = Vst_dn(:,:,n-1)
           call s_z_x_diag_d(ndim,Bdtau1_dn,Dvec1,Btmp) ! Btmp = Bdtau1_dn * Dmat1
           call s_zmcpt(ndim,ndim,Btmp,jpvt)
-          call s_zgeQR(ndim,ndim,Btmp,Umat2,Vmat2)
+          !call s_zgeQR(ndim,ndim,Btmp,Umat2,Vmat2)
+          call s_zgeQR(ndim,ndim,Btmp,Umat2,Vmat2,logdetQst_dn(n))
           do i = 1, ndim
               Dvec2(i) = Vmat2(i,i)
           end do
@@ -367,7 +383,8 @@ module ftdqmc_core
               write(fout,'(4(2e12.4))') Btmp(i,1:4)
           end do
 #ENDIF
-          call s_zgeQRPT(ndim, ndim, Bdtau1_up, Umat2, Vtmp, jpvt) ! we have Vtmp^+ and Umat^+, actually
+          !call s_zgeQRPT(ndim, ndim, Bdtau1_up, Umat2, Vtmp, jpvt) ! we have Vtmp^+ and Umat^+, actually
+          call s_zgeQRPT_logdetQ(ndim, ndim, Bdtau1_up, Umat2, Vtmp, jpvt,logdetQst_up(n-1)) ! we have Vtmp^+ and Umat^+, actually
           do i = 1, ndim
               Dvec2(i) = Vtmp(i,i)
           end do
@@ -389,7 +406,8 @@ module ftdqmc_core
           write(fout,'(a)') 'after s_zmcpt, jpvt = '
           write(fout,*) jpvt(:)
 #ENDIF
-          call s_zgeQR(ndim,ndim,Btmp,Umat2,Vmat2)
+          !call s_zgeQR(ndim,ndim,Btmp,Umat2,Vmat2)
+          call s_zgeQR_logdetQ(ndim,ndim,Btmp,Umat2,Vmat2,logdetQst_up(n-1))
           do i = 1, ndim
               Dvec2(i) = Vmat2(i,i)
           end do
@@ -426,7 +444,8 @@ module ftdqmc_core
       Vst_up(:,:,n-1) = Vmat2(:,:)
 #IFDEF SPINDOWN
       if( n.eq.nst ) then
-          call s_zgeQRPT(ndim, ndim, Bdtau1_dn, Umat2, Vtmp, jpvt) ! we have Vtmp^+ and Umat^+, actually
+          !call s_zgeQRPT(ndim, ndim, Bdtau1_dn, Umat2, Vtmp, jpvt) ! we have Vtmp^+ and Umat^+, actually
+          call s_zgeQRPT_logdetQ(ndim, ndim, Bdtau1_dn, Umat2, Vtmp, jpvt,logdetQst_dn(n-1)) ! we have Vtmp^+ and Umat^+, actually
           do i = 1, ndim
               Dvec2(i) = Vtmp(i,i)
           end do
@@ -437,7 +456,8 @@ module ftdqmc_core
           Vmat1(:,:) = Vst_dn(:,:,n)
           call s_z_x_diag_d(ndim,Bdtau1_dn,Dvec1,Btmp) ! Btmp = Bdtau1_dn * Dmat1
           call s_zmcpt(ndim,ndim,Btmp,jpvt)
-          call s_zgeQR(ndim,ndim,Btmp,Umat2,Vmat2)
+          !call s_zgeQR(ndim,ndim,Btmp,Umat2,Vmat2)
+          call s_zgeQR(ndim,ndim,Btmp,Umat2,Vmat2,logdetQst_dn(n-1))
           do i = 1, ndim
               Dvec2(i) = Vmat2(i,i)
           end do
@@ -470,12 +490,14 @@ module ftdqmc_core
       Ust_up(:,:,0) = Imat(:,:)
       Dst_up(:,0)   = Ivec(:)
       Vst_up(:,:,0) = Imat(:,:)
+      logdetQst_up(0) = czero
 
 #IFDEF SPINDOWN
       grdn(:,:) = Imat(:,:)
       Ust_dn(:,:,0) = Imat(:,:)
       Dst_dn(:,0)   = Ivec(:)
       Vst_dn(:,:,0) = Imat(:,:)
+      logdetQst_dn(0) = czero
 #ENDIF
 
       do n = 1, nst
@@ -491,15 +513,19 @@ module ftdqmc_core
       UR_up(:,:) = Ust_up(:,:,nst)
       DRvec_up(:)= Dst_up(:,nst)
       VR_up(:,:) = Vst_up(:,:,nst)
+      logdetQR_up = logdetQst_up(nst)
       !call green_equaltime( nst, ndim, UR_up, DRvec_up, VR_up, Imat, Ivec, Imat, grup, info )
-      call green_equaltimebb( nst, ndim, UR_up, DRvec_up, VR_up, grup, info )
+      !call green_equaltimebb( nst, ndim, UR_up, DRvec_up, VR_up, grup, info )
+      call green_equaltimebb( nst, ndim, UR_up, DRvec_up, VR_up, logdetQR_up, grup, logweightf_up, info )
 
 #IFDEF SPINDOWN
       UR_dn(:,:) = Ust_dn(:,:,nst)
       DRvec_dn(:)= Dst_dn(:,nst)
       VR_dn(:,:) = Vst_dn(:,:,nst)
+      logdetQR_dn = logdetQst_dn(nst)
       !call green_equaltime( nst, ndim, UR_dn, DRvec_dn, VR_dn, Imat, Ivec, Imat, grdn, info )
-      call green_equaltimebb( nst, ndim, UR_dn, DRvec_dn, VR_dn, grdn, info )
+      !call green_equaltimebb( nst, ndim, UR_dn, DRvec_dn, VR_dn, grdn, info )
+      call green_equaltimebb( nst, ndim, UR_dn, DRvec_dn, VR_dn, logdetQR_dn, grdn, logweightf_dn, info )
 #ENDIF
 
       if( info .eq. -1 ) then
@@ -579,10 +605,12 @@ module ftdqmc_core
       Vst_up(:,:,nst) = Imat(:,:)
       Dst_up(:,nst)   = Ivec(:)
       Ust_up(:,:,nst) = Imat(:,:)
+      logdetQst_up(nst) = czero
 #IFDEF SPINDOWN
       Vst_dn(:,:,nst) = Imat(:,:)
       Dst_dn(:,nst)   = Ivec(:)
       Ust_dn(:,:,nst) = Imat(:,:)
+      logdetQst_dn(nst) = czero
 #ENDIF
 
       do n = nst, 1, -1
@@ -599,15 +627,19 @@ module ftdqmc_core
       UL_up(:,:) = Ust_up(:,:,0)
       DLvec_up(:)= Dst_up(:,0)
       VL_up(:,:) = Vst_up(:,:,0)
+      logdetQL_up = logdetQst_up(0)
       !call green_equaltime( nst, ndim, Imat, Ivec, Imat, VL_up, DLvec_up, UL_up, grup, info )
-      call green_equaltime00( nst, ndim, VL_up, DLvec_up, UL_up, grup, info )
+      !call green_equaltime00( nst, ndim, VL_up, DLvec_up, UL_up, grup, info )
+      call green_equaltime00( nst, ndim, VL_up, DLvec_up, UL_up, logdetQL_up, grup, logweightf_up, info )
 
 #IFDEF SPINDOWN
       UL_dn(:,:) = Ust_dn(:,:,0)
       DLvec_dn(:)= Dst_dn(:,0)
       VL_dn(:,:) = Vst_dn(:,:,0)
+      logdetQL_dn = logdetQst_dn(0)
       !call green_equaltime( nst, ndim, Imat, Ivec, Imat, VL_dn, DLvec_dn, UL_dn, grdn, info )
-      call green_equaltime00( nst, ndim, VL_dn, DLvec_dn, UL_dn, grdn, info )
+      !call green_equaltime00( nst, ndim, VL_dn, DLvec_dn, UL_dn, grdn, info )
+      call green_equaltime00( nst, ndim, VL_dn, DLvec_dn, UL_dn, logdetQL_dn, grdn, logweightf_dn, info )
 #ENDIF
 
       if( info .eq. -1 ) then
@@ -686,10 +718,12 @@ module ftdqmc_core
       Vst_up(:,:,nst) = Imat(:,:)
       Dst_up(:,nst)   = Ivec(:)
       Ust_up(:,:,nst) = Imat(:,:)
+      logdetQst_up(nst) = czero
 #IFDEF SPINDOWN
       Vst_dn(:,:,nst) = Imat(:,:)
       Dst_dn(:,nst)   = Ivec(:)
       Ust_dn(:,:,nst) = Imat(:,:)
+      logdetQst_dn(nst) = czero
 #ENDIF
   
       nt_ob = ceiling( spring_sfmt_stream() * ltrot )
@@ -739,11 +773,13 @@ module ftdqmc_core
               UR_up(:,:) = Ust_up(:,:,n)
               DRvec_up(:)= Dst_up(:,n)
               VR_up(:,:) = Vst_up(:,:,n)
+              logdetQR_up = logdetQst_up(n)
 
 #IFDEF SPINDOWN
               UR_dn(:,:) = Ust_dn(:,:,n)
               DRvec_dn(:)= Dst_dn(:,n)
               VR_dn(:,:) = Vst_dn(:,:,n)
+              logdetQR_dn = logdetQst_dn(n)
 #ENDIF
 
               call ftdqmc_stablize_b0_svd(n+1)
@@ -752,8 +788,10 @@ module ftdqmc_core
               UL_up(:,:)  = Ust_up(:,:,n)
               DLvec_up(:) = Dst_up(:,n)  
               VL_up(:,:)  = Vst_up(:,:,n)
+              logdetQL_up = logdetQst_up(n)
               !if( .not. ltau ) then
-                  call green_equaltime( n, ndim, UR_up, DRvec_up, VR_up, VL_up, DLvec_up, UL_up, grtmp, info )
+                  !call green_equaltime( n, ndim, UR_up, DRvec_up, VR_up, VL_up, DLvec_up, UL_up, grtmp, info )
+                  call green_equaltime( n, ndim, UR_up, DRvec_up, VR_up, VL_up, DLvec_up, UL_up, logdetQR_up, logdetQL_up, grtmp, logweightf_up, info )
               !else
               !    call green_tau(n, ndim, UR_up, DRvec_up, VR_up, VL_up, DLvec_up, UL_up, g00up, gt0up, g0tup, grtmp, info )
               !end if
@@ -803,7 +841,9 @@ module ftdqmc_core
               UL_dn(:,:)  = Ust_dn(:,:,n)
               DLvec_dn(:) = Dst_dn(:,n)  
               VL_dn(:,:)  = Vst_dn(:,:,n)
-              call green_equaltime( n, ndim, UR_dn, DRvec_dn, VR_dn, VL_dn, DLvec_dn, UL_dn, grtmp, info )
+              logdetQL_dn = logdetQst_dn(n)
+              !call green_equaltime( n, ndim, UR_dn, DRvec_dn, VR_dn, VL_dn, DLvec_dn, UL_dn, grtmp, info )
+              call green_equaltime( n, ndim, UR_dn, DRvec_dn, VR_dn, VL_dn, DLvec_dn, UL_dn, logdetQR_dn, logdetQL_dn, grtmp, logweightf_dn, info )
               call s_compare_max_z( ndim, grtmp, grdn, max_wrap_error_tmp )
               if( max_wrap_error_tmp .gt. max_wrap_error ) max_wrap_error = max_wrap_error_tmp
 #IFDEF TEST_LEVEL3
@@ -866,10 +906,12 @@ module ftdqmc_core
       Ust_up(:,:,0) = Imat(:,:)
       Dst_up(:,0)   = Ivec(:)
       Vst_up(:,:,0) = Imat(:,:)
+      logdetQst_up(0) = czero
 #IFDEF SPINDOWN
       Ust_dn(:,:,0) = Imat(:,:)
       Dst_dn(:,0)   = Ivec(:)
       Vst_dn(:,:,0) = Imat(:,:)
+      logdetQst_dn(0) = czero
 #ENDIF
 
 
@@ -933,10 +975,12 @@ module ftdqmc_core
               VL_up(:,:) = Vst_up(:,:,n)
               DLvec_up(:)= Dst_up(:,n)
               UL_up(:,:) = Ust_up(:,:,n)
+              logdetQL_up = logdetQst_up(n)
 #IFDEF SPINDOWN
               VL_dn(:,:) = Vst_dn(:,:,n)
               DLvec_dn(:)= Dst_dn(:,n)
               UL_dn(:,:) = Ust_dn(:,:,n)
+              logdetQL_dn = logdetQst_dn(n)
 #ENDIF
               call ftdqmc_stablize_0b_svd(n)
 
@@ -944,8 +988,10 @@ module ftdqmc_core
               UR_up(:,:)  = Ust_up(:,:,n)
               DRvec_up(:) = Dst_up(:,n)
               VR_up(:,:)  = Vst_up(:,:,n)
+              logdetQR_up = logdetQst_up(n)
               if( .not. ltau .or. .not. lmeasure_dyn ) then
-                  call green_equaltime( n, ndim, UR_up, DRvec_up, VR_up, VL_up, DLvec_up, UL_up, grtmp, info )
+                  !call green_equaltime( n, ndim, UR_up, DRvec_up, VR_up, VL_up, DLvec_up, UL_up, grtmp, info )
+                  call green_equaltime( n, ndim, UR_up, DRvec_up, VR_up, VL_up, DLvec_up, UL_up, logdetQR_up, logdetQL_up, grtmp, logweightf_up, info )
               else
               ! only when we need measure dynamical quantities, we will call green_tau
 #IFDEF DYNERROR
@@ -1039,8 +1085,10 @@ module ftdqmc_core
               UR_dn(:,:)  = Ust_dn(:,:,n)
               DRvec_dn(:) = Dst_dn(:,n)
               VR_dn(:,:)  = Vst_dn(:,:,n)
+              logdetQR_dn = logdetQst_dn(n)
               if( .not. ltau .or. .not. lmeasure_dyn ) then
-                  call green_equaltime( n, ndim, UR_dn, DRvec_dn, VR_dn, VL_dn, DLvec_dn, UL_dn, grtmp, info )
+                  !call green_equaltime( n, ndim, UR_dn, DRvec_dn, VR_dn, VL_dn, DLvec_dn, UL_dn, grtmp, info )
+                  call green_equaltime( n, ndim, UR_dn, DRvec_dn, VR_dn, VL_dn, DLvec_dn, UL_dn, logdetQR_dn, logdetQL_dn, grtmp, logweightf_dn, info )
               else
                   !call green_tau(n, ndim, UR_dn, DRvec_dn, VR_dn, VL_dn, DLvec_dn, UL_dn, g00dn, gt0dn,  g0tdn,  grtmp, info )
                   call  green_tau(n, ndim, UR_dn, DRvec_dn, VR_dn, VL_dn, DLvec_dn, UL_dn, g00dn, gt0tmp, g0ttmp, grtmp, info )
@@ -1125,18 +1173,22 @@ module ftdqmc_core
       end do
     end subroutine ftdqmc_sweep_0b
   
-    subroutine green_equaltime( n, ndm, ure, dre, vre, vle, dle, ule, gtt, infoe )
+    subroutine green_equaltime( n, ndm, ure, dre, vre, vle, dle, ule, logdetqr, logdetql, gtt, logweightf, infoe )
       implicit none
       integer, intent(in) :: n, ndm
       complex(dp), dimension(ndm,ndm), intent(in) :: ure, vre, vle, ule
+      complex(dp), intent(in) :: logdetqr, logdetql
       real(dp), dimension(ndm), intent(in) :: dre, dle
       complex(dp), dimension(ndm,ndm), intent(out) :: gtt
+      complex(dp), intent(out) :: logweightf
       integer, intent(out) :: infoe
 
       ! local
       integer :: i, j
       complex(dp), allocatable, dimension(:,:) :: ulinv_tmp, vlhtr_tmp, urinv_tmp
       real(dp), allocatable, dimension(:) :: drmax, drmin, dlmax, dlmin
+      complex(dp) :: zlogdet_tmp
+      real(dp) :: rlogdet_tmp1, rlogdet_tmp2
 
       allocate( ulinv_tmp(ndm,ndm), vlhtr_tmp(ndm,ndm), urinv_tmp(ndm,ndm) )
       allocate( drmax(ndm), drmin(ndm), dlmax(ndm), dlmin(ndm) )
@@ -1194,9 +1246,30 @@ module ftdqmc_core
 !$OMP END DO
 !$OMP END PARALLEL
 
-      call s_invlu_z(ndm,dvvdtmp)
+      !call s_invlu_z(ndm,dvvdtmp)
+      call s_inv_logdet_qr_z(ndm,dvvdtmp,zlogdet_tmp)
       call s_v_invd_u( ndm, ule, dlmax, dvvdtmp, Btmp )
       call s_v_invd_u( ndm, Btmp, drmax, urinv_tmp, gtt )
+
+#IFDEF TEST
+      write(fout,'(a,2e24.16)') ' det( QL ) = ', logdetql
+      write(fout,'(a,2e24.16)') ' det( QR ) = ', logdetqr
+      write(fout,'(a,2e24.16)') ' det( dvvdtmp ) = ', zlogdet_tmp
+#ENDIF
+      rlogdet_tmp1 = 0.d0
+      do i = 1, ndm
+          rlogdet_tmp1 = rlogdet_tmp1 + log( dlmax(i) )
+      end do
+      rlogdet_tmp2 = 0.d0
+      do i = 1, ndm
+          rlogdet_tmp2 = rlogdet_tmp2 + log( drmax(i) )
+      end do
+#IFDEF TEST
+      write(fout,'(a,e24.16)') ' det( dlmax ) = ', rlogdet_tmp1
+      write(fout,'(a,e24.16)') ' det( drmax ) = ', rlogdet_tmp2
+      write(fout,'(a,2e24.16)') ' det( G(t,t) ) = ', logdetql-logdetqr-zlogdet_tmp-dcmplx(rlogdet_tmp1+rlogdet_tmp2,0.d0)
+#ENDIF
+      logweightf = -logdetql + logdetqr + zlogdet_tmp + dcmplx(rlogdet_tmp1+rlogdet_tmp2,0.d0)
 
       infoe = 0
 
@@ -1209,18 +1282,22 @@ module ftdqmc_core
       deallocate( ulinv_tmp )
     end subroutine green_equaltime
 
-    subroutine green_equaltime00( n, ndm, vle, dle, ule, gtt, infoe )
+    subroutine green_equaltime00( n, ndm, vle, dle, ule, logdetql, gtt, logweightf, infoe )
       ! calcultate G(0,0), can save 3 matrix products when compare with green_equaltime
       implicit none
       integer, intent(in) :: n, ndm
       complex(dp), dimension(ndm,ndm), intent(in) :: vle, ule
+      complex(dp), intent(in) :: logdetql
       real(dp), dimension(ndm), intent(in) :: dle
       complex(dp), dimension(ndm,ndm), intent(out) :: gtt
+      complex(dp), intent(out) :: logweightf
       integer, intent(out) :: infoe
 
       ! local
       integer :: i, j
       real(dp), allocatable, dimension(:) :: dlmax, dlmin
+      complex(dp) :: zlogdet_tmp
+      real(dp) :: rlogdet_tmp
 
       allocate( dlmax(ndm), dlmin(ndm) )
 
@@ -1250,8 +1327,23 @@ module ftdqmc_core
       end do
 !$OMP END DO
 !$OMP END PARALLEL
-      call s_invlu_z(ndm,dvvdtmp)
+      !call s_invlu_z(ndm,dvvdtmp)
+      call s_inv_logdet_qr_z(ndm,dvvdtmp,zlogdet_tmp)
       call s_v_invd_u( ndm, ule, dlmax, dvvdtmp, gtt )
+
+#IFDEF TEST
+      write(fout,'(a,2e24.16)') ' det( QL ) = ', logdetql
+      write(fout,'(a,2e24.16)') ' det( dvvdtmp ) = ', zlogdet_tmp
+#ENDIF
+      rlogdet_tmp = 0.d0
+      do i = 1, ndm
+          rlogdet_tmp = rlogdet_tmp + log( dlmax(i) )
+      end do
+#IFDEF TEST
+      write(fout,'(a,e24.16)') ' det( dlmax ) = ', rlogdet_tmp
+      write(fout,'(a,2e24.16)') ' det( G(0,0) ) = ', logdetql-zlogdet_tmp-dcmplx(rlogdet_tmp,0.d0)
+#ENDIF
+      logweightf = -logdetql + zlogdet_tmp + dcmplx(rlogdet_tmp,0.d0)
 
       infoe = 0
 
@@ -1259,19 +1351,23 @@ module ftdqmc_core
       deallocate( dlmax )
     end subroutine green_equaltime00
 
-    subroutine green_equaltimebb( n, ndm, ure, dre, vre, gtt, infoe )
+    subroutine green_equaltimebb( n, ndm, ure, dre, vre, logdetqr, gtt, logweightf, infoe )
       ! calcultate G(beta,beta), can save 3 matrix products when compare with green_equaltime
       implicit none
       integer, intent(in) :: n, ndm
       complex(dp), dimension(ndm,ndm), intent(in) :: ure, vre
+      complex(dp), intent(in) :: logdetqr
       real(dp), dimension(ndm), intent(in) :: dre
       complex(dp), dimension(ndm,ndm), intent(out) :: gtt
+      complex(dp), intent(out) :: logweightf
       integer, intent(out) :: infoe
 
       ! local
       integer :: i, j
       complex(dp), allocatable, dimension(:,:) :: urinv_tmp
       real(dp), allocatable, dimension(:) :: drmax, drmin
+      complex(dp) :: zlogdet_tmp
+      real(dp) :: rlogdet_tmp
 
       allocate( urinv_tmp(ndm,ndm) )
       allocate( drmax(ndm), drmin(ndm) )
@@ -1304,8 +1400,23 @@ module ftdqmc_core
       end do
 !$OMP END DO
 !$OMP END PARALLEL
-      call s_invlu_z(ndm,dvvdtmp)
+      !call s_invlu_z(ndm,dvvdtmp)
+      call s_inv_logdet_qr_z(ndm,dvvdtmp,zlogdet_tmp)
       call s_v_invd_u( ndm, dvvdtmp, drmax, urinv_tmp, gtt )
+
+#IFDEF TEST
+      write(fout,'(a,2e24.16)') ' det( QR ) = ', logdetqr
+      write(fout,'(a,2e24.16)') ' det( dvvdtmp ) = ', zlogdet_tmp
+#ENDIF
+      rlogdet_tmp = 0.d0
+      do i = 1, ndm
+          rlogdet_tmp = rlogdet_tmp + log( drmax(i) )
+      end do
+#IFDEF TEST
+      write(fout,'(a,e24.16)') ' det( dlmax ) = ', rlogdet_tmp
+      write(fout,'(a,2e24.16)') ' det( G(beta,beta) ) = ', -logdetqr-zlogdet_tmp-dcmplx(rlogdet_tmp,0.d0)
+#ENDIF
+      logweightf =  logdetqr + zlogdet_tmp + dcmplx(rlogdet_tmp,0.d0)
 
       infoe = 0
 
@@ -1652,11 +1763,13 @@ module ftdqmc_core
       Dst_up_tmp(:,:)   = Dst_up(:,:)
       Vst_up_tmp(:,:,:) = Vst_up(:,:,:)
       grup_tmp(:,:)     = grup(:,:)
+      logdetQst_up_tmp(:)   = logdetQst_up(:)
 #IFDEF SPINDOWN
       Ust_dn_tmp(:,:,:) = Ust_dn(:,:,:)
       Dst_dn_tmp(:,:)   = Dst_dn(:,:)
       Vst_dn_tmp(:,:,:) = Vst_dn(:,:,:)
       grdn_tmp(:,:)     = grdn(:,:)
+      logdetQst_dn_tmp(:)   = logdetQst_dn(:)
 #ENDIF
     end subroutine
 
@@ -1666,11 +1779,13 @@ module ftdqmc_core
       Dst_up(:,:)   =  Dst_up_tmp(:,:)
       Vst_up(:,:,:) =  Vst_up_tmp(:,:,:)
       grup(:,:)     =  grup_tmp(:,:)
+      logdetQst_up(:) = logdetQst_up_tmp(:)
 #IFDEF SPINDOWN
       Ust_dn(:,:,:) =  Ust_dn_tmp(:,:,:)
       Dst_dn(:,:)   =  Dst_dn_tmp(:,:)
       Vst_dn(:,:,:) =  Vst_dn_tmp(:,:,:)
       grdn(:,:)     =  grdn_tmp(:,:)
+      logdetQst_dn(:) = logdetQst_dn_tmp(:)
 #ENDIF
     end subroutine pop_stage
 

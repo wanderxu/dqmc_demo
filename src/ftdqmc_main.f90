@@ -90,7 +90,8 @@ program ftdqmc_main
   if(ltau) xmax_dyn = 0.d0
 
   call ftdqmc_sweep_start_0b
-  call ftdqmc_calculate_weight( logweightf_old, logweights_old )
+  logweightf_old = dble( logweightf_up + logweightf_dn )*2.d0
+  call ftdqmc_calculate_weights( logweights_old )
   weight_track = logweightf_old + logweights_old
 
   if( irank .eq. 0 ) then
