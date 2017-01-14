@@ -1247,7 +1247,7 @@ module ftdqmc_core
 !$OMP END PARALLEL
 
       !call s_invlu_z(ndm,dvvdtmp)
-      call s_inv_logdet_qr_z(ndm,dvvdtmp,zlogdet_tmp)
+      call s_inv_logdet_lu_z(ndm,dvvdtmp,zlogdet_tmp)
       call s_v_invd_u( ndm, ule, dlmax, dvvdtmp, Btmp )
       call s_v_invd_u( ndm, Btmp, drmax, urinv_tmp, gtt )
 
@@ -1328,7 +1328,7 @@ module ftdqmc_core
 !$OMP END DO
 !$OMP END PARALLEL
       !call s_invlu_z(ndm,dvvdtmp)
-      call s_inv_logdet_qr_z(ndm,dvvdtmp,zlogdet_tmp)
+      call s_inv_logdet_lu_z(ndm,dvvdtmp,zlogdet_tmp)
       call s_v_invd_u( ndm, ule, dlmax, dvvdtmp, gtt )
 
 #IFDEF TEST
@@ -1401,7 +1401,7 @@ module ftdqmc_core
 !$OMP END DO
 !$OMP END PARALLEL
       !call s_invlu_z(ndm,dvvdtmp)
-      call s_inv_logdet_qr_z(ndm,dvvdtmp,zlogdet_tmp)
+      call s_inv_logdet_lu_z(ndm,dvvdtmp,zlogdet_tmp)
       call s_v_invd_u( ndm, dvvdtmp, drmax, urinv_tmp, gtt )
 
 #IFDEF TEST
@@ -1496,7 +1496,7 @@ module ftdqmc_core
 !$OMP END DO
 !$OMP END PARALLEL
       !call s_invlu_z(ndm,dvvdtmp)
-      call s_inv_logdet_qr_z(ndm,dvvdtmp,zlogdet_tmp)
+      call s_inv_logdet_lu_z(ndm,dvvdtmp,zlogdet_tmp)
       call s_v_invd_u( ndm, ule, dlmax, dvvdtmp, Btmp )
       call s_v_invd_u( ndm, Btmp, drmax, urinv_tmp, gtt )
 
