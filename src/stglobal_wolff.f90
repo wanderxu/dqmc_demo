@@ -23,18 +23,10 @@
              !! build the space-time cluster to be performed global update on
              !! use the Wolff algorithm
 
-             ! store UDV matrix and Green function
-             Ust_up_tmp(:,:,:) = Ust_up(:,:,:)
-             Dst_up_tmp(:,:)   = Dst_up(:,:)
-             Vst_up_tmp(:,:,:) = Vst_up(:,:,:)
-             grup_tmp(:,:) = grup(:,:)
-#IFDEF SPINDOWN
-             Ust_dn_tmp(:,:,:) = Ust_dn(:,:,:)
-             Dst_dn_tmp(:,:)   = Dst_dn(:,:)
-             Vst_dn_tmp(:,:,:) = Vst_dn(:,:,:)
-             grdn_tmp(:,:) = grdn(:,:)
-#ENDIF
+             ! first store UDV matrix and Green function
+             call push_stage
 
+             ! start build cluster
              tentacle_old(:,:) = 0
              tentacle(:,:) = 0
              stcluster(:,:) = 0
@@ -160,16 +152,7 @@
                      call ftdqmc_sweep_0b(lupdate=.false., lmeasure_equaltime=lmeas, lmeasure_dyn=ltau)
                  else
                      ! if no meas, just recover old UDV matrix and Green functions
-                     Ust_up(:,:,:) =  Ust_up_tmp(:,:,:)
-                     Dst_up(:,:)   =  Dst_up_tmp(:,:)
-                     Vst_up(:,:,:) =  Vst_up_tmp(:,:,:)
-                     grup(:,:)     =  grup_tmp(:,:)
-#IFDEF SPINDOWN
-                     Ust_dn(:,:,:) =  Ust_dn_tmp(:,:,:)
-                     Dst_dn(:,:)   =  Dst_dn_tmp(:,:)
-                     Vst_dn(:,:,:) =  Vst_dn_tmp(:,:,:)
-                     grdn(:,:)     =  grdn_tmp(:,:)
-#ENDIF
+                     call pop_stage
                  end if
              end if
 

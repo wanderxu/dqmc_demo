@@ -36,19 +36,7 @@
              nsigl_u_old(:,:) = nsigl_u(:,:)
              heff_old(:,:) = heff(:,:)
              ! also store UDV matrix and Green function
-             if(nst.gt.0 .or. llocal) then
-                 Ust_up_tmp(:,:,:) = Ust_up(:,:,:)
-                 Dst_up_tmp(:,:)   = Dst_up(:,:)
-                 Vst_up_tmp(:,:,:) = Vst_up(:,:,:)
-                 grup_tmp(:,:) = grup(:,:)
-             end if
-#IFDEF SPINDOWN
-             if(nst.gt.0 .or. llocal) then
-                 Ust_dn_tmp(:,:,:) = Ust_dn(:,:,:)
-                 Dst_dn_tmp(:,:)   = Dst_dn(:,:)
-                 Vst_dn_tmp(:,:,:) = Vst_dn(:,:,:)
-                 grdn_tmp(:,:) = grdn(:,:)
-             end if
+             call push_stage
 #ENDIF
              ! cumulate update
              ltrot_lq = ltrot*lq
@@ -89,8 +77,10 @@
                  end do
              end do
 
+             logweightf_old = dble( logweightf_up + logweightf_dn )*2.d0
              call ftdqmc_sweep_start_b0   ! update B(beta,0)
-             call ftdqmc_calculate_weight( logweightf_new, logweights_new )
+             logweightf_new = dble( logweightf_up + logweightf_dn )*2.d0
+             call ftdqmc_calculate_weights( logweights_new )
 
              !!============================================================================================
              !! calculate accept ratio
@@ -110,13 +100,13 @@
                  main_obs(3) = main_obs(3) + dcmplx(1.d0,1.d0)
                  main_obs(4) = main_obs(4) + dcmplx(dble(nstcluster),dble(ltrot*lq))
 #IFDEF TEST
-                 write(fout,'(a,e16.8,a,i8)') ' global update accepted, logratiof = ', logratiof, '  nstcluster = ',  nstcluster
-                 write(fout,'(a,e16.8)') ' logweights_old = ', logweights_old
-                 write(fout,'(a,e16.8)') ' logweights_new = ', logweights_new
-                 write(fout,'(a,e16.8)') ' logweightf_old = ', logweightf_old
-                 write(fout,'(a,e16.8)') ' logweightf_new = ', logweightf_new
-                 write(fout,'(a,e16.8)') ' Heff_diff = ', Heff_diff
-                 write(fout,'(a,e16.8)') ' weight_track = ', weight_track
+                 write(fout,'(a,e24.16,a,i8)') ' global update accepted, logratiof = ', logratiof, '  nstcluster = ',  nstcluster
+                 write(fout,'(a,e24.16)') ' logweights_old = ', logweights_old
+                 write(fout,'(a,e24.16)') ' logweights_new = ', logweights_new
+                 write(fout,'(a,e24.16)') ' logweightf_old = ', logweightf_old
+                 write(fout,'(a,e24.16)') ' logweightf_new = ', logweightf_new
+                 write(fout,'(a,e24.16)') ' weight_track = ', weight_track
+                 write(fout,'(a,e24.16)') ' Heff_diff = ', Heff_diff
 #ENDIF
                  ! update logweight
                  logweightf_old = logweightf_new
@@ -130,13 +120,13 @@
                  weight_track = logweightf_old + logweights_old
                  main_obs(3) = main_obs(3) + dcmplx(0.d0,1.d0)
 #IFDEF TEST
-                 write(fout,'(a,e16.8,a,i8)') ' global update rejected, logratiof = ', logratiof, '  nstcluster = ',  nstcluster
-                 write(fout,'(a,e16.8)') ' logweights_old = ', logweights_old
-                 write(fout,'(a,e16.8)') ' logweights_new = ', logweights_new
-                 write(fout,'(a,e16.8)') ' logweightf_old = ', logweightf_old
-                 write(fout,'(a,e16.8)') ' logweightf_new = ', logweightf_new
-                 write(fout,'(a,e16.8)') ' Heff_diff = ', Heff_diff
-                 write(fout,'(a,e16.8)') ' weight_track = ', weight_track
+                 write(fout,'(a,e24.16,a,i8)') ' global update rejected, logratiof = ', logratiof, '  nstcluster = ',  nstcluster
+                 write(fout,'(a,e24.16)') ' logweights_old = ', logweights_old
+                 write(fout,'(a,e24.16)') ' logweights_new = ', logweights_new
+                 write(fout,'(a,e24.16)') ' logweightf_old = ', logweightf_old
+                 write(fout,'(a,e24.16)') ' logweightf_new = ', logweightf_new
+                 write(fout,'(a,e24.16)') ' weight_track = ', weight_track
+                 write(fout,'(a,e24.16)') ' Heff_diff = ', Heff_diff
 #ENDIF
                  ! global update is rejected, you need flip back the spin
                  nsigl_u(:,:) = nsigl_u_old(:,:)
@@ -155,19 +145,8 @@
                  else
                      ! if no meas, just recover old UDV matrix and Green functions
                      if(nst.gt.0 .or. llocal) then
-                         Ust_up(:,:,:) =  Ust_up_tmp(:,:,:)
-                         Dst_up(:,:)   =  Dst_up_tmp(:,:)
-                         Vst_up(:,:,:) =  Vst_up_tmp(:,:,:)
-                         grup(:,:)     =  grup_tmp(:,:)
+                         call pop_stage
                      end if
-#IFDEF SPINDOWN
-                     if(nst.gt.0 .or. llocal ) then
-                         Ust_dn(:,:,:) =  Ust_dn_tmp(:,:,:)
-                         Dst_dn(:,:)   =  Dst_dn_tmp(:,:)
-                         Vst_dn(:,:,:) =  Vst_dn_tmp(:,:,:)
-                         grdn(:,:)     =  grdn_tmp(:,:)
-                     end if
-#ENDIF
                  end if
              end if
 
@@ -178,31 +157,11 @@
       if(allocated(nsigl_u_old)) deallocate( nsigl_u_old )
     end subroutine ftdqmc_stglobal
 
-    subroutine ftdqmc_calculate_weight( logweightf, logweights )
+    subroutine ftdqmc_calculate_weights( logweights )
       implicit none
-      real(dp), intent(out) :: logweightf, logweights
+      real(dp), intent(out) :: logweights
       integer :: nt, nf, i, ijs, i_1, i0, i1, i2, i3, i4
-      complex(dp) :: logweightf_up, logweightf_dn
-      !!============================================================================================
-      !!! calculate fermioin part ratio
-      !   WARNNING, s_logdet_z will replace the input matrix with L and U
-      if( nst.gt.0 .or. llocal ) then
-          Atmp = grup; Btmp = grdn
-          call s_logdet_z(ndim, Atmp, logweightf_up)
-          call s_logdet_z(ndim, Btmp, logweightf_dn)
-          logweightf_up = - logweightf_up
-          logweightf_dn = - logweightf_dn
-          logweightf = dble( logweightf_up + logweightf_dn )*2.d0
-      else
-          call s_logdet_z(ndim, grup, logweightf_up)
-          call s_logdet_z(ndim, grdn, logweightf_dn)
-          logweightf = dble( logweightf_up + logweightf_dn )*2.d0
-      end if
-#IFDEF TEST
-      write(fout,'(a,2e24.12)') ' logweightf_up = ', logweightf_up
-      write(fout,'(a,2e24.12)') ' logweightf_dn = ', logweightf_dn
-#ENDIF
-
+      logweights = 0.d0
       !!============================================================================================
       !!! calculate boson part ratio
       ijs = 0
@@ -240,4 +199,4 @@
 !$OMP END DO
 !$OMP END PARALLEL
       logweights = logweights + gamma_s*dble(ijs)
-    end subroutine ftdqmc_calculate_weight
+    end subroutine ftdqmc_calculate_weights
