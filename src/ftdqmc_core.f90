@@ -1006,7 +1006,7 @@ module ftdqmc_core
 #ENDIF
 
                   !call green_tau(n, ndim, UR_up, DRvec_up, VR_up, VL_up, DLvec_up, UL_up, g00up, gt0up,   g0tup,   grtmp, info )
-                  call  green_tau(n, ndim, UR_up, DRvec_up, VR_up, VL_up, DLvec_up, UL_up, g00up, gt0tmp,  g0ttmp,  grtmp, info )
+                  call  green_tau(n, ndim, UR_up, DRvec_up, VR_up, VL_up, DLvec_up, UL_up, logdetQR_up, logdetQL_up, g00up, gt0tmp,  g0ttmp, grtmp, logweightf_up, info )
 #IFDEF TEST_LEVEL3
                   write(fout,*)
                   write(fout, '(a,i5,a)') 'nt = ', nt, ' progating gt0up(:,:) = '
@@ -1091,7 +1091,7 @@ module ftdqmc_core
                   call green_equaltime( n, ndim, UR_dn, DRvec_dn, VR_dn, VL_dn, DLvec_dn, UL_dn, logdetQR_dn, logdetQL_dn, grtmp, logweightf_dn, info )
               else
                   !call green_tau(n, ndim, UR_dn, DRvec_dn, VR_dn, VL_dn, DLvec_dn, UL_dn, g00dn, gt0dn,  g0tdn,  grtmp, info )
-                  call  green_tau(n, ndim, UR_dn, DRvec_dn, VR_dn, VL_dn, DLvec_dn, UL_dn, g00dn, gt0tmp, g0ttmp, grtmp, info )
+                  call  green_tau(n, ndim, UR_dn, DRvec_dn, VR_dn, VL_dn, DLvec_dn, UL_dn, logdetQR_dn, logdetQL_dn, g00dn, gt0tmp, g0ttmp, grtmp, logweightf_dn, info )
 #IFDEF TEST_LEVEL3
                   write(fout,*)
                   write(fout, '(a,i5,a)') 'nt = ', nt, ' progating gt0dn(:,:) = '
@@ -1425,18 +1425,22 @@ module ftdqmc_core
       deallocate( urinv_tmp )
     end subroutine green_equaltimebb
 
-    subroutine green_tau(n, ndm, ure, dre, vre, vle, dle, ule, g00, gt0, g0t, gtt, infoe )
+    subroutine green_tau(n, ndm, ure, dre, vre, vle, dle, ule, logdetqr, logdetql, g00, gt0, g0t, gtt, logweightf, infoe )
       implicit none
       integer, intent(in) :: n, ndm
       complex(dp), dimension(ndm,ndm), intent(inout) :: ure, vre, vle, ule
+      complex(dp), intent(in) :: logdetqr, logdetql
       real(dp), dimension(ndm), intent(in) :: dre, dle
       complex(dp), dimension(ndm,ndm), intent(out) :: g00, gt0, g0t, gtt
+      complex(dp), intent(out) :: logweightf
       integer, intent(out) :: infoe
 
       ! local
       integer :: i, j
       complex(dp), allocatable, dimension(:,:) :: ulinv_tmp, urinv_tmp, vlhtr_tmp
       real(dp), allocatable, dimension(:) :: drmax, drmin, dlmax, dlmin
+      complex(dp) :: zlogdet_tmp
+      real(dp) :: rlogdet_tmp1, rlogdet_tmp2
 
       allocate( ulinv_tmp(ndm,ndm), urinv_tmp(ndm,ndm), vlhtr_tmp(ndm,ndm) )
       allocate( drmax(ndm), drmin(ndm), dlmax(ndm), dlmin(ndm) )
@@ -1491,9 +1495,30 @@ module ftdqmc_core
       end do
 !$OMP END DO
 !$OMP END PARALLEL
-      call s_invlu_z(ndm,dvvdtmp)
+      !call s_invlu_z(ndm,dvvdtmp)
+      call s_inv_logdet_qr_z(ndm,dvvdtmp,zlogdet_tmp)
       call s_v_invd_u( ndm, ule, dlmax, dvvdtmp, Btmp )
       call s_v_invd_u( ndm, Btmp, drmax, urinv_tmp, gtt )
+
+#IFDEF TEST
+      write(fout,'(a,2e24.16)') ' det( QL ) = ', logdetql
+      write(fout,'(a,2e24.16)') ' det( QR ) = ', logdetqr
+      write(fout,'(a,2e24.16)') ' det( dvvdtmp ) = ', zlogdet_tmp
+#ENDIF
+      rlogdet_tmp1 = 0.d0
+      do i = 1, ndm
+          rlogdet_tmp1 = rlogdet_tmp1 + log( dlmax(i) )
+      end do
+      rlogdet_tmp2 = 0.d0
+      do i = 1, ndm
+          rlogdet_tmp2 = rlogdet_tmp2 + log( drmax(i) )
+      end do
+#IFDEF TEST
+      write(fout,'(a,e24.16)') ' det( dlmax ) = ', rlogdet_tmp1
+      write(fout,'(a,e24.16)') ' det( drmax ) = ', rlogdet_tmp2
+      write(fout,'(a,2e24.16)') ' det( G(t,t) ) = ', logdetql-logdetqr-zlogdet_tmp-dcmplx(rlogdet_tmp1+rlogdet_tmp2,0.d0)
+#ENDIF
+      logweightf = -logdetql + logdetqr + zlogdet_tmp + dcmplx(rlogdet_tmp1+rlogdet_tmp2,0.d0)
 
       !! >> g(t,0)
       call s_v_d_u( ndm, Btmp, drmin, vre, gt0 )
