@@ -416,15 +416,15 @@ module ftdqmc_core
 
 #IFDEF TEST
           write(fout, '(a)') 'Vmat1 ='
-          do i = 1, 16
-              write(fout,'(16(2e12.4))') Vmat1(i,1:16)
+          do i = 1, ndim
+              write(fout,'(16(2e12.4))') Vmat1(i,:)
           end do
 #ENDIF
           call s_zpm(ndim,ndim,jpvt,Vmat1)
 #IFDEF TEST
           write(fout, '(a)') 'after s_zpm, Vmat1 ='
-          do i = 1, 16
-              write(fout,'(16(2e12.4))') Vmat1(i,1:16)
+          do i = 1, ndim
+              write(fout,'(16(2e12.4))') Vmat1(i,:)
           end do
           write(fout,'(a,16(i6))') ' jpvt = ', jpvt(:)
 #ENDIF
