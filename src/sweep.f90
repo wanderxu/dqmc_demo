@@ -1,6 +1,6 @@
       call obser_init
       totsz_bin(:) = 0
-      jjcorr_Rtau(:,:) = 0
+      if(lsstau) jjcorr_Rtau(:,:) = 0
       do nsw = 1, nsweep
           if(lstglobal .and. llocal ) then
               !! perform local and global update, only measure after global update
@@ -53,6 +53,7 @@
 #ENDIF
 #IFNDEF GEN_CONFC_LEARNING
           !! calculate spin-spin interaction
+          if(lsstau) then
           do ntj = 1, ltrot
             do nti = 1, ltrot
               n = mod(nti-ntj + ltrot, ltrot) + 1
@@ -66,6 +67,7 @@
               end if
             end do
           end do
+          end if
 #ENDIF
       end do  ! do nsw = 1, nsweep
 #IFDEF GEN_CONFC_LEARNING
@@ -84,6 +86,7 @@
       end if
 #ELSE
       call preq  ! reduce
+      if(lsstau) then
       call mpi_reduce( jjcorr_Rtau, mpi_jjcorr_Rtau, lq*(ltrot/2+1), mpi_integer, mpi_sum, 0, mpi_comm_world, ierr )
       if( irank .eq. 0 ) then
           jjcorr_Rtau_real(:,:) = dble( mpi_jjcorr_Rtau(:,:) ) / dble( isize*nsweep )
@@ -93,6 +96,7 @@
                 write(9095, '(e16.8)') jjcorr_Rtau_real(i,n)
               end do
           end do
+      end if
       end if
 #ENDIF
       if(ltau) call prtau
