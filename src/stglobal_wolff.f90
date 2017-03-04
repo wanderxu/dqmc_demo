@@ -90,7 +90,7 @@
              end do
              end do
 
-             logweightf_old = dble( logweightf_up + logweightf_dn )*2.d0
+             if(llocal) logweightf_old = dble( logweightf_up + logweightf_dn )*2.d0
              call ftdqmc_sweep_start_b0   ! update B(beta,0)
              logweightf_new = dble( logweightf_up + logweightf_dn )*2.d0
              call ftdqmc_calculate_weights( logweights_new )

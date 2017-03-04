@@ -1,25 +1,13 @@
 module obser
   use blockc
-
-  complex(dp), allocatable, dimension(:), save :: spinz
-  complex(dp), allocatable, dimension(:,:), save :: spin_corrlt
-
-  integer, allocatable, dimension(:), save :: isingzz_corrlt
-  integer, allocatable, dimension(:,:), save :: isingzztau_corrlt
-
   complex(dp), save :: obs_bin(10)
-
   complex(dp), allocatable, dimension(:,:), save :: gtau_up, gtau_dn
-  complex(dp), allocatable, dimension(:,:), save :: chiszsz, chijxjx, jttbin, j00bin
+  complex(dp), allocatable, dimension(:,:), save :: chiszsz, chijxjx
 
   contains
 
   subroutine allocate_obs
     implicit none
-    allocate( spin_corrlt(lq,lq) )
-    allocate( spinz(lq) )
-    allocate( isingzz_corrlt(lq) )
-    if(lsstau) allocate( isingzztau_corrlt(lq,ltrot) )
     if(ltau) then
         allocate( gtau_up(ndim,ltrot) )
 #IFDEF SPINDOWN
@@ -27,16 +15,12 @@ module obser
 #ENDIF
         allocate( chiszsz(ndim,ltrot) )
         allocate( chijxjx(ndim,ltrot) )
-        allocate( jttbin(ndim,ltrot) )
-        allocate( j00bin(ndim,ltrot) )
     end if
   end subroutine allocate_obs
 
   subroutine deallocate_obs
     implicit none
     if(ltau) then
-        deallocate( j00bin )
-        deallocate( jttbin )
         deallocate( chijxjx )
         deallocate( chiszsz )
 #IFDEF SPINDOWN
@@ -44,19 +28,11 @@ module obser
 #ENDIF
         deallocate( gtau_up )
     end if
-    if(lsstau) deallocate( isingzztau_corrlt )
-    deallocate( isingzz_corrlt )
-    deallocate( spinz )
-    deallocate( spin_corrlt )
   end subroutine deallocate_obs
 
   subroutine obser_init
     implicit none
     nobs = 0
-    spinz(:) = czero
-    spin_corrlt(:,:) = czero
-    isingzz_corrlt(:) = 0
-    if(lsstau) isingzztau_corrlt(:,:) = 0
     obs_bin(:) = czero
     if(ltau) then
         gtau_up(:,:) = czero
@@ -65,8 +41,6 @@ module obser
 #ENDIF
         chiszsz(:,:) = czero
         chijxjx(:,:) = czero
-        jttbin(:,:) = czero
-        j00bin(:,:) = czero
     end if
 
   end subroutine obser_init
@@ -142,34 +116,6 @@ module obser
     end do
     obs_bin(1) = obs_bin(1) + zne
 
-    ! order_branch
-    order_branch = 0
-!$OMP PARALLEL &
-!$OMP PRIVATE ( n, i )
-!$OMP DO REDUCTION ( + : order_branch )
-    do n = 1, ltrot
-        do i = 1, ndim
-            order_branch = order_branch + nsigl_u(i,n)
-        end do
-    end do
-!$OMP END DO
-!$OMP END PARALLEL
-    obs_bin(2) = obs_bin(2) + dcmplx( dble(abs(order_branch))/dble(ndim*ltrot), 0.d0 )
-
-    ! measure rne_up, rne_dn
-    rne_up = zero
-    rne_dn = zero
-    do i = 1, ndim
-        if( order_branch .gt. 0 ) then
-            rne_up = rne_up + dble(grupc(i,i))
-            rne_dn = rne_dn + dble(grdnc(i,i))
-        else
-            rne_up = rne_up + dble(grdnc(i,i))
-            rne_dn = rne_dn + dble(grupc(i,i))
-        end if
-    end do
-    obs_bin(3) = obs_bin(3) + dcmplx(rne_up, rne_dn)
-
     ! measure kinetic energy
     zkint = czero
     IF ( l .gt. 1 ) THEN
@@ -223,7 +169,7 @@ module obser
     ELSE
         zkint = zkint + dcmplx(-4.d0*rt,0.d0) * ( grupc(1,1) + grdnc(1,1) )
     ENDIF
-    obs_bin(4) = obs_bin(4) + zkint + dconjg(zkint)  ! layer 1 and layer 2
+    obs_bin(2) = obs_bin(2) + zkint + dconjg(zkint)  ! layer 1 and layer 2
 
     ! zecoup
     zecoup = czero
@@ -231,7 +177,7 @@ module obser
         zecoup = zecoup + ( grupc(i,i) - grdnc(i,i) ) * nsigl_u(i,nt)
     end do
     zecoup = zecoup*dcmplx(-rhub*0.5d0, 0.d0)  ! note 0.5 for fermion spin 1/2
-    obs_bin(5) = obs_bin(5) + zecoup + dconjg(zecoup) ! layer 1 and layer 2
+    obs_bin(3) = obs_bin(3) + zecoup + dconjg(zecoup) ! layer 1 and layer 2
 
     ! zejs
     ijs = 0
@@ -254,7 +200,7 @@ module obser
 !$OMP END PARALLEL
     end do
     zejs = dcmplx( dble(ijs)*(-js), 0.d0 )
-    obs_bin(6) = obs_bin(6) + zejs
+    obs_bin(4) = obs_bin(4) + zejs
 
     ! ehx
     ehx = zero
@@ -265,61 +211,7 @@ module obser
             ehx = ehx + cothdth
         end if
     end do
-    obs_bin(7) = obs_bin(7) + dcmplx( -hx*ehx, 0.d0 )
-
-    ! uncomment if needed
-    !!!!! measure S(pi,pi)
-    !!!!! S(pi,pi) = 1/L^2 \sum_ij <  1/2 (ni_up -ni_dn) *  1/2 ( nj_up - nj_dn ) >  exp( i * (pi,pi) * r(i-j) )
-    !!!!!   ( ni_up -ni_dn ) * ( nj_up - nj_dn ) 
-    !!!!! = ni_up * nj_up + ni_dn * nj_dn - ni_dn * nj_up - ni_up * nj_dn
-    !!!!! = grupc(i,i)*grupc(j,j) + grupc(i,j)*grup(i,j) + grdnc(i,i)*grdnc(j,j) + grdnc(i,j)*grdn(i,j) - grdnc(i,i)*grupc(j,j) - grupc(i,i)*grdnc(j,j)
-    !!!!!                                                  
-    !!!!do i = 1, lq
-    !!!!    do j = 1, lq
-    !!!!        szsz_tmp = grupc(i,i)*grupc(j,j) + grupc(i,j)*grup(i,j) + &
-    !!!!                   grdnc(i,i)*grdnc(j,j) + grdnc(i,j)*grdn(i,j) - &
-    !!!!                   grdnc(i,i)*grupc(j,j) - grupc(i,i)*grdnc(j,j)
-    !!!!        spin_corrlt(j,i) = spin_corrlt(j,i) + szsz_tmp
-    !!!!    end do
-    !!!!end do
-
-    !!!!! the spinz, for calculate the backgroud
-    !!!!! ni_up - ni_dn
-    !!!!do i = 1, lq
-    !!!!    spinz(i) = spinz(i) +  grupc(i,i) - grdnc(i,i)
-    !!!!end do
-
-    ! measure isingzz_corrlt
-!$OMP PARALLEL &
-!$OMP PRIVATE ( j, i, imj )
-!$OMP DO REDUCTION ( + : isingzz_corrlt )
-    do j = 1, lq
-        do i = 1, lq
-            imj = latt_imj(i,j)
-            isingzz_corrlt(imj) = isingzz_corrlt(imj) + nsigl_u(i,nt) * nsigl_u(j,nt)
-        end do
-    end do
-!$OMP END DO
-!$OMP END PARALLEL
-
-    ! isingzztau_corrlt
-    ! < s_i(tau) s_j(0) >
-    if( lsstau ) then
-!$OMP PARALLEL &
-!$OMP PRIVATE ( n, j, i, imj )
-!$OMP DO
-    do n = 1, ltrot
-        do j = 1, lq
-            do i = 1, lq
-                imj = latt_imj(i,j)
-                isingzztau_corrlt(imj,n) = isingzztau_corrlt(imj,n) + nsigl_u(i,mod(n+nt-2,ltrot)+1) * nsigl_u(j,nt)
-                !isingzztau_corrlt(imj,n) = isingzztau_corrlt(imj,n) + nsigl_u(i,n) * nsigl_u(j,1)
-            end do
-        end do
-    end do
-!$OMP END DO
-!$OMP END PARALLEL
-    end if
+    obs_bin(5) = obs_bin(5) + dcmplx( -hx*ehx, 0.d0 )
 
   end subroutine obser_equaltime
 
@@ -363,15 +255,6 @@ module obser
         end do
 !$OMP END DO
 !$OMP END PARALLEL
-
-!!!      do i = 1, lq
-!!!          iax = nnlist(i,1) ! i+x
-!!!          imx = nnlist(i,3) ! i-x
-!!!          ztmp1 = - grtt_up(iax,i) + grtt_up(imx,i) - grtt_dn(iax,i) + grtt_dn(imx,i)
-!!!          ztmp2 = - gr00_up(iax,i) + gr00_up(imx,i) - gr00_dn(iax,i) + gr00_dn(imx,i)
-!!!          jttbin(i,nt) = jttbin(i,nt) + ztmp1 + dconjg(ztmp1)
-!!!          j00bin(i,nt) = j00bin(i,nt) + ztmp2 + dconjg(ztmp2)
-!!!      end do
   end subroutine obsert
 
 end module obser

@@ -91,9 +91,7 @@ subroutine ftdqmc_initial_print
   write(fout,*)  ' lwrapj = ', lwrapj
   write(fout,*)  ' llocal = ', llocal
   write(fout,*)  ' lstglobal = ', lstglobal
-  write(fout,*)  ' lsstau = ', lsstau
   write(fout,*)  ' ltau = ', ltau
-  write(fout,*)  ' ltauall = ', ltauall
   write(fout,*) ' number of meas for 1 bin = ', nmeas_bin
   write(fout,*) ' total number of measurements = ', nbin*nmeas_bin
 

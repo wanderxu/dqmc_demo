@@ -82,10 +82,7 @@ module blockc
   integer, allocatable, dimension(:,:) :: wrap_step
 
   ! for dynamical
-  logical, save :: lsstau
-  logical, save :: lsstau0r
   logical, save :: ltau
-  logical, save :: ltauall
   integer, save :: nuse
   real(dp), allocatable, dimension(:), save :: wn
   complex(dp), allocatable, dimension(:,:), save :: zexpiwt
@@ -169,10 +166,7 @@ module blockc
     nwrap = 10
     n_outconf_pace = 1
 
-    lsstau = .false.
-    lsstau0r = .false.
     ltau = .false.
-    ltauall = .false.
     nuse = 0
 
     xmag = 0.d0
@@ -221,10 +215,7 @@ module blockc
             call p_get( 'nbin'     , nbin    )            ! 10
             call p_get( 'llocal'   , llocal  )            ! 11
             call p_get( 'nsw_stglobal', nsw_stglobal )    ! 11
-            call p_get( 'lsstau'     , lsstau    )
-            call p_get( 'lsstau0r'     , lsstau0r    )
             call p_get( 'ltau'     , ltau    )
-            call p_get( 'ltauall'  , ltauall )
             call p_get( 'nuse'     , nuse    )
             call p_get( 'nublock'  , nublock )
             call p_destroy()
@@ -248,10 +239,7 @@ module blockc
             read(1177,*) nsweep        
             read(1177,*) nbin          
             read(1177,*) xmag          
-            read(1177,*) lsstau        
-            read(1177,*) lsstau0r      
             read(1177,*) ltau          
-            read(1177,*) ltauall       
             read(1177,*) nwrap         
             read(1177,*) nuse          
             read(1177,*) nublock
@@ -278,10 +266,7 @@ module blockc
     call mp_bcast( nbin, 0 )                ! 10
     call mp_bcast( llocal, 0 )           ! 11
     call mp_bcast( nsw_stglobal, 0 )     ! 11
-    call mp_bcast( lsstau, 0 )
-    call mp_bcast( lsstau0r, 0 )
     call mp_bcast( ltau, 0 )
-    call mp_bcast( ltauall, 0 )
     call mp_bcast( nuse, 0 )
     call mp_bcast( nublock, 0 )
     call MPI_BARRIER(MPI_COMM_WORLD,ierr)
