@@ -53,7 +53,7 @@
 #ENDIF
 #IFNDEF GEN_CONFC_LEARNING
           !! calculate spin-spin interaction
-          if(lsstau) then
+          if(lsstau .and. mod(nsw,nskip).eq.0) then
           do ntj = 1, ltrot
             do nti = 1, ltrot
               n = mod(nti-ntj + ltrot, ltrot) + 1
@@ -89,7 +89,7 @@
       if(lsstau) then
       call mpi_reduce( jjcorr_Rtau, mpi_jjcorr_Rtau, lq*(ltrot/2+1), mpi_integer, mpi_sum, 0, mpi_comm_world, ierr )
       if( irank .eq. 0 ) then
-          jjcorr_Rtau_real(:,:) = dble( mpi_jjcorr_Rtau(:,:) ) / dble( isize*nsweep )
+          jjcorr_Rtau_real(:,:) = dble( mpi_jjcorr_Rtau(:,:) ) / dble( isize*nsweep/nskip )
           open (unit=9095,file='jjcorrRtau.bin',status='unknown', action="write", position="append")
           do n = 1, ltrot/2+1
               do i = 1, lq

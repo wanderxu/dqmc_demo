@@ -1,6 +1,6 @@
 module obser
   use blockc
-  complex(dp), save :: obs_bin(10)
+  complex(dp), save :: obs_bin(10), pair_bin(10)
   complex(dp), allocatable, dimension(:,:), save :: gtau_up, gtau_dn
   complex(dp), allocatable, dimension(:,:), save :: chiszsz, chijxjx
 
@@ -34,6 +34,7 @@ module obser
     implicit none
     nobs = 0
     obs_bin(:) = czero
+    pair_bin(:) = czero
     if(ltau) then
         gtau_up(:,:) = czero
 #IFDEF SPINDOWN
@@ -59,6 +60,9 @@ module obser
     real(dp) :: rne_up, rne_dn, ehx
     integer :: order_branch
     complex(dp), external :: zthp
+
+    integer :: iax, imx, iay, imy, jax, jmx, jay, jmy
+    complex(dp) :: Cotss, Cost0s, Cost1s, Cnntss, Cnnst0s, Cnnst1s, Cnntt0px, Cnntt1px, Cnntt0pxipy, Cnntt1pxipy
 
     nobs = nobs + 1
 
@@ -212,6 +216,131 @@ module obser
         end if
     end do
     obs_bin(5) = obs_bin(5) + dcmplx( -hx*ehx, 0.d0 )
+
+    ! pairing
+    Cotss = czero
+    Cost0s = czero
+    Cost1s = czero
+    Cnntss = czero
+    Cnnst0s = czero
+    Cnnst1s = czero
+    Cnntt0px = czero
+    Cnntt1px = czero
+    Cnntt0pxipy = czero
+    Cnntt1pxipy = czero
+    do j = 1, lq
+        jax = nnlist(j,1)
+        jmx = nnlist(j,3)
+        jay = nnlist(j,2)
+        jmy = nnlist(j,4)
+        do i = 1, lq
+            iax = nnlist(i,1)
+            imx = nnlist(i,3)
+            iay = nnlist(i,2)
+            imy = nnlist(i,4)
+            Cotss = Cotss + grdnc(i,j)*grupc(i,j) + dconjg(grdnc(i,j)*grupc(i,j))
+            Cost0s = Cost0s + dconjg(grupc(i,j))*grupc(i,j) + dconjg(grdnc(i,j))*grdnc(i,j)
+            Cost1s = Cost1s + dconjg(grdnc(i,j))*grupc(i,j) + dconjg(grupc(i,j))*grdnc(i,j)
+            Cnntss = Cnntss + grdnc(iax,jax)*grupc(i,j) + dconjg(grupc(iax,jax)*grdnc(i,j)) + &
+                              grdnc(iax,jmx)*grupc(i,j) + dconjg(grupc(iax,jmx)*grdnc(i,j)) + &
+                              grdnc(iax,jay)*grupc(i,j) + dconjg(grupc(iax,jay)*grdnc(i,j)) + &
+                              grdnc(iax,jmy)*grupc(i,j) + dconjg(grupc(iax,jmy)*grdnc(i,j)) + &
+                              grdnc(imx,jax)*grupc(i,j) + dconjg(grupc(imx,jax)*grdnc(i,j)) + &
+                              grdnc(imx,jmx)*grupc(i,j) + dconjg(grupc(imx,jmx)*grdnc(i,j)) + &
+                              grdnc(imx,jay)*grupc(i,j) + dconjg(grupc(imx,jay)*grdnc(i,j)) + &
+                              grdnc(imx,jmy)*grupc(i,j) + dconjg(grupc(imx,jmy)*grdnc(i,j)) + &
+                              grdnc(iay,jax)*grupc(i,j) + dconjg(grupc(iay,jax)*grdnc(i,j)) + &
+                              grdnc(iay,jmx)*grupc(i,j) + dconjg(grupc(iay,jmx)*grdnc(i,j)) + &
+                              grdnc(iay,jay)*grupc(i,j) + dconjg(grupc(iay,jay)*grdnc(i,j)) + &
+                              grdnc(iay,jmy)*grupc(i,j) + dconjg(grupc(iay,jmy)*grdnc(i,j)) + &
+                              grdnc(imy,jax)*grupc(i,j) + dconjg(grupc(imy,jax)*grdnc(i,j)) + &
+                              grdnc(imy,jmx)*grupc(i,j) + dconjg(grupc(imy,jmx)*grdnc(i,j)) + &
+                              grdnc(imy,jay)*grupc(i,j) + dconjg(grupc(imy,jay)*grdnc(i,j)) + &
+                              grdnc(imy,jmy)*grupc(i,j) + dconjg(grupc(imy,jmy)*grdnc(i,j))
+            Cnnst0s = Cnnst0s + dconjg(grupc(iax,jax))*grupc(i,j) + dconjg(grdnc(iax,jax))*grdnc(i,j) + &
+                                dconjg(grupc(iax,jmx))*grupc(i,j) + dconjg(grdnc(iax,jmx))*grdnc(i,j) + &
+                                dconjg(grupc(iax,jay))*grupc(i,j) + dconjg(grdnc(iax,jay))*grdnc(i,j) + &
+                                dconjg(grupc(iax,jmy))*grupc(i,j) + dconjg(grdnc(iax,jmy))*grdnc(i,j) + &
+                                dconjg(grupc(imx,jax))*grupc(i,j) + dconjg(grdnc(imx,jax))*grdnc(i,j) + &
+                                dconjg(grupc(imx,jmx))*grupc(i,j) + dconjg(grdnc(imx,jmx))*grdnc(i,j) + &
+                                dconjg(grupc(imx,jay))*grupc(i,j) + dconjg(grdnc(imx,jay))*grdnc(i,j) + &
+                                dconjg(grupc(imx,jmy))*grupc(i,j) + dconjg(grdnc(imx,jmy))*grdnc(i,j) + &
+                                dconjg(grupc(iay,jax))*grupc(i,j) + dconjg(grdnc(iay,jax))*grdnc(i,j) + &
+                                dconjg(grupc(iay,jmx))*grupc(i,j) + dconjg(grdnc(iay,jmx))*grdnc(i,j) + &
+                                dconjg(grupc(iay,jay))*grupc(i,j) + dconjg(grdnc(iay,jay))*grdnc(i,j) + &
+                                dconjg(grupc(iay,jmy))*grupc(i,j) + dconjg(grdnc(iay,jmy))*grdnc(i,j) + &
+                                dconjg(grupc(imy,jax))*grupc(i,j) + dconjg(grdnc(imy,jax))*grdnc(i,j) + &
+                                dconjg(grupc(imy,jmx))*grupc(i,j) + dconjg(grdnc(imy,jmx))*grdnc(i,j) + &
+                                dconjg(grupc(imy,jay))*grupc(i,j) + dconjg(grdnc(imy,jay))*grdnc(i,j) + &
+                                dconjg(grupc(imy,jmy))*grupc(i,j) + dconjg(grdnc(imy,jmy))*grdnc(i,j)
+            Cnnst1s = Cnnst1s + dconjg(grdnc(iax,jax))*grupc(i,j) + dconjg(grupc(iax,jax))*grdnc(i,j) + &
+                                dconjg(grdnc(iax,jmx))*grupc(i,j) + dconjg(grupc(iax,jmx))*grdnc(i,j) + &
+                                dconjg(grdnc(iax,jay))*grupc(i,j) + dconjg(grupc(iax,jay))*grdnc(i,j) + &
+                                dconjg(grdnc(iax,jmy))*grupc(i,j) + dconjg(grupc(iax,jmy))*grdnc(i,j) + &
+                                dconjg(grdnc(imx,jax))*grupc(i,j) + dconjg(grupc(imx,jax))*grdnc(i,j) + &
+                                dconjg(grdnc(imx,jmx))*grupc(i,j) + dconjg(grupc(imx,jmx))*grdnc(i,j) + &
+                                dconjg(grdnc(imx,jay))*grupc(i,j) + dconjg(grupc(imx,jay))*grdnc(i,j) + &
+                                dconjg(grdnc(imx,jmy))*grupc(i,j) + dconjg(grupc(imx,jmy))*grdnc(i,j) + &
+                                dconjg(grdnc(iay,jax))*grupc(i,j) + dconjg(grupc(iay,jax))*grdnc(i,j) + &
+                                dconjg(grdnc(iay,jmx))*grupc(i,j) + dconjg(grupc(iay,jmx))*grdnc(i,j) + &
+                                dconjg(grdnc(iay,jay))*grupc(i,j) + dconjg(grupc(iay,jay))*grdnc(i,j) + &
+                                dconjg(grdnc(iay,jmy))*grupc(i,j) + dconjg(grupc(iay,jmy))*grdnc(i,j) + &
+                                dconjg(grdnc(imy,jax))*grupc(i,j) + dconjg(grupc(imy,jax))*grdnc(i,j) + &
+                                dconjg(grdnc(imy,jmx))*grupc(i,j) + dconjg(grupc(imy,jmx))*grdnc(i,j) + &
+                                dconjg(grdnc(imy,jay))*grupc(i,j) + dconjg(grupc(imy,jay))*grdnc(i,j) + &
+                                dconjg(grdnc(imy,jmy))*grupc(i,j) + dconjg(grupc(imy,jmy))*grdnc(i,j)
+            Cnntt0px = Cnntt0px + (grdnc(iax,jax)*grupc(i,j) + dconjg(grupc(iax,jax)*grdnc(i,j))) &
+                                - (grdnc(iax,jmx)*grupc(i,j) + dconjg(grupc(iax,jmx)*grdnc(i,j))) &
+                                - (grdnc(imx,jax)*grupc(i,j) + dconjg(grupc(imx,jax)*grdnc(i,j))) &
+                                + (grdnc(imx,jmx)*grupc(i,j) + dconjg(grupc(imx,jmx)*grdnc(i,j)))
+      Cnntt0pxipy = Cnntt0pxipy +     (grdnc(iax,jax)*grupc(i,j) + dconjg(grupc(iax,jax)*grdnc(i,j))) &
+                                -     (grdnc(iax,jmx)*grupc(i,j) + dconjg(grupc(iax,jmx)*grdnc(i,j))) &
+                                + czi*(grdnc(iax,jay)*grupc(i,j) + dconjg(grupc(iax,jay)*grdnc(i,j))) &
+                                - czi*(grdnc(iax,jmy)*grupc(i,j) + dconjg(grupc(iax,jmy)*grdnc(i,j))) &
+                                -     (grdnc(imx,jax)*grupc(i,j) + dconjg(grupc(imx,jax)*grdnc(i,j))) &
+                                +     (grdnc(imx,jmx)*grupc(i,j) + dconjg(grupc(imx,jmx)*grdnc(i,j))) &
+                                - czi*(grdnc(imx,jay)*grupc(i,j) + dconjg(grupc(imx,jay)*grdnc(i,j))) &
+                                + czi*(grdnc(imx,jmy)*grupc(i,j) + dconjg(grupc(imx,jmy)*grdnc(i,j))) &
+                                - czi*(grdnc(iay,jax)*grupc(i,j) + dconjg(grupc(iay,jax)*grdnc(i,j))) &
+                                + czi*(grdnc(iay,jmx)*grupc(i,j) + dconjg(grupc(iay,jmx)*grdnc(i,j))) &
+                                +     (grdnc(iay,jay)*grupc(i,j) + dconjg(grupc(iay,jay)*grdnc(i,j))) &
+                                -     (grdnc(iay,jmy)*grupc(i,j) + dconjg(grupc(iay,jmy)*grdnc(i,j))) &
+                                + czi*(grdnc(imy,jax)*grupc(i,j) + dconjg(grupc(imy,jax)*grdnc(i,j))) &
+                                - czi*(grdnc(imy,jmx)*grupc(i,j) + dconjg(grupc(imy,jmx)*grdnc(i,j))) &
+                                -     (grdnc(imy,jay)*grupc(i,j) + dconjg(grupc(imy,jay)*grdnc(i,j))) &
+                                +     (grdnc(imy,jmy)*grupc(i,j) + dconjg(grupc(imy,jmy)*grdnc(i,j)))
+      Cnntt1px = Cnntt1px + dcmplx(2.d0*dble( grupc(iax,jax)*grupc(i,j) - grupc(iax,j)*grupc(i,jax) + grdnc(iax,jax)*grdnc(i,j) - grdnc(iax,j)*grdnc(i,jax) ),0.d0) &
+                          - dcmplx(2.d0*dble( grupc(iax,jmx)*grupc(i,j) - grupc(iax,j)*grupc(i,jmx) + grdnc(iax,jmx)*grdnc(i,j) - grdnc(iax,j)*grdnc(i,jmx) ),0.d0) &
+                          - dcmplx(2.d0*dble( grupc(imx,jax)*grupc(i,j) - grupc(imx,j)*grupc(i,jax) + grdnc(imx,jax)*grdnc(i,j) - grdnc(imx,j)*grdnc(i,jax) ),0.d0) &
+                          + dcmplx(2.d0*dble( grupc(imx,jmx)*grupc(i,j) - grupc(imx,j)*grupc(i,jmx) + grdnc(imx,jmx)*grdnc(i,j) - grdnc(imx,j)*grdnc(i,jmx) ),0.d0)
+Cnntt1pxipy = Cnntt1pxipy +     dcmplx(2.d0*dble( grupc(iax,jax)*grupc(i,j) - grupc(iax,j)*grupc(i,jax) + grdnc(iax,jax)*grdnc(i,j) - grdnc(iax,j)*grdnc(i,jax) ),0.d0) &
+                          -     dcmplx(2.d0*dble( grupc(iax,jmx)*grupc(i,j) - grupc(iax,j)*grupc(i,jmx) + grdnc(iax,jmx)*grdnc(i,j) - grdnc(iax,j)*grdnc(i,jmx) ),0.d0) &
+                          + czi*dcmplx(2.d0*dble( grupc(iax,jay)*grupc(i,j) - grupc(iax,j)*grupc(i,jay) + grdnc(iax,jay)*grdnc(i,j) - grdnc(iax,j)*grdnc(i,jay) ),0.d0) &
+                          - czi*dcmplx(2.d0*dble( grupc(iax,jmy)*grupc(i,j) - grupc(iax,j)*grupc(i,jmy) + grdnc(iax,jmy)*grdnc(i,j) - grdnc(iax,j)*grdnc(i,jmy) ),0.d0) &
+                          -     dcmplx(2.d0*dble( grupc(imx,jax)*grupc(i,j) - grupc(imx,j)*grupc(i,jax) + grdnc(imx,jax)*grdnc(i,j) - grdnc(imx,j)*grdnc(i,jax) ),0.d0) &
+                          +     dcmplx(2.d0*dble( grupc(imx,jmx)*grupc(i,j) - grupc(imx,j)*grupc(i,jmx) + grdnc(imx,jmx)*grdnc(i,j) - grdnc(imx,j)*grdnc(i,jmx) ),0.d0) &
+                          - czi*dcmplx(2.d0*dble( grupc(imx,jay)*grupc(i,j) - grupc(imx,j)*grupc(i,jay) + grdnc(imx,jay)*grdnc(i,j) - grdnc(imx,j)*grdnc(i,jay) ),0.d0) &
+                          + czi*dcmplx(2.d0*dble( grupc(imx,jmy)*grupc(i,j) - grupc(imx,j)*grupc(i,jmy) + grdnc(imx,jmy)*grdnc(i,j) - grdnc(imx,j)*grdnc(i,jmy) ),0.d0) &
+                          - czi*dcmplx(2.d0*dble( grupc(iay,jax)*grupc(i,j) - grupc(iay,j)*grupc(i,jax) + grdnc(iay,jax)*grdnc(i,j) - grdnc(iay,j)*grdnc(i,jax) ),0.d0) &
+                          + czi*dcmplx(2.d0*dble( grupc(iay,jmx)*grupc(i,j) - grupc(iay,j)*grupc(i,jmx) + grdnc(iay,jmx)*grdnc(i,j) - grdnc(iay,j)*grdnc(i,jmx) ),0.d0) &
+                          +     dcmplx(2.d0*dble( grupc(iay,jay)*grupc(i,j) - grupc(iay,j)*grupc(i,jay) + grdnc(iay,jay)*grdnc(i,j) - grdnc(iay,j)*grdnc(i,jay) ),0.d0) &
+                          -     dcmplx(2.d0*dble( grupc(iay,jmy)*grupc(i,j) - grupc(iay,j)*grupc(i,jmy) + grdnc(iay,jmy)*grdnc(i,j) - grdnc(iay,j)*grdnc(i,jmy) ),0.d0) &
+                          + czi*dcmplx(2.d0*dble( grupc(imy,jax)*grupc(i,j) - grupc(imy,j)*grupc(i,jax) + grdnc(imy,jax)*grdnc(i,j) - grdnc(imy,j)*grdnc(i,jax) ),0.d0) &
+                          - czi*dcmplx(2.d0*dble( grupc(imy,jmx)*grupc(i,j) - grupc(imy,j)*grupc(i,jmx) + grdnc(imy,jmx)*grdnc(i,j) - grdnc(imy,j)*grdnc(i,jmx) ),0.d0) &
+                          -     dcmplx(2.d0*dble( grupc(imy,jay)*grupc(i,j) - grupc(imy,j)*grupc(i,jay) + grdnc(imy,jay)*grdnc(i,j) - grdnc(imy,j)*grdnc(i,jay) ),0.d0) &
+                          +     dcmplx(2.d0*dble( grupc(imy,jmy)*grupc(i,j) - grupc(imy,j)*grupc(i,jmy) + grdnc(imy,jmy)*grdnc(i,j) - grdnc(imy,j)*grdnc(i,jmy) ),0.d0)
+        end do
+    end do
+    pair_bin(1) =  pair_bin(1)  + Cotss      /dcmplx(2.d0,0.d0)
+    pair_bin(2) =  pair_bin(2)  + Cost0s     /dcmplx(2.d0,0.d0)
+    pair_bin(3) =  pair_bin(3)  + Cost1s     /dcmplx(2.d0,0.d0)
+    pair_bin(4) =  pair_bin(4)  + Cnntss     /dcmplx(8.d0,0.d0)
+    pair_bin(5) =  pair_bin(5)  + Cnnst0s    /dcmplx(8.d0,0.d0)
+    pair_bin(6) =  pair_bin(6)  + Cnnst1s    /dcmplx(8.d0,0.d0)
+    pair_bin(7) =  pair_bin(7)  + Cnntt0px   /dcmplx(2.d0,0.d0)
+    pair_bin(8) =  pair_bin(8)  + Cnntt1px   /dcmplx(8.d0,0.d0)
+    pair_bin(9) =  pair_bin(9)  + Cnntt0pxipy/dcmplx(4.d0,0.d0)
+    pair_bin(10) = pair_bin(10) + Cnntt1pxipy/dcmplx(16.d0,0.d0)
 
   end subroutine obser_equaltime
 

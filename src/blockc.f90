@@ -4,6 +4,7 @@ module blockc
   integer, save :: irank, isize, ierr
   real(dp), parameter :: zero = 0.d0
   complex(dp), parameter :: cone = dcmplx( 1.d0, 0.d0 )
+  complex(dp), parameter :: czi = dcmplx( 0.d0, 1.d0 )
   complex(dp), parameter :: czero = dcmplx( 0.d0, 0.d0 )
   complex(dp), parameter :: chalf = dcmplx( 0.5d0, 0.d0 )
   complex(dp), parameter :: cquarter = dcmplx( 0.25d0, 0.d0 )
@@ -73,6 +74,7 @@ module blockc
   ! cal. control
   integer, save :: nbin
   integer, save :: nsweep
+  integer, save :: nskip
   integer, save :: nst
   integer, save :: nwrap
   integer, save :: lwarnup
@@ -177,6 +179,7 @@ module blockc
     flux_y = 0.d0
 
     nsweep = 20
+    nskip = 1
     nbin = 10
     obs_segment_len = 10
 
@@ -214,6 +217,7 @@ module blockc
             call p_get( 'flux_y'   , flux_y  )            ! 7
             call p_get( 'nwrap'    , nwrap   )            ! 8
             call p_get( 'nsweep'   , nsweep  )            ! 9
+            call p_get( 'nskip'    , nskip   )            ! 9
             call p_get( 'nbin'     , nbin    )            ! 10
             call p_get( 'llocal'   , llocal  )            ! 11
             call p_get( 'nsw_stglobal', nsw_stglobal )    ! 11
@@ -240,6 +244,7 @@ module blockc
             read(1177,*) llocal
             read(1177,*) nsw_stglobal  
             read(1177,*) nsweep        
+            read(1177,*) nskip
             read(1177,*) nbin          
             read(1177,*) xmag          
             read(1177,*) ltau          
@@ -267,6 +272,7 @@ module blockc
     call mp_bcast( flux_y, 0 )                ! 7
     call mp_bcast( nwrap, 0 )               ! 8
     call mp_bcast( nsweep, 0 )              ! 9
+    call mp_bcast( nskip, 0 )              ! 9
     call mp_bcast( nbin, 0 )                ! 10
     call mp_bcast( llocal, 0 )           ! 11
     call mp_bcast( nsw_stglobal, 0 )     ! 11
