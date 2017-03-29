@@ -57,7 +57,7 @@
                          ! antiferromagnetic interaction in space direction if js < 0
                          ! ferromagnetic interaction in space direction if js > 0
                              if ( ( stcluster( nn_ilq, nn_it ) .eq. 0 ) .and. &
-                                  ( nsigl_u( nn_ilq, nn_it) .eq. int(sign(js,1.d0))*nsigl_u(ilq, it) ) .and. &
+                                  ( nsigl_u( nn_ilq, nn_it) .eq. int(sign(1.d0,js))*nsigl_u(ilq, it) ) .and. &
                                   ( ratio_nn_st(inn_st) .gt. spring_sfmt_stream() ) ) then
                                  stcluster( nn_ilq, nn_it ) = 1
                                  nstcluster = nstcluster + 1
