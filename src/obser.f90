@@ -1,8 +1,9 @@
 module obser
   use blockc
-  complex(dp), save :: obs_bin(10), pair_bin(19)
+  complex(dp), save :: obs_bin(10), pair_bin(19), high_pair_bin(4)
   complex(dp), allocatable, dimension(:,:), save :: gtau_up, gtau_dn
   complex(dp), allocatable, dimension(:,:), save :: chiszsz, chijxjx
+  complex(dp), allocatable, dimension(:,:), save :: chijxjxaa, chijxjxab, chijxjxba, chijxjxbb
 
   contains
 
@@ -15,12 +16,20 @@ module obser
 #ENDIF
         allocate( chiszsz(ndim,ltrot) )
         allocate( chijxjx(ndim,ltrot) )
+        allocate( chijxjxaa(ndim,ltrot) )
+        allocate( chijxjxab(ndim,ltrot) )
+        allocate( chijxjxba(ndim,ltrot) )
+        allocate( chijxjxbb(ndim,ltrot) )
     end if
   end subroutine allocate_obs
 
   subroutine deallocate_obs
     implicit none
     if(ltau) then
+        deallocate( chijxjxbb )
+        deallocate( chijxjxba )
+        deallocate( chijxjxab )
+        deallocate( chijxjxaa )
         deallocate( chijxjx )
         deallocate( chiszsz )
 #IFDEF SPINDOWN
@@ -35,6 +44,7 @@ module obser
     nobs = 0
     obs_bin(:) = czero
     pair_bin(:) = czero
+    high_pair_bin(:) = czero
     if(ltau) then
         gtau_up(:,:) = czero
 #IFDEF SPINDOWN
@@ -42,6 +52,10 @@ module obser
 #ENDIF
         chiszsz(:,:) = czero
         chijxjx(:,:) = czero
+        chijxjxbb(:,:) = czero
+        chijxjxba(:,:) = czero
+        chijxjxab(:,:) = czero
+        chijxjxaa(:,:) = czero
     end if
 
   end subroutine obser_init
@@ -483,6 +497,24 @@ Cnnt1t1pxipy = Cnnt1t1pxipy +     dcmplx(2.d0*dble( grupc(iax,jax)*grupc(i,j) - 
     pair_bin(18) = pair_bin(18) + Cnnt0t1px     / dcmplx( 2.d0, 0.d0 ) 
     pair_bin(19) = pair_bin(19) + Cnnt0t1pxipy  / dcmplx( 4.d0, 0.d0 ) 
 
+    ! high order pairing
+    do j = 1, lq
+        do i = 1, lq
+
+            ! charge 4e
+            high_pair_bin(1) = high_pair_bin(1) + grdnc(i,j)*grupc(i,j) * dconjg(grdnc(i,j)*grupc(i,j))
+
+            ! spin nematic
+            high_pair_bin(2) = high_pair_bin(2) + grdn(i,j)*grupc(i,j) * dconjg(grdn(i,j)*grupc(i,j))
+
+            ! triplet a or b
+            high_pair_bin(3) = high_pair_bin(3) + dconjg(grupc(i,j))*grupc(i,j)
+
+            ! triplet a or b
+            high_pair_bin(4) = high_pair_bin(4) + grdnc(i,j)*dconjg(grdnc(i,j))
+        end do
+    end do
+
   end subroutine obser_equaltime
 
   subroutine obsert(nt, grt0_up, grt0_dn, gr0t_up, gr0t_dn, grtt_up, grtt_dn, gr00_up, gr00_dn)
@@ -499,7 +531,7 @@ Cnnt1t1pxipy = Cnnt1t1pxipy +     dcmplx(2.d0*dble( grupc(iax,jax)*grupc(i,j) - 
 
 !$OMP PARALLEL &
 !$OMP PRIVATE ( j, jax, jmx, i, imj, iax, imx, ztmp, ztmp1, ztmp2 )
-!$OMP DO REDUCTION ( + : gtau_up, gtau_dn, chiszsz, chijxjx)
+!$OMP DO REDUCTION ( + : gtau_up, gtau_dn, chiszsz, chijxjx, chijxjxaa, chijxjxab, chijxjxba, chijxjxbb)
         do j = 1, lq
             jax = nnlist(j,1)
             jmx = nnlist(j,3)
@@ -520,6 +552,20 @@ Cnnt1t1pxipy = Cnnt1t1pxipy +     dcmplx(2.d0*dble( grupc(iax,jax)*grupc(i,j) - 
                 ztmp1 = grtt_up(iax,i) - grtt_up(imx,i) + grtt_dn(iax,i) - grtt_dn(imx,i)
                 ztmp2 = gr00_up(jax,j) - gr00_up(jmx,j) + gr00_dn(jax,j) - gr00_dn(jmx,j)
                 chijxjx(imj,nt) = chijxjx(imj,nt) + ztmp + dconjg(ztmp) - ( ztmp1 + dconjg(ztmp1) ) * ( ztmp2 + dconjg(ztmp2) )
+
+                ztmp = ( gr0t_up(jax,i) - gr0t_up(jmx,i) ) * ( grt0_up(iax,j) - grt0_up(imx,j) ) - &
+                       ( grtt_up(iax,i) - grtt_up(imx,i) ) * ( gr00_up(jax,j) - gr00_up(jmx,j) )
+                chijxjxaa(imj,nt) = chijxjxaa(imj,nt) + ztmp + dconjg(ztmp)
+
+                ztmp = ( gr0t_dn(jax,i) - gr0t_dn(jmx,i) ) * ( grt0_dn(iax,j) - grt0_dn(imx,j) ) - &
+                       ( grtt_dn(iax,i) - grtt_dn(imx,i) ) * ( gr00_dn(jax,j) - gr00_dn(jmx,j) )
+                chijxjxbb(imj,nt) = chijxjxbb(imj,nt) + ztmp + dconjg(ztmp)
+
+                ztmp = - ( grtt_up(iax,i) - grtt_up(imx,i) ) * ( gr00_dn(jax,j) - gr00_dn(jmx,j) )
+                chijxjxab(imj,nt) = chijxjxab(imj,nt) + ztmp + dconjg(ztmp)
+
+                ztmp = - ( grtt_dn(iax,i) - grtt_dn(imx,i) ) * ( gr00_up(jax,j) - gr00_up(jmx,j) )
+                chijxjxba(imj,nt) = chijxjxba(imj,nt) + ztmp + dconjg(ztmp)
 
             end do
         end do
