@@ -553,19 +553,23 @@ Cnnt1t1pxipy = Cnnt1t1pxipy +     dcmplx(2.d0*dble( grupc(iax,jax)*grupc(i,j) - 
                 ztmp2 = gr00_up(jax,j) - gr00_up(jmx,j) + gr00_dn(jax,j) - gr00_dn(jmx,j)
                 chijxjx(imj,nt) = chijxjx(imj,nt) + ztmp + dconjg(ztmp) - ( ztmp1 + dconjg(ztmp1) ) * ( ztmp2 + dconjg(ztmp2) )
 
-                ztmp = ( gr0t_up(jax,i) - gr0t_up(jmx,i) ) * ( grt0_up(iax,j) - grt0_up(imx,j) ) - &
-                       ( grtt_up(iax,i) - grtt_up(imx,i) ) * ( gr00_up(jax,j) - gr00_up(jmx,j) )
-                chijxjxaa(imj,nt) = chijxjxaa(imj,nt) + ztmp + dconjg(ztmp)
+                ztmp = ( gr0t_up(jax,i) - gr0t_up(jmx,i) ) * ( grt0_up(iax,j) - grt0_up(imx,j) )
+                ztmp1 = grtt_up(iax,i) - grtt_up(imx,i)
+                ztmp2 = gr00_up(jax,j) - gr00_up(jmx,j)
+                chijxjxaa(imj,nt) = chijxjxaa(imj,nt) + ztmp + dconjg(ztmp) - ( ztmp1 + dconjg(ztmp1) ) * ( ztmp2 + dconjg(ztmp2) )
 
-                ztmp = ( gr0t_dn(jax,i) - gr0t_dn(jmx,i) ) * ( grt0_dn(iax,j) - grt0_dn(imx,j) ) - &
-                       ( grtt_dn(iax,i) - grtt_dn(imx,i) ) * ( gr00_dn(jax,j) - gr00_dn(jmx,j) )
-                chijxjxbb(imj,nt) = chijxjxbb(imj,nt) + ztmp + dconjg(ztmp)
+                ztmp = ( gr0t_dn(jax,i) - gr0t_dn(jmx,i) ) * ( grt0_dn(iax,j) - grt0_dn(imx,j) )
+                ztmp1 = grtt_dn(iax,i) - grtt_dn(imx,i)
+                ztmp2 = gr00_dn(jax,j) - gr00_dn(jmx,j)
+                chijxjxbb(imj,nt) = chijxjxbb(imj,nt) + ztmp + dconjg(ztmp) - ( ztmp1 + dconjg(ztmp1) ) * ( ztmp2 + dconjg(ztmp2) )
 
-                ztmp = - ( grtt_up(iax,i) - grtt_up(imx,i) ) * ( gr00_dn(jax,j) - gr00_dn(jmx,j) )
-                chijxjxab(imj,nt) = chijxjxab(imj,nt) + ztmp + dconjg(ztmp)
+                ztmp1 = grtt_up(iax,i) - grtt_up(imx,i)
+                ztmp2 = gr00_dn(jax,j) - gr00_dn(jmx,j)
+                chijxjxab(imj,nt) = chijxjxab(imj,nt) - ( ztmp1 + dconjg(ztmp1) ) * ( ztmp2 + dconjg(ztmp2) )
 
-                ztmp = - ( grtt_dn(iax,i) - grtt_dn(imx,i) ) * ( gr00_up(jax,j) - gr00_up(jmx,j) )
-                chijxjxba(imj,nt) = chijxjxba(imj,nt) + ztmp + dconjg(ztmp)
+                ztmp1 = grtt_dn(iax,i) - grtt_dn(imx,i)
+                ztmp2 = gr00_up(jax,j) - gr00_up(jmx,j)
+                chijxjxba(imj,nt) = chijxjxba(imj,nt) - ( ztmp1 + dconjg(ztmp1) ) * ( ztmp2 + dconjg(ztmp2) )
 
             end do
         end do

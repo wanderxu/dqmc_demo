@@ -83,10 +83,10 @@ subroutine prtau
           close(188)
 
           open (unit=222,file='chijxjxtaur.bin',status='unknown', action="write", position="append")
-          open (unit=223,file='chijxjxaataur.bin',status='unknown', action="write", position="append")
-          open (unit=224,file='chijxjxabtaur.bin',status='unknown', action="write", position="append")
-          open (unit=225,file='chijxjxbataur.bin',status='unknown', action="write", position="append")
-          open (unit=226,file='chijxjxbbtaur.bin',status='unknown', action="write", position="append")
+          open (unit=223,file='chijxjxaataur_new.bin',status='unknown', action="write", position="append")
+          open (unit=224,file='chijxjxabtaur_new.bin',status='unknown', action="write", position="append")
+          open (unit=225,file='chijxjxbataur_new.bin',status='unknown', action="write", position="append")
+          open (unit=226,file='chijxjxbbtaur_new.bin',status='unknown', action="write", position="append")
           do itau = 1, ltrot
               do imj = 1, lq
                   write(222,'(e22.12)') dble(chijxjx(imj,itau))
