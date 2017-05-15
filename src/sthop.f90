@@ -369,3 +369,15 @@ subroutine sthop
 #ENDIF
 
 end subroutine sthop
+
+subroutine set_hopx
+  use blockc
+  implicit none
+  integer :: i, imx
+  complex(dp), external :: zthp
+  do i = 1, lq
+      hop_plusx(i)  = dcmplx(rt,0.d0)*zthp(i,1,0,xmag,flux_x,flux_y)
+      imx = nnlist(i,3)
+      hop_minusx(i) = dconjg( dcmplx(rt,0.d0)*zthp(imx,1,0,xmag,flux_x,flux_y) )
+  end do
+end subroutine set_hopx

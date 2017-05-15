@@ -58,6 +58,7 @@ program ftdqmc_main
   call salph
   call inconfc
   call sthop
+  call set_hopx
   
 
 

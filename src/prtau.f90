@@ -27,7 +27,6 @@ subroutine prtau
   gtau_dn = znorm * gtau_dn
 #ENDIF
   chiszsz = znorm * chiszsz
-  chijxjx = znorm * chijxjx
   chijxjxaa = znorm * chijxjxaa
   chijxjxab = znorm * chijxjxab
   chijxjxba = znorm * chijxjxba
@@ -45,9 +44,6 @@ subroutine prtau
 
       call mpi_reduce(chiszsz,collect2,n,mpi_complex16,mpi_sum,0,mpi_comm_world,ierr)
       chiszsz = collect2/dcmplx( dble(isize), 0.d0 )
-
-      call mpi_reduce(chijxjx,collect2,n,mpi_complex16,mpi_sum,0,mpi_comm_world,ierr)
-      chijxjx = collect2/dcmplx( dble(isize), 0.d0 )
 
       call mpi_reduce(chijxjxaa,collect2,n,mpi_complex16,mpi_sum,0,mpi_comm_world,ierr)
       chijxjxaa = collect2/dcmplx( dble(isize), 0.d0 )
@@ -82,14 +78,12 @@ subroutine prtau
           end do
           close(188)
 
-          open (unit=222,file='chijxjxtaur.bin',status='unknown', action="write", position="append")
-          open (unit=223,file='chijxjxaataur_new.bin',status='unknown', action="write", position="append")
-          open (unit=224,file='chijxjxabtaur_new.bin',status='unknown', action="write", position="append")
-          open (unit=225,file='chijxjxbataur_new.bin',status='unknown', action="write", position="append")
-          open (unit=226,file='chijxjxbbtaur_new.bin',status='unknown', action="write", position="append")
+          open (unit=223,file='chijxjxaataur_right.bin',status='unknown', action="write", position="append")
+          open (unit=224,file='chijxjxabtaur_right.bin',status='unknown', action="write", position="append")
+          open (unit=225,file='chijxjxbataur_right.bin',status='unknown', action="write", position="append")
+          open (unit=226,file='chijxjxbbtaur_right.bin',status='unknown', action="write", position="append")
           do itau = 1, ltrot
               do imj = 1, lq
-                  write(222,'(e22.12)') dble(chijxjx(imj,itau))
                   write(223,'(e22.12)') dble(chijxjxaa(imj,itau))
                   write(224,'(e22.12)') dble(chijxjxab(imj,itau))
                   write(225,'(e22.12)') dble(chijxjxba(imj,itau))

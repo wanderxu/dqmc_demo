@@ -2,7 +2,7 @@ module obser
   use blockc
   complex(dp), save :: obs_bin(10), pair_bin(19), high_pair_bin(4)
   complex(dp), allocatable, dimension(:,:), save :: gtau_up, gtau_dn
-  complex(dp), allocatable, dimension(:,:), save :: chiszsz, chijxjx
+  complex(dp), allocatable, dimension(:,:), save :: chiszsz
   complex(dp), allocatable, dimension(:,:), save :: chijxjxaa, chijxjxab, chijxjxba, chijxjxbb
 
   contains
@@ -15,7 +15,6 @@ module obser
         allocate( gtau_dn(ndim,ltrot) )
 #ENDIF
         allocate( chiszsz(ndim,ltrot) )
-        allocate( chijxjx(ndim,ltrot) )
         allocate( chijxjxaa(ndim,ltrot) )
         allocate( chijxjxab(ndim,ltrot) )
         allocate( chijxjxba(ndim,ltrot) )
@@ -30,7 +29,6 @@ module obser
         deallocate( chijxjxba )
         deallocate( chijxjxab )
         deallocate( chijxjxaa )
-        deallocate( chijxjx )
         deallocate( chiszsz )
 #IFDEF SPINDOWN
         deallocate( gtau_dn )
@@ -51,7 +49,6 @@ module obser
         gtau_dn(:,:) = czero
 #ENDIF
         chiszsz(:,:) = czero
-        chijxjx(:,:) = czero
         chijxjxbb(:,:) = czero
         chijxjxba(:,:) = czero
         chijxjxab(:,:) = czero
@@ -531,7 +528,7 @@ Cnnt1t1pxipy = Cnnt1t1pxipy +     dcmplx(2.d0*dble( grupc(iax,jax)*grupc(i,j) - 
 
 !$OMP PARALLEL &
 !$OMP PRIVATE ( j, jax, jmx, i, imj, iax, imx, ztmp, ztmp1, ztmp2 )
-!$OMP DO REDUCTION ( + : gtau_up, gtau_dn, chiszsz, chijxjx, chijxjxaa, chijxjxab, chijxjxba, chijxjxbb)
+!$OMP DO REDUCTION ( + : gtau_up, gtau_dn, chiszsz, chijxjxaa, chijxjxab, chijxjxba, chijxjxbb)
         do j = 1, lq
             jax = nnlist(j,1)
             jmx = nnlist(j,3)
@@ -547,28 +544,30 @@ Cnnt1t1pxipy = Cnnt1t1pxipy +     dcmplx(2.d0*dble( grupc(iax,jax)*grupc(i,j) - 
                        ( gr0t_up(j,i)*grt0_up(i,j) + gr0t_dn(j,i)*grt0_dn(i,j) ) * cquarter
                 chiszsz(imj,nt) = chiszsz(imj,nt) + ztmp + dconjg(ztmp)
 
-                ztmp = ( gr0t_up(jax,i) - gr0t_up(jmx,i) ) * ( grt0_up(iax,j) - grt0_up(imx,j) ) +  &
-                       ( gr0t_dn(jax,i) - gr0t_dn(jmx,i) ) * ( grt0_dn(iax,j) - grt0_dn(imx,j) )
-                ztmp1 = grtt_up(iax,i) - grtt_up(imx,i) + grtt_dn(iax,i) - grtt_dn(imx,i)
-                ztmp2 = gr00_up(jax,j) - gr00_up(jmx,j) + gr00_dn(jax,j) - gr00_dn(jmx,j)
-                chijxjx(imj,nt) = chijxjx(imj,nt) + ztmp + dconjg(ztmp) - ( ztmp1 + dconjg(ztmp1) ) * ( ztmp2 + dconjg(ztmp2) )
+                !!!ztmp = ( gr0t_up(jax,i) - gr0t_up(jmx,i) ) * ( grt0_up(iax,j) - grt0_up(imx,j) ) +  &
+                !!!       ( gr0t_dn(jax,i) - gr0t_dn(jmx,i) ) * ( grt0_dn(iax,j) - grt0_dn(imx,j) )
+                !!!ztmp1 = grtt_up(iax,i) - grtt_up(imx,i) + grtt_dn(iax,i) - grtt_dn(imx,i)
+                !!!ztmp2 = gr00_up(jax,j) - gr00_up(jmx,j) + gr00_dn(jax,j) - gr00_dn(jmx,j)
+                !!!chijxjx(imj,nt) = chijxjx(imj,nt) + ztmp + dconjg(ztmp) - ( ztmp1 + dconjg(ztmp1) ) * ( ztmp2 + dconjg(ztmp2) )
 
-                ztmp = ( gr0t_up(jax,i) - gr0t_up(jmx,i) ) * ( grt0_up(iax,j) - grt0_up(imx,j) )
-                ztmp1 = grtt_up(iax,i) - grtt_up(imx,i)
-                ztmp2 = gr00_up(jax,j) - gr00_up(jmx,j)
+                ztmp = ( hop_plusx(j)*gr0t_up(jax,i) - hop_minusx(j)*gr0t_up(jmx,i) ) * &
+                       ( hop_plusx(i)*grt0_up(iax,j) - hop_minusx(i)*grt0_up(imx,j) )
+                ztmp1 =  hop_plusx(i)*grtt_up(iax,i) - hop_minusx(i)*grtt_up(imx,i)
+                ztmp2 =  hop_plusx(j)*gr00_up(jax,j) - hop_minusx(j)*gr00_up(jmx,j)
                 chijxjxaa(imj,nt) = chijxjxaa(imj,nt) + ztmp + dconjg(ztmp) - ( ztmp1 + dconjg(ztmp1) ) * ( ztmp2 + dconjg(ztmp2) )
 
-                ztmp = ( gr0t_dn(jax,i) - gr0t_dn(jmx,i) ) * ( grt0_dn(iax,j) - grt0_dn(imx,j) )
-                ztmp1 = grtt_dn(iax,i) - grtt_dn(imx,i)
-                ztmp2 = gr00_dn(jax,j) - gr00_dn(jmx,j)
+                ztmp = ( hop_plusx(j)*gr0t_dn(jax,i) - hop_minusx(j)*gr0t_dn(jmx,i) ) * &
+                       ( hop_plusx(i)*grt0_dn(iax,j) - hop_minusx(i)*grt0_dn(imx,j) )
+                ztmp1 =  hop_plusx(i)*grtt_dn(iax,i) - hop_minusx(i)*grtt_dn(imx,i)
+                ztmp2 =  hop_plusx(j)*gr00_dn(jax,j) - hop_minusx(j)*gr00_dn(jmx,j)
                 chijxjxbb(imj,nt) = chijxjxbb(imj,nt) + ztmp + dconjg(ztmp) - ( ztmp1 + dconjg(ztmp1) ) * ( ztmp2 + dconjg(ztmp2) )
 
-                ztmp1 = grtt_up(iax,i) - grtt_up(imx,i)
-                ztmp2 = gr00_dn(jax,j) - gr00_dn(jmx,j)
+                ztmp1 = hop_plusx(i)*grtt_up(iax,i) - hop_minusx(i)*grtt_up(imx,i)
+                ztmp2 = hop_plusx(j)*gr00_dn(jax,j) - hop_minusx(j)*gr00_dn(jmx,j)
                 chijxjxab(imj,nt) = chijxjxab(imj,nt) - ( ztmp1 + dconjg(ztmp1) ) * ( ztmp2 + dconjg(ztmp2) )
 
-                ztmp1 = grtt_dn(iax,i) - grtt_dn(imx,i)
-                ztmp2 = gr00_up(jax,j) - gr00_up(jmx,j)
+                ztmp1 = hop_plusx(i)*grtt_dn(iax,i) - hop_minusx(i)*grtt_dn(imx,i)
+                ztmp2 = hop_plusx(j)*gr00_up(jax,j) - hop_minusx(j)*gr00_up(jmx,j)
                 chijxjxba(imj,nt) = chijxjxba(imj,nt) - ( ztmp1 + dconjg(ztmp1) ) * ( ztmp2 + dconjg(ztmp2) )
 
             end do

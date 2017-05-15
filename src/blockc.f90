@@ -122,6 +122,7 @@ module blockc
 #IFDEF SPINDOWN
   complex(dp), allocatable, dimension(:,:), save :: hopping_tmp_dn
 #ENDIF
+  complex(dp), allocatable, dimension(:), save :: hop_plusx, hop_minusx
 
   integer, allocatable, dimension(:,:), save :: nsigl_u
   integer, allocatable, dimension(:,:,:), save :: nsigl_k, nsigl_j
@@ -389,6 +390,8 @@ module blockc
 #IFDEF SPINDOWN
     allocate( hopping_tmp_dn(4,max(lq/2,1)) )
 #ENDIF
+    allocate( hop_plusx(lq) )
+    allocate( hop_minusx(lq) )
 
     allocate(grup(ndim,ndim), grdn(ndim,ndim), grupc(ndim,ndim), grdnc(ndim,ndim))
 
@@ -415,6 +418,14 @@ module blockc
     end if
     deallocate( Ivec, Imat )
     deallocate( grdnc, grupc, grdn, grup )
+
+    deallocate( hop_minusx )
+    deallocate( hop_plusx )
+#IFDEF SPINDOWN
+    deallocate( hopping_tmp_dn )
+#ENDIF
+    deallocate( hopping_tmp )
+
 #IFDEF SPINDOWN
     deallocate( urtm1_dn, urt_dn )
 #ENDIF
