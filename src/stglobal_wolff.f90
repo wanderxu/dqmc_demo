@@ -57,7 +57,7 @@
                          ! antiferromagnetic interaction in space direction if js < 0
                          ! ferromagnetic interaction in space direction if js > 0
                              if ( ( stcluster( nn_ilq, nn_it ) .eq. 0 ) .and. &
-                                  ( nsigl_u( nn_ilq, nn_it) .eq. int(sign(js,1.d0))*nsigl_u(ilq, it) ) .and. &
+                                  ( nsigl_u( nn_ilq, nn_it) .eq. int(sign(1.d0,js))*nsigl_u(ilq, it) ) .and. &
                                   ( ratio_nn_st(inn_st) .gt. spring_sfmt_stream() ) ) then
                                  stcluster( nn_ilq, nn_it ) = 1
                                  nstcluster = nstcluster + 1
@@ -90,7 +90,7 @@
              end do
              end do
 
-             logweightf_old = dble( logweightf_up + logweightf_dn )*2.d0
+             if(llocal) logweightf_old = dble( logweightf_up + logweightf_dn )*2.d0
              call ftdqmc_sweep_start_b0   ! update B(beta,0)
              logweightf_new = dble( logweightf_up + logweightf_dn )*2.d0
              call ftdqmc_calculate_weights( logweights_new )

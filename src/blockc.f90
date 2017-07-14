@@ -4,6 +4,7 @@ module blockc
   integer, save :: irank, isize, ierr
   real(dp), parameter :: zero = 0.d0
   complex(dp), parameter :: cone = dcmplx( 1.d0, 0.d0 )
+  complex(dp), parameter :: czi = dcmplx( 0.d0, 1.d0 )
   complex(dp), parameter :: czero = dcmplx( 0.d0, 0.d0 )
   complex(dp), parameter :: chalf = dcmplx( 0.5d0, 0.d0 )
   complex(dp), parameter :: cquarter = dcmplx( 0.25d0, 0.d0 )
@@ -73,6 +74,7 @@ module blockc
   ! cal. control
   integer, save :: nbin
   integer, save :: nsweep
+  integer, save :: nskip
   integer, save :: nst
   integer, save :: nwrap
   integer, save :: lwarnup
@@ -83,9 +85,7 @@ module blockc
 
   ! for dynamical
   logical, save :: lsstau
-  logical, save :: lsstau0r
   logical, save :: ltau
-  logical, save :: ltauall
   integer, save :: nuse
   real(dp), allocatable, dimension(:), save :: wn
   complex(dp), allocatable, dimension(:,:), save :: zexpiwt
@@ -122,6 +122,7 @@ module blockc
 #IFDEF SPINDOWN
   complex(dp), allocatable, dimension(:,:), save :: hopping_tmp_dn
 #ENDIF
+  complex(dp), allocatable, dimension(:), save :: hop_plusx, hop_minusx
 
   integer, allocatable, dimension(:,:), save :: nsigl_u
   integer, allocatable, dimension(:,:,:), save :: nsigl_k, nsigl_j
@@ -169,10 +170,8 @@ module blockc
     nwrap = 10
     n_outconf_pace = 1
 
-    lsstau = .false.
-    lsstau0r = .false.
     ltau = .false.
-    ltauall = .false.
+    lsstau = .false.
     nuse = 0
 
     xmag = 0.d0
@@ -181,6 +180,7 @@ module blockc
     flux_y = 0.d0
 
     nsweep = 20
+    nskip = 1
     nbin = 10
     obs_segment_len = 10
 
@@ -218,13 +218,12 @@ module blockc
             call p_get( 'flux_y'   , flux_y  )            ! 7
             call p_get( 'nwrap'    , nwrap   )            ! 8
             call p_get( 'nsweep'   , nsweep  )            ! 9
+            call p_get( 'nskip'    , nskip   )            ! 9
             call p_get( 'nbin'     , nbin    )            ! 10
             call p_get( 'llocal'   , llocal  )            ! 11
             call p_get( 'nsw_stglobal', nsw_stglobal )    ! 11
-            call p_get( 'lsstau'     , lsstau    )
-            call p_get( 'lsstau0r'     , lsstau0r    )
             call p_get( 'ltau'     , ltau    )
-            call p_get( 'ltauall'  , ltauall )
+            call p_get( 'lsstau'   , lsstau  )
             call p_get( 'nuse'     , nuse    )
             call p_get( 'nublock'  , nublock )
             call p_destroy()
@@ -246,12 +245,11 @@ module blockc
             read(1177,*) llocal
             read(1177,*) nsw_stglobal  
             read(1177,*) nsweep        
+            read(1177,*) nskip
             read(1177,*) nbin          
             read(1177,*) xmag          
-            read(1177,*) lsstau        
-            read(1177,*) lsstau0r      
             read(1177,*) ltau          
-            read(1177,*) ltauall       
+            read(1177,*) lsstau          
             read(1177,*) nwrap         
             read(1177,*) nuse          
             read(1177,*) nublock
@@ -275,13 +273,12 @@ module blockc
     call mp_bcast( flux_y, 0 )                ! 7
     call mp_bcast( nwrap, 0 )               ! 8
     call mp_bcast( nsweep, 0 )              ! 9
+    call mp_bcast( nskip, 0 )              ! 9
     call mp_bcast( nbin, 0 )                ! 10
     call mp_bcast( llocal, 0 )           ! 11
     call mp_bcast( nsw_stglobal, 0 )     ! 11
-    call mp_bcast( lsstau, 0 )
-    call mp_bcast( lsstau0r, 0 )
     call mp_bcast( ltau, 0 )
-    call mp_bcast( ltauall, 0 )
+    call mp_bcast( lsstau, 0 )
     call mp_bcast( nuse, 0 )
     call mp_bcast( nublock, 0 )
     call MPI_BARRIER(MPI_COMM_WORLD,ierr)
@@ -393,6 +390,8 @@ module blockc
 #IFDEF SPINDOWN
     allocate( hopping_tmp_dn(4,max(lq/2,1)) )
 #ENDIF
+    allocate( hop_plusx(lq) )
+    allocate( hop_minusx(lq) )
 
     allocate(grup(ndim,ndim), grdn(ndim,ndim), grupc(ndim,ndim), grdnc(ndim,ndim))
 
@@ -419,6 +418,14 @@ module blockc
     end if
     deallocate( Ivec, Imat )
     deallocate( grdnc, grupc, grdn, grup )
+
+    deallocate( hop_minusx )
+    deallocate( hop_plusx )
+#IFDEF SPINDOWN
+    deallocate( hopping_tmp_dn )
+#ENDIF
+    deallocate( hopping_tmp )
+
 #IFDEF SPINDOWN
     deallocate( urtm1_dn, urt_dn )
 #ENDIF
