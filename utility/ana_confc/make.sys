@@ -1,0 +1,35 @@
+# fortran compiler and linker
+#-------------------------------------------------------------------------
+F90    = mpif90
+LINKER = $(F90)
+
+# fortran preprocessor options, common setting
+#-------------------------------------------------------------------------
+RUNMODE =# -DTEST 
+OMP    = #-openmp
+FPP    = -fpp
+CPP    = $(FPP) $(RUNMODE) $(OMP)
+
+# machine tuning options, just for my laptop: iris system
+#-------------------------------------------------------------------------
+GPROF  = #-pg
+#CHECK  = -warn all -check all -traceback -g -nogen-interfaces
+#CHECK  = -traceback
+#CDUMP  = -vec-report2 -openmp-report2 -nogen-interfaces
+LEVEL  = -O3 -march=core-avx2 -unroll-aggressive  -align all
+#MKL =  -mkl=parallel
+MTUNE  = #-mtune=core-avx2
+INCLUDE= -I${MKLROOT}/include
+
+# flags for compiler and linker
+#-------------------------------------------------------------------------
+FFLAGS = -c $(CPP) $(CHECK) $(CDUMP) $(LEVEL) $(MTUNE) $(GPROF) $(MKL) ${INCLUDE}
+LFLAGS = $(OMP) $(GPROF) $(MKL)
+
+# linear algebra library, lapack and blas
+#-------------------------------------------------------------------------
+LIBS= ../../common/libMM.a
+#LIBS+= -Wl,--start-group ${MKLROOT}/lib/intel64/libmkl_intel_lp64.a ${MKLROOT}/lib/intel64/libmkl_core.a \
+#       ${MKLROOT}/lib/intel64/libmkl_sequential.a -Wl,--end-group -lpthread -lm
+LIBS+=  -Wl,--start-group ${MKLROOT}/lib/intel64/libmkl_intel_lp64.a ${MKLROOT}/lib/intel64/libmkl_core.a \
+        ${MKLROOT}/lib/intel64/libmkl_intel_thread.a -Wl,--end-group -lpthread -lm -ldl
