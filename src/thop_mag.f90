@@ -29,10 +29,15 @@ function zthp(i,nax,nay,xmag,flux_x,flux_y)
   if ( list(i,2) .eq. l  .and. nay .gt. 0)  then
      x1 = 2.0*pi * xmag1 * dble(l) *dble(list(i,1)) 
   endif
-  
+  if ( list(i,2) .eq. l-1  .and. nay .eq. 2)  then
+     x1 = 2.0*pi * xmag1 * dble(l) *dble(list(i,1)) 
+  end if
   if ( list(i,2) .eq. 1  .and. nay .lt. 0)  then
      x1 = -2.0*pi * xmag1 * dble(l) *dble(list(i,1)) 
   endif
+  if ( list(i,2) .eq. 2  .and. nay .eq. -2)  then
+     x1 = -2.0*pi * xmag1 * dble(l) *dble(list(i,1)) 
+  end if
   
   zthp = exp( dcmplx(0.d0, x + x1) )
   
@@ -42,6 +47,18 @@ function zthp(i,nax,nay,xmag,flux_x,flux_y)
   endif
   if (nax.eq.0 .and. nay.eq.1) then
      zthp  = zthp*exp(dcmplx(0.d0, 2.d0*pi*flux_y/dble(l))) 
+  endif
+  if (nax.eq.2 .and. nay.eq.0) then
+     zthp  = zthp*exp(dcmplx(0.d0, 2.d0*pi*2*flux_x/dble(l))) 
+  endif
+  if (nax.eq.0 .and. nay.eq.2) then
+     zthp  = zthp*exp(dcmplx(0.d0, 2.d0*pi*2*flux_y/dble(l))) 
+  end if
+  if (nax.eq.1 .and. nay.eq.1) then
+     zthp  = zthp*exp(dcmplx(0.d0, 2.d0*pi*(flux_x + flux_y)/dble(l))) 
+  endif
+  if (nax.eq.1 .and. nay.eq.-1) then
+     zthp  = zthp*exp(dcmplx(0.d0, 2.d0*pi*(flux_x - flux_y)/dble(l))) 
   endif
   
   !     dimerization.

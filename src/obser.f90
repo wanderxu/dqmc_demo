@@ -10,7 +10,7 @@ module obser
   complex(dp), save :: obs_bin(10)
 
   complex(dp), allocatable, dimension(:,:), save :: gtau_up, gtau_dn
-  complex(dp), allocatable, dimension(:,:), save :: chiszsz, chijxjx, jttbin, j00bin
+  complex(dp), allocatable, dimension(:,:), save :: chiszsz, chijxjx, chininj, jttbin, j00bin
 
   contains
 
@@ -26,6 +26,7 @@ module obser
         allocate( gtau_dn(ndim,ltrot) )
 #ENDIF
         allocate( chiszsz(ndim,ltrot) )
+        allocate( chininj(ndim,ltrot) )
         allocate( chijxjx(ndim,ltrot) )
         allocate( jttbin(ndim,ltrot) )
         allocate( j00bin(ndim,ltrot) )
@@ -39,6 +40,7 @@ module obser
         deallocate( jttbin )
         deallocate( chijxjx )
         deallocate( chiszsz )
+        deallocate( chininj ) 
 #IFDEF SPINDOWN
         deallocate( gtau_dn )
 #ENDIF
@@ -65,6 +67,7 @@ module obser
 #ENDIF
         chiszsz(:,:) = czero
         chijxjx(:,:) = czero
+        chininj(:,:) = czero
         jttbin(:,:) = czero
         j00bin(:,:) = czero
     end if
@@ -79,9 +82,9 @@ module obser
     integer,intent(in) :: nt
 
     ! local 
-    integer :: i, j, i0, i1, i2, i3, i4, i_1, n, nf, ist, ijs, imj
+    integer :: i, j, i0, i1, i2, i3, i4, i5, i6, i7, i8, i_1, n, nf, ist, ijs, imj
     real(dp) :: xi, xj
-    complex(dp) :: szsz_tmp, zx, zy, zkint, zecoup, zne, zejs
+    complex(dp) :: szsz_tmp, zx, zy, zz, zzm, zx3, zy3, zkint, zecoup, zne, zejs
     real(dp) :: rne_up, rne_dn, ehx
     integer :: order_branch
     complex(dp), external :: zthp
@@ -172,57 +175,118 @@ module obser
 
     ! measure kinetic energy
     zkint = czero
+!!!    IF ( l .gt. 1 ) THEN
+!!!    do nf = 1,2
+!!!!$OMP PARALLEL &
+!!!!$OMP PRIVATE ( i_1, ist, i1, i2, i3, i4, zx, zy )
+!!!!$OMP DO REDUCTION ( + : zkint )
+!!!       do i_1 = 1,lq/4
+!!!          ist = i_1 + (nf - 1)*lq/4
+!!!          i1 = lthf(i_1,nf)
+!!!          i2 = nnlist(i1,1)
+!!!          i3 = nnlist(i1,5)
+!!!          i4 = nnlist(i1,2)
+!!!          
+!!!          zx = hopping_tmp(1,ist)
+!!!          zy = hopping_tmp(2,ist)
+!!!          zkint = zkint  +        zx *  grupc(i1,i2) + &
+!!!                           dconjg(zx) * grupc(i2,i1)
+!!!          zkint = zkint  +        zy *  grupc(i1,i4) + &
+!!!                           dconjg(zy) * grupc(i4,i1) 
+!!!#IFDEF SPINDOWN
+!!!          zx = hopping_tmp_dn(1,ist)
+!!!          zy = hopping_tmp_dn(2,ist)
+!!!          zkint = zkint  +        zx *  grdnc(i1,i2) + &
+!!!                           dconjg(zx) * grdnc(i2,i1)
+!!!          zkint = zkint  +        zy *  grdnc(i1,i4) + &
+!!!                           dconjg(zy) * grdnc(i4,i1) 
+!!!#ENDIF
+!!!
+!!!          zy = hopping_tmp(3,ist)
+!!!          zkint = zkint  +        zy *  grupc(i2,i3) + &
+!!!                           dconjg(zy) * grupc(i3,i2) 
+!!!#IFDEF SPINDOWN
+!!!          zy = hopping_tmp_dn(3,ist)
+!!!          zkint = zkint  +        zy *  grdnc(i2,i3) + &
+!!!                           dconjg(zy) * grdnc(i3,i2)
+!!!#ENDIF
+!!!
+!!!          zx = hopping_tmp(4,ist)
+!!!          zkint = zkint  +        zx *  grupc(i4,i3) + &
+!!!                           dconjg(zx) * grupc(i3,i4) 
+!!!#IFDEF SPINDOWN
+!!!          zx = hopping_tmp_dn(4,ist)
+!!!          zkint = zkint  +        zx *  grdnc(i4,i3) + &
+!!!                           dconjg(zx) * grdnc(i3,i4) 
+!!!#ENDIF
+!!!       end do
+!!!!$OMP END DO
+!!!!$OMP END PARALLEL
+!!!    end do
+!!!    ELSE
+!!!        zkint = zkint + dcmplx(-4.d0*rt,0.d0) * ( grupc(1,1) + grdnc(1,1) )
+!!!    ENDIF
+
     IF ( l .gt. 1 ) THEN
-    do nf = 1,2
 !$OMP PARALLEL &
-!$OMP PRIVATE ( i_1, ist, i1, i2, i3, i4, zx, zy )
-!$OMP DO REDUCTION ( + : zkint )
-       do i_1 = 1,lq/4
-          ist = i_1 + (nf - 1)*lq/4
-          i1 = lthf(i_1,nf)
-          i2 = nnlist(i1,1)
-          i3 = nnlist(i1,5)
-          i4 = nnlist(i1,2)
-          
-          zx = hopping_tmp(1,ist)
-          zy = hopping_tmp(2,ist)
-          zkint = zkint  +        zx *  grupc(i1,i2) + &
-                           dconjg(zx) * grupc(i2,i1)
-          zkint = zkint  +        zy *  grupc(i1,i4) + &
-                           dconjg(zy) * grupc(i4,i1) 
-#IFDEF SPINDOWN
-          zx = hopping_tmp_dn(1,ist)
-          zy = hopping_tmp_dn(2,ist)
-          zkint = zkint  +        zx *  grdnc(i1,i2) + &
-                           dconjg(zx) * grdnc(i2,i1)
-          zkint = zkint  +        zy *  grdnc(i1,i4) + &
-                           dconjg(zy) * grdnc(i4,i1) 
-#ENDIF
+!$OMP PRIVATE ( n, i1, i2, i3, i4, zx, zy, zz )
+!$OMP DO REDUCTION( + : zkint )
+    do n = 1,lq
 
-          zy = hopping_tmp(3,ist)
-          zkint = zkint  +        zy *  grupc(i2,i3) + &
-                           dconjg(zy) * grupc(i3,i2) 
-#IFDEF SPINDOWN
-          zy = hopping_tmp_dn(3,ist)
-          zkint = zkint  +        zy *  grdnc(i2,i3) + &
-                           dconjg(zy) * grdnc(i3,i2)
-#ENDIF
+       i1 = n
+       i2 = nnlist(i1,1)
+       i3 = nnlist(i1,5)
+       i4 = nnlist(i1,2)
+       i5 = nnlist(i1,8)
+       i6 = nnlist(i2,1)
+       i7 = nnlist(i3,5)
+       i8 = nnlist(i4,2)
 
-          zx = hopping_tmp(4,ist)
-          zkint = zkint  +        zx *  grupc(i4,i3) + &
-                           dconjg(zx) * grupc(i3,i4) 
+       zx = hopping_tmp(1,n)
+       zy = hopping_tmp(2,n)
+       zz = hopping_tmp(3,n)
+       zzm = hopping_tmp(4,n)
+       zx3 = hopping_tmp(5,n)
+       zy3 = hopping_tmp(6,n)
+       zkint = zkint +        zx *  grupc(i1,i2) + &
+                       dconjg(zx) * grupc(i2,i1)
+       zkint = zkint +        zy *  grupc(i1,i4) + &
+                       dconjg(zy) * grupc(i4,i1)
+       zkint = zkint +        zz *  grupc(i1,i3) + &
+                       dconjg(zz) * grupc(i3,i1)
+       zkint = zkint +        zz *  grupc(i1,i5) + &
+                       dconjg(zz) * grupc(i5,i1)
+       zkint = zkint +        zx3 *  grupc(i1,i6) + &
+                       dconjg(zx3) * grupc(i6,i1)
+       zkint = zkint +        zy3 *  grupc(i1,i8) + &
+                       dconjg(zy3) * grupc(i8,i1)
 #IFDEF SPINDOWN
-          zx = hopping_tmp_dn(4,ist)
-          zkint = zkint  +        zx *  grdnc(i4,i3) + &
-                           dconjg(zx) * grdnc(i3,i4) 
+       zx = hopping_tmp_dn(1,n)
+       zy = hopping_tmp_dn(2,n)
+       zz = hopping_tmp_dn(3,n)
+       zzm = hopping_tmp_dn(4,n)
+       zx3 = hopping_tmp_dn(5,n)
+       zy3 = hopping_tmp_dn(6,n)
+       zkint = zkint +        zx *  grdnc(i1,i2) + &
+                       dconjg(zx) * grdnc(i2,i1)
+       zkint = zkint +        zy *  grdnc(i1,i4) + &
+                       dconjg(zy) * grdnc(i4,i1)
+       zkint = zkint +        zz *  grdnc(i1,i3) + &
+                       dconjg(zz) * grdnc(i3,i1)
+       zkint = zkint +        zz *  grdnc(i1,i5) + &
+                       dconjg(zz) * grdnc(i5,i1)   
+       zkint = zkint +        zx3 *  grupc(i1,i6) + &
+                       dconjg(zx3) * grupc(i6,i1)
+       zkint = zkint +        zy3 *  grupc(i1,i8) + &
+                       dconjg(zy3) * grupc(i8,i1)
 #ENDIF
-       end do
+    enddo
 !$OMP END DO
 !$OMP END PARALLEL
-    end do
     ELSE
-        zkint = zkint + dcmplx(-4.d0*rt,0.d0) * ( grupc(1,1) + grdnc(1,1) )
+        zkint = zkint + dcmplx(-4.0*rt,0.d0) * ( grupc(1,1) + grdnc(1,1) )
     ENDIF
+
     obs_bin(4) = obs_bin(4) + zkint + dconjg(zkint)  ! layer 1 and layer 2
 
     ! zecoup
@@ -337,7 +401,7 @@ module obser
 
 !$OMP PARALLEL &
 !$OMP PRIVATE ( j, jax, jmx, i, imj, iax, imx, ztmp, ztmp1, ztmp2 )
-!$OMP DO REDUCTION ( + : gtau_up, gtau_dn, chiszsz, chijxjx)
+!$OMP DO REDUCTION ( + : gtau_up, gtau_dn, chiszsz, chininj, chijxjx)
         do j = 1, lq
             jax = nnlist(j,1)
             jmx = nnlist(j,3)
@@ -358,6 +422,11 @@ module obser
                 ztmp1 = grtt_up(iax,i) - grtt_up(imx,i) + grtt_dn(iax,i) - grtt_dn(imx,i)
                 ztmp2 = gr00_up(jax,j) - gr00_up(jmx,j) + gr00_dn(jax,j) - gr00_dn(jmx,j)
                 chijxjx(imj,nt) = chijxjx(imj,nt) + ztmp + dconjg(ztmp) - ( ztmp1 + dconjg(ztmp1) ) * ( ztmp2 + dconjg(ztmp2) )
+
+                ztmp1 =  dcmplx(4.d0,0.d0) * ( dcmplx(2.d0,0.d0) - grtt_up(i,i) - grtt_dn(i,i) ) * &
+                         ( dcmplx(2.d0,0.d0) - gr00_up(j,j) - gr00_dn(j,j) )
+                ztmp2 = gr0t_up(j,i)*grt0_up(i,j) + gr0t_dn(j,i)*grt0_dn(i,j)
+                chininj(imj,nt) = chininj(imj,nt) + ztmp1 - ztmp2 - dconjg(ztmp2)
 
             end do
         end do

@@ -30,6 +30,7 @@ subroutine prtau
   gtau_dn = znorm * gtau_dn
 #ENDIF
   chiszsz = znorm * chiszsz
+  chininj = znorm * chininj
   chijxjx = znorm * chijxjx
 !!!  jttbin  = znorm * jttbin
 !!!  j00bin  = znorm * j00bin
@@ -47,6 +48,9 @@ subroutine prtau
 
       call mpi_reduce(chiszsz,collect2,n,mpi_complex16,mpi_sum,0,mpi_comm_world,ierr)
       chiszsz = collect2/dcmplx( dble(isize), 0.d0 )
+
+      call mpi_reduce(chininj,collect2,n,mpi_complex16,mpi_sum,0,mpi_comm_world,ierr)
+      chininj = collect2/dcmplx( dble(isize), 0.d0 )
 
       call mpi_reduce(chijxjx,collect2,n,mpi_complex16,mpi_sum,0,mpi_comm_world,ierr)
       chijxjx = collect2/dcmplx( dble(isize), 0.d0 )
@@ -112,6 +116,14 @@ subroutine prtau
               end do
           end do
           close(188)
+
+          open (unit=288,file='ninjtaur_corrlt.bin',status='unknown', action="write", position="append")
+          do itau = 1, ltrot
+              do imj = 1, lq
+                  write(288,'(e22.12)') dble(chininj(imj,itau))
+              end do
+          end do
+          close(288)
 
           open(unit=199,file='chijxjx.bin',status='unknown', action="write", position="append")
           do iq = 1, lq

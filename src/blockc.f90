@@ -23,6 +23,8 @@ module blockc
   integer, allocatable, dimension(:,:), save :: list_plaq
   integer, allocatable, dimension(:,:), save :: ltpf
   integer, allocatable, dimension(:,:), save :: lthf
+  integer, allocatable, dimension(:,:), save :: lthf2 ! next nearest
+  integer, allocatable, dimension(:,:), save :: lthf3 ! 3rd nearest
 
   integer, allocatable, dimension(:), save :: orblist
 
@@ -37,6 +39,8 @@ module blockc
   ! model
   integer, save :: ne
   real(dp), parameter :: rt = 1.d0
+  real(dp), parameter :: rt2 = -0.3d0
+  real(dp), parameter :: rt3 = 0.128d0
   real(dp), save :: beta
   real(dp), save :: mu
   real(dp), save :: muA ! chemical potentail for A sublattice
@@ -109,8 +113,12 @@ module blockc
 
 #IFDEF BREAKUP_T
   complex(dp), allocatable, dimension(:,:,:), save :: urt, urtm1
+  complex(dp), allocatable, dimension(:,:,:), save :: urtc, urtcm1 ! next nearest
+  complex(dp), allocatable, dimension(:,:,:), save :: urtd, urtdm1 ! 3rd nearest
 #IFDEF SPINDOWN
   complex(dp), allocatable, dimension(:,:,:), save :: urt_dn, urtm1_dn
+  complex(dp), allocatable, dimension(:,:,:), save :: urtc_dn, urtcm1_dn
+  complex(dp), allocatable, dimension(:,:,:), save :: urtd_dn, urtdm1_dn
 #ENDIF
 #ELSE
   complex(dp), allocatable, dimension(:,:), save :: urt, urtm1
@@ -344,7 +352,7 @@ module blockc
     nmeas_bin = 2*(2*obs_segment_len+1)*nsweep*isize
     weight_track = 0.d0
 
-   	a1_p(1) = 1 ; a1_p(2) =  0
+    a1_p(1) = 1 ; a1_p(2) =  0
     a2_p(1) = 0 ; a2_p(2) =  1
     L1_p = l*a1_p
     L2_p = l*a2_p
@@ -359,6 +367,8 @@ module blockc
     allocate( list_plaq(lq, 1:5) )
     allocate( ltpf(max(lq/2,1), 4) )
     allocate( lthf(max(lq/4,1), 2) )
+    allocate( lthf2(max(lq/4,1), 2) )
+    allocate( lthf3(max(lq/16,1), 8) )
 
     allocate( orblist(ndim) )
 
@@ -380,8 +390,12 @@ module blockc
 
 #IFDEF BREAKUP_T
     allocate( urt(max(lq/2,1),4,4), urtm1(max(lq/2,1),4,4) )
+    allocate( urtc(max(lq,1),2,2), urtcm1(max(lq,1),2,2) )
+    allocate( urtd(max(lq/2,1),4,4), urtdm1(max(lq/2,1),4,4) )
 #IFDEF SPINDOWN
     allocate( urt_dn(max(lq/2,1),4,4), urtm1_dn(max(lq/2,1),4,4) )
+    allocate( urtc_dn(max(lq,1),2,2), urtcm1_dn(max(lq,1),2,2) )
+    allocate( urtd_dn(max(lq/2,1),4,4), urtdm1_dn(max(lq/2,1),4,4) )
 #ENDIF
 #ELSE
     allocate( urt(ndim,ndim), urtm1(ndim,ndim) )
@@ -389,9 +403,9 @@ module blockc
     allocate( urt_dn(ndim,ndim), urtm1_dn(ndim,ndim) )
 #ENDIF
 #ENDIF
-    allocate( hopping_tmp(4,max(lq/2,1)) )
+    allocate( hopping_tmp(6,max(lq,1)) )
 #IFDEF SPINDOWN
-    allocate( hopping_tmp_dn(4,max(lq/2,1)) )
+    allocate( hopping_tmp_dn(6,max(lq,1)) )
 #ENDIF
 
     allocate(grup(ndim,ndim), grdn(ndim,ndim), grupc(ndim,ndim), grdnc(ndim,ndim))
@@ -433,8 +447,19 @@ module blockc
     deallocate( equ_distance, distance_index )
     deallocate( imjdeg )
 
+#IFDEF BREAKUP_T
+    deallocate(lthf, lthf2, lthf3)
+    deallocate( urtcm1, urtc )
+    deallocate( urtdm1, urtd )
+#IFDEF SPINDOWN                      
+    deallocate( urtcm1_dn, urtc_dn )
+    deallocate( urtdm1_dn, urtd_dn )
+#ENDIF
+#ENDIF
+
+
     deallocate( listk, latt_imj )
-    deallocate( orblist, lthf, ltpf, list_plaq, nnlist, invlist, list )
+    deallocate( orblist, ltpf, list_plaq, nnlist, invlist, list )
     if(allocated(wrap_step) ) deallocate( wrap_step )
     deallocate( iwrap_nt )
   end subroutine deallocate_tables

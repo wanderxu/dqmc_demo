@@ -1,0 +1,24 @@
+FC= ifort
+#FLAGS= -c  -w   -r8   -pg -p -C
+FLAGS= -c  -w   -r8 -C 
+HOME = /home/assaad/lib_90
+LIBS= $(HOME)/Modules/modules_90.a \
+      $(HOME)/MyEis/libeis.a \
+      $(HOME)/MyNag/libnag.a \
+      $(HOME)/Ran/libran.a \
+      $(HOME)/MyLin/liblin.a \
+      $(HOME)/LaPack/lapack.a \
+      $(HOME)/Blas/libblas.a  
+
+all:
+	(cd $(HOME)/Modules;make FC="$(FC)" FLAGS="$(FLAGS)");\
+	cp $(HOME)/Modules/*.mod . ;\
+	(make -f Compile_en  FC="$(FC)" FLAGS="$(FLAGS)"  LIBS="$(LIBS)" ) ;\
+	(make -f Compile_tau  FC="$(FC)" FLAGS="$(FLAGS)"  LIBS="$(LIBS)" ) ;\
+	(make -f Compile_eq  FC="$(FC)" FLAGS="$(FLAGS)"  LIBS="$(LIBS)" )
+
+clean: 	
+	(make -f Compile_en  clean ) ;\
+	(make -f Compile_tau  clean ) ;\
+	(make -f Compile_eq  clean ) ;\
+	rm *.mod
