@@ -102,7 +102,7 @@ program ftdqmc_main
   if( lwarnup ) then
       ! set nwarnup
       !nwarnup = nint( beta ) + 3
-      nwarnup = 0
+      nwarnup = 300
       if(rhub.le.0.d0) nwarnup = 0
 #IFDEF TEST
       nwarnup = 0

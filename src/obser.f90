@@ -83,6 +83,7 @@ module obser
 
     ! local 
     integer :: i, j, i0, i1, i2, i3, i4, i5, i6, i7, i8, i_1, n, nf, ist, ijs, imj
+    integer :: ix, iy
     real(dp) :: xi, xj
     complex(dp) :: szsz_tmp, zx, zy, zz, zzm, zx3, zy3, zkint, zecoup, zne, zejs
     real(dp) :: rne_up, rne_dn, ehx
@@ -152,12 +153,15 @@ module obser
 !$OMP DO REDUCTION ( + : order_branch )
     do n = 1, ltrot
         do i = 1, ndim
-            order_branch = order_branch + nsigl_u(i,n)
+            ix = list(i,1)
+            iy = list(i,2)
+            order_branch = order_branch + nsigl_u(i,n)*((-1)**(ix+iy))
         end do
     end do
 !$OMP END DO
 !$OMP END PARALLEL
     obs_bin(2) = obs_bin(2) + dcmplx( dble(abs(order_branch))/dble(ndim*ltrot), 0.d0 )
+    obs_bin(8) = obs_bin(8) + dcmplx( (dble(abs(order_branch))/dble(ndim*ltrot))**2, 0.d0 )
 
     ! measure rne_up, rne_dn
     rne_up = zero
