@@ -39,7 +39,7 @@ module blockc
   ! model
   integer, save :: ne
   real(dp), parameter :: rt = 1.d0
-  real(dp), parameter :: rt2 = -0.3d0
+  real(dp), parameter :: rt2 = -0.32d0
   real(dp), parameter :: rt3 = 0.128d0
   real(dp), save :: beta
   real(dp), save :: mu

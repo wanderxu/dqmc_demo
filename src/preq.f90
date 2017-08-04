@@ -151,6 +151,7 @@ subroutine preq
 
       ! calculate obs_bin
       obs_bin(:) = obs_bin(:) / dcmplx( isize * nobs )
+      obs_bin(8) = obs_bin(9) / (obs_bin(8)**2)
       open (unit=90,file='ener1.bin',status='unknown', action="write", position="append")
       write(90, '(8(2e16.8,4x))') obs_bin(1)/dcmplx(dble(ndim),0.d0), obs_bin(2), obs_bin(8), obs_bin(3)/dcmplx(dble(ndim),0.d0), obs_bin(4), obs_bin(5), obs_bin(6), obs_bin(7)
       close(90)

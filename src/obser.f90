@@ -162,6 +162,7 @@ module obser
 !$OMP END PARALLEL
     obs_bin(2) = obs_bin(2) + dcmplx( dble(abs(order_branch))/dble(ndim*ltrot), 0.d0 )
     obs_bin(8) = obs_bin(8) + dcmplx( (dble(abs(order_branch))/dble(ndim*ltrot))**2, 0.d0 )
+    obs_bin(9) = obs_bin(9) + dcmplx( (dble(abs(order_branch))/dble(ndim*ltrot))**4, 0.d0 )
 
     ! measure rne_up, rne_dn
     rne_up = zero

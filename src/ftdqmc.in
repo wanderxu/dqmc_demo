@@ -1,6 +1,6 @@
-L     :   8
-rhub  :   0.00000001
-hx    :   0.001
+L     :   28
+rhub  :   0
+hx    :   0.3
 beta  :   10
 js    :  -1
 mu    :  -1.11856
@@ -8,12 +8,12 @@ muA   :   0.0
 muB   :   0.0
 llocal        : T
 nsw_stglobal  : 1
-nsweep   :  100
+nsweep   :  1
 nbin     :  1
-xmag     :  0.0
+xmag     :  1.0
 flux_x   :  0.0
 flux_y   :  0.0
-lsstau   : F
+lsstau   : T
 ltau     : T
 ltauall  : T
 nwrap    : 30
