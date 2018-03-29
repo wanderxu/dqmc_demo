@@ -5,6 +5,7 @@
       integer :: nt, n, nf, nflag, i, j, nt_ob, ilq, it, nn_ilq, nn_it, inn_st, info, nt1, nt2
       logical :: lterminate 
       real(dp) :: ratiof, logratiof
+      complex(dp) :: logwf_up_tmp, logwf_dn_tmp
 
       ! perform global update
       if( lstglobal ) then
@@ -91,6 +92,10 @@
              end do
 
              logweightf_old = dble( logweightf_up + logweightf_dn )*2.d0
+             ! Store weight
+             logwf_up_tmp = logweightf_up
+             logwf_dn_tmp = logweightf_dn
+
              call ftdqmc_sweep_start_b0   ! update B(beta,0)
              logweightf_new = dble( logweightf_up + logweightf_dn )*2.d0
              call ftdqmc_calculate_weights( logweights_new )
@@ -145,6 +150,10 @@
                      if( stcluster(i,nt) .eq. 1 ) nsigl_u(i,nt) = nflipl( nsigl_u(i,nt), 1 )
                  end do
                  end do
+
+                 ! Reset weight
+                 logweightf_up = logwf_up_tmp
+                 logweightf_dn = logwf_dn_tmp
 
                  ! perform measurement  ! note no matter whether the update is aceepted, you should do measrement
                  if( lmeas ) then
