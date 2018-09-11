@@ -4,7 +4,7 @@ subroutine ftdqmc_initial
 
   integer :: system_time
   integer :: stream_seed
-  character (len = 20) :: date_time_string
+  character (len = 24) :: date_time_string
 
   !================================================
   !%% inital the pseudo random number generator   $
@@ -17,7 +17,7 @@ subroutine ftdqmc_initial
 #ENDIF
   call spring_sfmt_init(stream_seed)
 
-  call s_time_builder(date_time_string)
+  call fdate(date_time_string)
 
   ! print head
   if(irank.eq.0) then

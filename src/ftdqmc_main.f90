@@ -14,7 +14,7 @@ program ftdqmc_main
 
   ! local
   integer :: nbc, nsw
-  character (len = 20) :: date_time_string
+  character (len = 24) :: date_time_string
   real(dp) :: start_time, end_time, time1, time2
 #IFDEF CAL_AUTO
   integer :: i, j, imj, n, totsz, nti, ntj
@@ -209,7 +209,7 @@ program ftdqmc_main
 #ELSE
       call cpu_time(end_time)
 #ENDIF
-      call s_time_builder(date_time_string)
+      call fdate( date_time_string )
       write(fout,*)
       write(fout,'(a,f10.2,a)') ' >>> Total time spent:', end_time-start_time, 's'
       write(fout,'(a)') ' >>> Happy ending at '//date_time_string
