@@ -33,8 +33,8 @@ LFLAGS = $(OMP) $(GPROF) $(MKL)
 
 # linear algebra library, lapack and blas
 #-------------------------------------------------------------------------
-LIBS= ../common/libMM.a
-MKLROOT=/opt/intel/composer_xe_2013_sp1.3.174/mkl
+LIBS= ../lib/libMM.a
+#MKLROOT=/opt/intel/composer_xe_2013_sp1.3.174/mkl
 #MKLROOT=/public_local/software/compiler/intel/composer_xe_2013_sp1.0.080/mkl
 LIBS+= -Wl,--start-group ${MKLROOT}/lib/intel64/libmkl_intel_lp64.a ${MKLROOT}/lib/intel64/libmkl_core.a \
        ${MKLROOT}/lib/intel64/libmkl_sequential.a -Wl,--end-group -lpthread -lm
