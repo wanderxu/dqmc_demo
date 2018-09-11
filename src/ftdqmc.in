@@ -1,21 +1,28 @@
-L     :   28
-rhub  :   0
-hx    :   0.3
-beta  :   10
-js    :  -1
-mu    :  -1.11856
-muA   :   0.0
-muB   :   0.0
-llocal        : T
-nsw_stglobal  : 1
-nsweep   :  1
-nbin     :  1
-xmag     :  1.0
-flux_x   :  0.0
-flux_y   :  0.0
-lsstau   : T
-ltau     : T
-ltauall  : T
-nwrap    : 30
-nuse     : 0
-dtau     : 0.05
+&model_para
+L = 4,
+beta = 2,
+dtau = 0.05,
+mu =  -1.11856,
+muA = 0,
+muB = 0,
+rhub = 0,
+rj = 0,
+js = -1,
+hx = 3.0,
+xmag = 0,
+flux_x = 0,
+flux_y = 0,
+/
+&ctrl_para
+nwrap = 10,
+nsweep = 2,
+nbin = 2,
+llocal = T,
+nsw_stglobal = 1,
+lsstau = T,
+lsstau0r = F,
+ltau = T,
+ltauall = T,
+nuse = 0,
+nublock = 16
+/

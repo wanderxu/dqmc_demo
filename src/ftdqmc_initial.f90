@@ -60,10 +60,16 @@ subroutine ftdqmc_initial_print
 
   IF(irank.eq.0) THEN
 
+  namelist /model_para/ l, beta, dtau, mu, muA, muB, rhub, rj, js, hx, xmag, flux_x, flux_y
+  namelist /ctrl_para/ nwrap, nsweep, nbin, llocal, nsw_stglobal, lsstau, lsstau0r, ltau, ltauall, nuse, nublock
+  write(fout,'(a)')' Input parameters after tuning  '
+  write(fout, model_para)
+  write(fout, ctrl_para)
+
   write(fout,*)
-  write(fout,'(a)')' --------------------- '
-  write(fout,'(a)')' The input parameters  '
-  write(fout,'(a)')' --------------------- '
+  write(fout,'(a)')' ----------------------------------------- '
+  write(fout,'(a)')'  Input parameters for human reading form  '
+  write(fout,'(a)')' ----------------------------------------- '
   write(fout,*)
   write(fout,'(a,f6.2)')    ' t      = ', rt
   write(fout,'(a,f6.2)')    ' t_2    = ', rt2

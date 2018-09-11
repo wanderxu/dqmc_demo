@@ -154,8 +154,6 @@ module blockc
   contains
 
   subroutine make_tables
-    use parser, only : p_create, p_parse, p_get, p_get_vec, p_destroy
-    use mmpi, only : mp_bcast, mp_barrier
     implicit none
 
     include 'mpif.h'
@@ -203,96 +201,45 @@ module blockc
 
     nublock = 16
 
-#IFNDEF OLDCOMP
     ! read parameters
     if ( irank.eq.0 ) then
         exists = .false.
         inquire (file = 'ftdqmc.in', exist = exists)
         if ( exists .eqv. .true. ) then
-            call p_create()
-            call p_parse('ftdqmc.in')
-            call p_get( 'L'        , l       )            ! 1
-            call p_get( 'beta'     , beta    )            ! 2
-            call p_get( 'dtau'     , dtau    )            ! 3
-            call p_get( 'mu'       , mu      )            ! 3.5
-            call p_get( 'muA'      , muA     )            ! 3.5
-            call p_get( 'muB'      , muB     )            ! 3.5
-            call p_get( 'rhub'     , rhub    )            ! 4
-            call p_get( 'rj'       , rj      )            ! 5
-            call p_get( 'js'       , js      )            ! 6
-            call p_get( 'hx'       , hx      )            ! 7
-            call p_get( 'xmag'     , xmag    )            ! 7
-            call p_get( 'flux_x'   , flux_x  )            ! 7
-            call p_get( 'flux_y'   , flux_y  )            ! 7
-            call p_get( 'nwrap'    , nwrap   )            ! 8
-            call p_get( 'nsweep'   , nsweep  )            ! 9
-            call p_get( 'nbin'     , nbin    )            ! 10
-            call p_get( 'llocal'   , llocal  )            ! 11
-            call p_get( 'nsw_stglobal', nsw_stglobal )    ! 11
-            call p_get( 'lsstau'     , lsstau    )
-            call p_get( 'lsstau0r'     , lsstau0r    )
-            call p_get( 'ltau'     , ltau    )
-            call p_get( 'ltauall'  , ltauall )
-            call p_get( 'nuse'     , nuse    )
-            call p_get( 'nublock'  , nublock )
-            call p_destroy()
+            namelist /model_para/ l, beta, dtau, mu, muA, muB, rhub, rj, js, hx, xmag, flux_x, flux_y
+            namelist /ctrl_para/ nwrap, nsweep, nbin, llocal, nsw_stglobal, lsstau, lsstau0r, ltau, ltauall, nuse, nublock
+            open(unit=100, file='ftdqmc.in',status='unknown')
+            read(100, model_para)
+            read(100, ctrl_para)
+            close(100)
         end if
     end if
-#ELSE
-    if ( irank.eq.0 ) then
-        exists = .false.
-        inquire (file = 'ftdqmc.in', exist = exists)
-        if ( exists .eqv. .true. ) then
-            open(unit=1177, file='ftdqmc.in',status='unknown')
-            read(1177,*) L
-            read(1177,*) rhub
-            read(1177,*) hx
-            read(1177,*) beta          
-            read(1177,*) mu            
-            read(1177,*) muA           
-            read(1177,*) muB           
-            read(1177,*) llocal
-            read(1177,*) nsw_stglobal  
-            read(1177,*) nsweep        
-            read(1177,*) nbin          
-            read(1177,*) xmag          
-            read(1177,*) lsstau        
-            read(1177,*) lsstau0r      
-            read(1177,*) ltau          
-            read(1177,*) ltauall       
-            read(1177,*) nwrap         
-            read(1177,*) nuse          
-            read(1177,*) nublock
-            close(1177)
-        end if
-    end if
-#ENDIF
 
-    call mp_bcast( l,    0 )                ! 1
-    call mp_bcast( beta, 0 )                ! 2
-    call mp_bcast( dtau, 0 )                ! 3
-    call mp_bcast( mu,   0 )                ! 3.5
-    call mp_bcast( muA,  0 )                ! 3.5
-    call mp_bcast( muB,  0 )                ! 3.5
-    call mp_bcast( rhub, 0 )                ! 4
-    call mp_bcast( rj,   0 )                ! 5
-    call mp_bcast( js,   0 )                ! 6
-    call mp_bcast( hx,   0 )                ! 7
-    call mp_bcast( xmag, 0 )                ! 7
-    call mp_bcast( flux_x, 0 )                ! 7
-    call mp_bcast( flux_y, 0 )                ! 7
-    call mp_bcast( nwrap, 0 )               ! 8
-    call mp_bcast( nsweep, 0 )              ! 9
-    call mp_bcast( nbin, 0 )                ! 10
-    call mp_bcast( llocal, 0 )           ! 11
-    call mp_bcast( nsw_stglobal, 0 )     ! 11
-    call mp_bcast( lsstau, 0 )
-    call mp_bcast( lsstau0r, 0 )
-    call mp_bcast( ltau, 0 )
-    call mp_bcast( ltauall, 0 )
-    call mp_bcast( nuse, 0 )
-    call mp_bcast( nublock, 0 )
-    call MPI_BARRIER(MPI_COMM_WORLD,ierr)
+    call mpi_bcast( l,            1, mpi_integer,  0, mpi_comm_world, ierr )
+    call mpi_bcast( beta,         1, mpi_real8,    0, mpi_comm_world, ierr )
+    call mpi_bcast( dtau,         1, mpi_real8,    0, mpi_comm_world, ierr )
+    call mpi_bcast( mu,           1, mpi_real8,    0, mpi_comm_world, ierr )
+    call mpi_bcast( muA,          1, mpi_real8,    0, mpi_comm_world, ierr )
+    call mpi_bcast( muB,          1, mpi_real8,    0, mpi_comm_world, ierr )
+    call mpi_bcast( rhub,         1, mpi_real8,    0, mpi_comm_world, ierr )
+    call mpi_bcast( rj,           1, mpi_real8,    0, mpi_comm_world, ierr )
+    call mpi_bcast( js,           1, mpi_real8,    0, mpi_comm_world, ierr )
+    call mpi_bcast( hx,           1, mpi_real8,    0, mpi_comm_world, ierr )
+    call mpi_bcast( xmag,         1, mpi_real8,    0, mpi_comm_world, ierr )
+    call mpi_bcast( flux_x,       1, mpi_real8,    0, mpi_comm_world, ierr )
+    call mpi_bcast( flux_y,       1, mpi_real8,    0, mpi_comm_world, ierr )
+    call mpi_bcast( nwrap,        1, mpi_integer,  0, mpi_comm_world, ierr )
+    call mpi_bcast( nsweep,       1, mpi_integer,  0, mpi_comm_world, ierr )
+    call mpi_bcast( nbin,         1, mpi_integer,  0, mpi_comm_world, ierr )
+    call mpi_bcast( llocal,       1, mpi_logical,  0, mpi_comm_world, ierr )
+    call mpi_bcast( nsw_stglobal, 1, mpi_integer,  0, mpi_comm_world, ierr )
+    call mpi_bcast( lsstau,       1, mpi_logical,  0, mpi_comm_world, ierr )
+    call mpi_bcast( lsstau0r,     1, mpi_logical,  0, mpi_comm_world, ierr )
+    call mpi_bcast( ltau,         1, mpi_logical,  0, mpi_comm_world, ierr )
+    call mpi_bcast( ltauall,      1, mpi_logical,  0, mpi_comm_world, ierr )
+    call mpi_bcast( nuse,         1, mpi_integer,  0, mpi_comm_world, ierr )
+    call mpi_bcast( nublock,      1, mpi_integer,  0, mpi_comm_world, ierr )
+    call mpi_barrier(mpi_comm_world,ierr)
 
     ! tune parameters
     if( rhub .gt. 0.d0 ) lwrapu = .true.
