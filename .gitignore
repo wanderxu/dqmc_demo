@@ -1,0 +1,10 @@
+*.o
+*.a
+*.mod
+*.in
+*.out
+*.bin
+*.sys
+confout
+ftdqmc
+

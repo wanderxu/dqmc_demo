@@ -1,8 +1,8 @@
 subroutine stglobal_upgradeu(ntau,ni,green_up,green_dn, ratiofi)
 
-#IFDEF _OPENMP
+#ifdef _OPENMP
   USE OMP_LIB
-#ENDIF
+#endif
   use spring
   use blockc
   use data_tmp
@@ -27,24 +27,24 @@ subroutine stglobal_upgradeu(ntau,ni,green_up,green_dn, ratiofi)
      del44_up   =  delta_u_up( nsigl_u(i4,ntau), nrflip )
      ratioup = dcmplx(1.d0,0.d0) + del44_up * ( cone - green_up(i4,i4) )
 
-#IFDEF SPINDOWN
+#ifdef SPINDOWN
      del44_dn   =  delta_u_dn( nsigl_u(i4,ntau), nrflip )
      ratiodn = dcmplx(1.d0,0.d0) + del44_dn * ( cone - green_dn(i4,i4) )
-#ENDIF
+#endif
 
-#IFDEF SPINDOWN
+#ifdef SPINDOWN
      ratiotot = (ratioup*ratiodn)*dconjg(ratioup*ratiodn) !* deta_u( nsigl_u(i4,ntau), nrflip )
-#ELSE
+#else
      ratiotot = ratioup*dconjg(ratioup) * deta_u( nsigl_u(i4,ntau), nrflip )
-#ENDIF
+#endif
 
      !ratio_re = dgaml(nsigl_u(i4,ntau),nrflip ) * dble( ratiotot * phaseu )/    dble( phaseu )
      ratio_re = dble( ratiotot ) ! * dgaml(nsigl_u(i4,ntau),nrflip)
      ratiofi = ratio_re
 
-#IFDEF TEST
+#ifdef TEST
      write(fout,'(a,2e16.8)') 'in upgradeu, ratio_re = ', ratio_re
-#ENDIF
+#endif
 
      ratio_re_abs = ratio_re
      if (ratio_re .lt. 0.d0 )  ratio_re_abs = - ratio_re 

@@ -51,9 +51,9 @@ subroutine upgradej(ntau,nf,green_up,green_dn)
   
      ratioup = (dcmplx(1.d0,0.d0) + g44up) * (dcmplx(1.d0,0.d0) + g55up) - g45up*g54up
 
-#IFDEF TEST
+#ifdef TEST
      write(fout,'(a,2e16.8)') 'in upgradej, ratioup = ', ratioup
-#ENDIF
+#endif
 
      ! get Ising part ratio
      id = 0
@@ -73,9 +73,9 @@ subroutine upgradej(ntau,nf,green_up,green_dn)
      ratiotot = ratioup*dconjg(ratioup) * wsxsz(id)
      ratio_re = dble( ratiotot )
 
-#IFDEF TEST
+#ifdef TEST
      write(fout,'(a,e16.8)') 'in upgradej, ratio_re = ', ratio_re
-#ENDIF
+#endif
      
      ratio_re_abs = ratio_re
      if (ratio_re .lt. 0.d0 )  ratio_re_abs = - ratio_re 

@@ -1,13 +1,13 @@
 subroutine upgradeu(ntau, green_up, green_dn)
 
-#IFDEF _OPENMP
+#ifdef _OPENMP
   USE OMP_LIB
-#ENDIF
+#endif
   use spring
   use blockc
-#IFDEF CUMC
+#ifdef CUMC
   use mod_cumulate, only: heff, nei_cord, nei_Jeff, num_nei
-#ENDIF
+#endif
 
   implicit none
 
@@ -19,9 +19,9 @@ subroutine upgradeu(ntau, green_up, green_dn)
   complex(dp) ::  ratioup, ratiodn, ratiotot, del44_up, del44_dn
   integer :: i4, nl, nl1, nl2, nrflip, nfb, id, ntm1, nta1
   real(dp) :: accm, ratio_re, ratio_re_abs, random
-#IFDEF CUMC
+#ifdef CUMC
   integer :: inn, j, ntj
-#ENDIF
+#endif
   complex(dp), allocatable, dimension(:) :: diagg_up
   complex(dp), allocatable, dimension(:) :: diagg_dn
   complex(dp), allocatable, dimension(:,:) :: avec_up, bvec_up
@@ -31,48 +31,48 @@ subroutine upgradeu(ntau, green_up, green_dn)
   integer :: i, ik, m
 
   allocate( diagg_up(ndim) )
-#IFDEF SPINDOWN
+#ifdef SPINDOWN
   allocate( diagg_dn(ndim) )
-#ENDIF
+#endif
   allocate( avec_up(ndim,nublock) )
   allocate( bvec_up(ndim,nublock) )
-#IFDEF SPINDOWN
+#ifdef SPINDOWN
   allocate( avec_dn(ndim,nublock) )
   allocate( bvec_dn(ndim,nublock) )
-#ENDIF
+#endif
 
   accm  = 0.d0
   ik = 0
   ! initial diag G
   do i = 1, ndim
       diagg_up(i) = green_up(i,i)
-#IFDEF SPINDOWN
+#ifdef SPINDOWN
       diagg_dn(i) = green_dn(i,i)
-#ENDIF
+#endif
   end do
   ! intial avec, bvec
   avec_up = czero
   bvec_up = czero
-#IFDEF SPINDOWN
+#ifdef SPINDOWN
   avec_dn = czero
   bvec_dn = czero
-#ENDIF
+#endif
   do i4 = 1,  lq
       ! delay update: after nublock steps of local update, perform a whole update of Green function
       ! calculate weight ratio, fermion part
       nrflip = 1
       del44_up   =  delta_u_up( nsigl_u(i4,ntau), nrflip )
       ratioup = dcmplx(1.d0,0.d0) + del44_up * ( cone - diagg_up(i4) )
-#IFDEF TEST
+#ifdef TEST
       write(fout,'(a,2e16.8)') 'in upgradeu, ratioup = ', ratioup
-#ENDIF
-#IFDEF SPINDOWN
+#endif
+#ifdef SPINDOWN
       del44_dn   =  delta_u_dn( nsigl_u(i4,ntau), nrflip )
       ratiodn = dcmplx(1.d0,0.d0) + del44_dn * ( cone - diagg_dn(i4) )
-#IFDEF TEST
+#ifdef TEST
       write(fout,'(a,2e16.8)') 'in upgradeu, ratiodn = ', ratiodn
-#ENDIF
-#ENDIF
+#endif
+#endif
       ! calculate weight ratio, boson part
       id = 0
       ntm1 = ntau - 1
@@ -87,21 +87,21 @@ subroutine upgradeu(ntau, green_up, green_dn)
       end do
       id = id + 1
       ! total ratio
-#IFDEF SPINDOWN
+#ifdef SPINDOWN
       ratiotot = (ratioup*ratiodn)*dconjg(ratioup*ratiodn) * wsxsz(id) !* deta_u( nsigl_u(i4,ntau), nrflip )
-#ELSE
+#else
       ratiotot = ratioup*dconjg(ratioup) * wsxsz(id) ! * deta_u( nsigl_u(i4,ntau), nrflip )
-#ENDIF
+#endif
       ! set alpha, will be used during update avec, bvec
       alpha_up = del44_up/ratioup
-#IFDEF SPINDOWN
+#ifdef SPINDOWN
       alpha_dn = del44_dn/ratiodn
-#ENDIF
+#endif
       ! real part of ratio
       ratio_re = dble( ratiotot ) ! * dgaml(nsigl_u(i4,ntau),nrflip)
-#IFDEF TEST
+#ifdef TEST
       write(fout,'(a,2e16.8)') 'in upgradeu, ratio_re = ', ratio_re
-#ENDIF
+#endif
       ratio_re_abs = ratio_re
       ! absolute ratio
       if (ratio_re .lt. 0.d0 )  ratio_re_abs = - ratio_re 
@@ -118,39 +118,39 @@ subroutine upgradeu(ntau, green_up, green_dn)
           ! store avec(:,ik) and bvec(:,ik)
           avec_up(:,ik) = green_up(:,i4)
           bvec_up(:,ik) = green_up(i4,:)
-#IFDEF SPINDOWN
+#ifdef SPINDOWN
           avec_dn(:,ik) = green_dn(:,i4)
           bvec_dn(:,ik) = green_dn(i4,:)
-#ENDIF
+#endif
           do m = 1, ik-1
               avec_up(:,ik) = avec_up(:,ik) + bvec_up(i4,m)*avec_up(:,m)
               bvec_up(:,ik) = bvec_up(:,ik) + avec_up(i4,m)*bvec_up(:,m)
-#IFDEF SPINDOWN
+#ifdef SPINDOWN
               avec_dn(:,ik) = avec_dn(:,ik) + bvec_dn(i4,m)*avec_dn(:,m)
               bvec_dn(:,ik) = bvec_dn(:,ik) + avec_dn(i4,m)*bvec_dn(:,m)
-#ENDIF
+#endif
           end do
           avec_up(:,ik) =avec_up(:,ik)*alpha_up
           bvec_up(i4,ik)=bvec_up(i4,ik) - cone
-#IFDEF SPINDOWN
+#ifdef SPINDOWN
           avec_dn(:,ik) =avec_dn(:,ik)*alpha_dn
           bvec_dn(i4,ik)=bvec_dn(i4,ik) - cone
-#ENDIF
+#endif
           ! update diag G
           do i = 1, ndim
               diagg_up(i) = diagg_up(i) + avec_up(i,ik)*bvec_up(i,ik)
-#IFDEF SPINDOWN
+#ifdef SPINDOWN
               diagg_dn(i) = diagg_dn(i) + avec_dn(i,ik)*bvec_dn(i,ik)
-#ENDIF
+#endif
           end do
-#IFDEF CUMC
+#ifdef CUMC
           ! update heff
           do inn = 1, num_nei
               j = nei_cord(1,inn,i4,ntau)
               ntj = nei_cord(2,inn,i4,ntau)
               heff(j,ntj) = heff(j,ntj) - 2.d0*nei_Jeff(inn,i4,ntau)*nsigl_u(i4,ntau)
           end do
-#ENDIF
+#endif
           ! flip filed
           nsigl_u(i4,ntau) =  nflipl(nsigl_u(i4,ntau), nrflip)
       end if
@@ -159,37 +159,37 @@ subroutine upgradeu(ntau, green_up, green_dn)
           ik = 0
           ! delay update: update the whole Green function
           call  zgemm('N', 'T', ndim, ndim, nublock, cone, avec_up, ndim, bvec_up, ndim, cone, green_up, ndim)
-#IFDEF SPINDOWN
+#ifdef SPINDOWN
           call  zgemm('N', 'T', ndim, ndim, nublock, cone, avec_dn, ndim, bvec_dn, ndim, cone, green_dn, ndim)
-#ENDIF
+#endif
           if( i4.lt.lq) then
               ! initial diag G
               do i = 1, ndim
               diagg_up(i) = green_up(i,i)
-#IFDEF SPINDOWN
+#ifdef SPINDOWN
                   diagg_dn(i) = green_dn(i,i)
-#ENDIF
+#endif
               end do
               ! intial avec, bvec
               avec_up = czero
               bvec_up = czero
-#IFDEF SPINDOWN
+#ifdef SPINDOWN
               avec_dn = czero
               bvec_dn = czero
-#ENDIF
+#endif
           end if
       end if
   end do
   main_obs(1) = main_obs(1) + dcmplx( accm, dble(lq) )
 
-#IFDEF SPINDOWN
+#ifdef SPINDOWN
   deallocate( bvec_dn )
   deallocate( avec_dn )
-#ENDIF
+#endif
   deallocate( bvec_up )
   deallocate( avec_up )
-#IFDEF SPINDOWN
+#ifdef SPINDOWN
   deallocate( diagg_dn )
-#ENDIF
+#endif
   deallocate( diagg_up )
 end subroutine upgradeu

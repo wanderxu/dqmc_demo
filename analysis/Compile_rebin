@@ -1,0 +1,13 @@
+TARGET= rebin.out
+OBJS= rebin.o
+
+.SUFFIXES: .f .f90
+.f.o .f90.o:
+	$(FC) $(SUFFIX) $(FLAGS) $<
+	
+$(TARGET): $(OBJS)
+	$(FC) $(LF) -o $(TARGET) $(OBJS) $(LIBS)
+	
+clean:
+	rm $(OBJS)
+	

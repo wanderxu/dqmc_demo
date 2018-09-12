@@ -1,0 +1,26 @@
+FC=mpif90
+FLAGS= -c   -O3 
+SUFFIX= 
+LF =  
+#LF =  -q64  
+HOME = /lustre/jhome2/hwb03/hwb034/Lib_90
+LIBS= $(HOME)/Modules/modules_90.a \
+      $(HOME)/Modules_MPI/modules_MPI_90.a \
+      $(HOME)/MyEis/libeis.a \
+      $(HOME)/MyNag/libnag.a \
+      $(HOME)/Ran/libran.a \
+      $(HOME)/MyLin/liblin.a \
+      $(HOME)/LaPack/lapack.a \
+      $(HOME)/Blas/libblas.a
+
+all:
+	(cd $(HOME)/Modules;make FC="$(FC)" FLAGS="$(FLAGS)");\
+	cp $(HOME)/Modules/*.mod . ;\
+	(make -f Compile_en  FC="$(FC)" FLAGS="$(FLAGS)"  LIBS="$(LIBS)" ) ;\
+	(make -f Compile_tau  FC="$(FC)" FLAGS="$(FLAGS)"  LIBS="$(LIBS)" ) ;\
+	(make -f Compile_eq  FC="$(FC)" FLAGS="$(FLAGS)"  LIBS="$(LIBS)" )
+clean: 	
+	(make -f Compile_en  clean );\
+	(make -f Compile_tau  clean );\
+	(make -f Compile_eq  clean );\
+	rm *.mod *~ \#* *.out

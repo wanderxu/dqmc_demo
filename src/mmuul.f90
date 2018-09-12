@@ -3,9 +3,9 @@ subroutine mmuul(a_up, a_dn, nf, ntau, nflag)
   !in a  out a* exp(d(nf)) * ut(nf)  if nflag = 1
   !in a  out a* u(nf)                if nflag = 2
 
-#IFDEF _OPENMP
+#ifdef _OPENMP
   USE OMP_LIB
-#ENDIF
+#endif
   use blockc
   use data_tmp
   implicit none
@@ -26,9 +26,9 @@ subroutine mmuul(a_up, a_dn, nf, ntau, nflag)
      do j  = 1,ndim
         do nl = 1, ndim
            a_up(nl,j) = a_up(nl,j) * xsigma_u_up(nsigl_u(j,ntau))
-#IFDEF SPINDOWN
+#ifdef SPINDOWN
            a_dn(nl,j) = a_dn(nl,j) * xsigma_u_dn(nsigl_u(j,ntau))
-#ENDIF
+#endif
         enddo
      enddo
 !$OMP END DO

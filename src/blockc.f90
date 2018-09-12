@@ -24,6 +24,8 @@ module blockc
   integer, allocatable, dimension(:,:), save :: list_plaq
   integer, allocatable, dimension(:,:), save :: ltpf
   integer, allocatable, dimension(:,:), save :: lthf
+  integer, allocatable, dimension(:,:), save :: lthf2 ! next nearest
+  integer, allocatable, dimension(:,:), save :: lthf3 ! 3rd nearest
 
   integer, allocatable, dimension(:), save :: orblist
 
@@ -38,6 +40,8 @@ module blockc
   ! model
   integer, save :: ne
   real(dp), parameter :: rt = 1.d0
+  real(dp), parameter :: rt2 = -0.32d0
+  real(dp), parameter :: rt3 = 0.128d0
   real(dp), save :: beta
   real(dp), save :: mu
   real(dp), save :: muA ! chemical potentail for A sublattice
@@ -77,7 +81,7 @@ module blockc
   integer, save :: nskip
   integer, save :: nst
   integer, save :: nwrap
-  integer, save :: lwarnup
+  logical, save :: lwarnup
   integer, save :: nwarnup
   integer, save :: n_outconf_pace 
   integer, allocatable, dimension(:) :: iwrap_nt
@@ -107,21 +111,25 @@ module blockc
 
   complex(dp), dimension(2,2), save :: ur_k, urt_k, ur_j, urt_j
 
-#IFDEF BREAKUP_T
+#ifdef BREAKUP_T
   complex(dp), allocatable, dimension(:,:,:), save :: urt, urtm1
-#IFDEF SPINDOWN
+  complex(dp), allocatable, dimension(:,:,:), save :: urtc, urtcm1 ! next nearest
+  complex(dp), allocatable, dimension(:,:,:), save :: urtd, urtdm1 ! 3rd nearest
+#ifdef SPINDOWN
   complex(dp), allocatable, dimension(:,:,:), save :: urt_dn, urtm1_dn
-#ENDIF
-#ELSE
+  complex(dp), allocatable, dimension(:,:,:), save :: urtc_dn, urtcm1_dn
+  complex(dp), allocatable, dimension(:,:,:), save :: urtd_dn, urtdm1_dn
+#endif
+#else
   complex(dp), allocatable, dimension(:,:), save :: urt, urtm1
-#IFDEF SPINDOWN
+#ifdef SPINDOWN
   complex(dp), allocatable, dimension(:,:), save :: urt_dn, urtm1_dn
-#ENDIF
-#ENDIF
+#endif
+#endif
   complex(dp), allocatable, dimension(:,:), save :: hopping_tmp
-#IFDEF SPINDOWN
+#ifdef SPINDOWN
   complex(dp), allocatable, dimension(:,:), save :: hopping_tmp_dn
-#ENDIF
+#endif
   complex(dp), allocatable, dimension(:), save :: hop_plusx, hop_minusx
 
   integer, allocatable, dimension(:,:), save :: nsigl_u
@@ -147,14 +155,18 @@ module blockc
   contains
 
   subroutine make_tables
-    use parser, only : p_create, p_parse, p_get, p_get_vec, p_destroy
-    use mmpi, only : mp_bcast, mp_barrier
+#ifdef MPI
+    use mpi
+#endif
     implicit none
 
-    include 'mpif.h'
+    !include 'mpif.h'
 
     integer :: i, nwrap_mid
     logical :: exists
+
+    namelist /model_para/ l, beta, dtau, mu, muA, muB, rhub, rj, js, hx, xmag, flux_x, flux_y
+    namelist /ctrl_para/ nwrap, nsweep, nbin, llocal, nsw_stglobal, lsstau, ltau, nuse, nublock
 
     ! default parameters
     l    = 2
@@ -195,93 +207,43 @@ module blockc
 
     nublock = 16
 
-#IFNDEF OLDCOMP
     ! read parameters
     if ( irank.eq.0 ) then
         exists = .false.
         inquire (file = 'ftdqmc.in', exist = exists)
         if ( exists .eqv. .true. ) then
-            call p_create()
-            call p_parse('ftdqmc.in')
-            call p_get( 'L'        , l       )            ! 1
-            call p_get( 'beta'     , beta    )            ! 2
-            call p_get( 'dtau'     , dtau    )            ! 3
-            call p_get( 'mu'       , mu      )            ! 3.5
-            call p_get( 'muA'      , muA     )            ! 3.5
-            call p_get( 'muB'      , muB     )            ! 3.5
-            call p_get( 'rhub'     , rhub    )            ! 4
-            call p_get( 'rj'       , rj      )            ! 5
-            call p_get( 'js'       , js      )            ! 6
-            call p_get( 'hx'       , hx      )            ! 7
-            call p_get( 'xmag'     , xmag    )            ! 7
-            call p_get( 'flux_x'   , flux_x  )            ! 7
-            call p_get( 'flux_y'   , flux_y  )            ! 7
-            call p_get( 'nwrap'    , nwrap   )            ! 8
-            call p_get( 'nsweep'   , nsweep  )            ! 9
-            call p_get( 'nskip'    , nskip   )            ! 9
-            call p_get( 'nbin'     , nbin    )            ! 10
-            call p_get( 'llocal'   , llocal  )            ! 11
-            call p_get( 'nsw_stglobal', nsw_stglobal )    ! 11
-            call p_get( 'ltau'     , ltau    )
-            call p_get( 'lsstau'   , lsstau  )
-            call p_get( 'nuse'     , nuse    )
-            call p_get( 'nublock'  , nublock )
-            call p_destroy()
+            open(unit=100, file='ftdqmc.in',status='unknown')
+            read(100, model_para)
+            read(100, ctrl_para)
+            close(100)
         end if
     end if
-#ELSE
-    if ( irank.eq.0 ) then
-        exists = .false.
-        inquire (file = 'ftdqmc.in', exist = exists)
-        if ( exists .eqv. .true. ) then
-            open(unit=1177, file='ftdqmc.in',status='unknown')
-            read(1177,*) L
-            read(1177,*) rhub
-            read(1177,*) hx
-            read(1177,*) beta          
-            read(1177,*) mu            
-            read(1177,*) muA           
-            read(1177,*) muB           
-            read(1177,*) llocal
-            read(1177,*) nsw_stglobal  
-            read(1177,*) nsweep        
-            read(1177,*) nskip
-            read(1177,*) nbin          
-            read(1177,*) xmag          
-            read(1177,*) ltau          
-            read(1177,*) lsstau          
-            read(1177,*) nwrap         
-            read(1177,*) nuse          
-            read(1177,*) nublock
-            close(1177)
-        end if
-    end if
-#ENDIF
 
-    call mp_bcast( l,    0 )                ! 1
-    call mp_bcast( beta, 0 )                ! 2
-    call mp_bcast( dtau, 0 )                ! 3
-    call mp_bcast( mu,   0 )                ! 3.5
-    call mp_bcast( muA,  0 )                ! 3.5
-    call mp_bcast( muB,  0 )                ! 3.5
-    call mp_bcast( rhub, 0 )                ! 4
-    call mp_bcast( rj,   0 )                ! 5
-    call mp_bcast( js,   0 )                ! 6
-    call mp_bcast( hx,   0 )                ! 7
-    call mp_bcast( xmag, 0 )                ! 7
-    call mp_bcast( flux_x, 0 )                ! 7
-    call mp_bcast( flux_y, 0 )                ! 7
-    call mp_bcast( nwrap, 0 )               ! 8
-    call mp_bcast( nsweep, 0 )              ! 9
-    call mp_bcast( nskip, 0 )              ! 9
-    call mp_bcast( nbin, 0 )                ! 10
-    call mp_bcast( llocal, 0 )           ! 11
-    call mp_bcast( nsw_stglobal, 0 )     ! 11
-    call mp_bcast( ltau, 0 )
-    call mp_bcast( lsstau, 0 )
-    call mp_bcast( nuse, 0 )
-    call mp_bcast( nublock, 0 )
-    call MPI_BARRIER(MPI_COMM_WORLD,ierr)
+#ifdef MPI
+    call mpi_bcast( l,            1, mpi_integer,  0, mpi_comm_world, ierr )
+    call mpi_bcast( beta,         1, mpi_real8,    0, mpi_comm_world, ierr )
+    call mpi_bcast( dtau,         1, mpi_real8,    0, mpi_comm_world, ierr )
+    call mpi_bcast( mu,           1, mpi_real8,    0, mpi_comm_world, ierr )
+    call mpi_bcast( muA,          1, mpi_real8,    0, mpi_comm_world, ierr )
+    call mpi_bcast( muB,          1, mpi_real8,    0, mpi_comm_world, ierr )
+    call mpi_bcast( rhub,         1, mpi_real8,    0, mpi_comm_world, ierr )
+    call mpi_bcast( rj,           1, mpi_real8,    0, mpi_comm_world, ierr )
+    call mpi_bcast( js,           1, mpi_real8,    0, mpi_comm_world, ierr )
+    call mpi_bcast( hx,           1, mpi_real8,    0, mpi_comm_world, ierr )
+    call mpi_bcast( xmag,         1, mpi_real8,    0, mpi_comm_world, ierr )
+    call mpi_bcast( flux_x,       1, mpi_real8,    0, mpi_comm_world, ierr )
+    call mpi_bcast( flux_y,       1, mpi_real8,    0, mpi_comm_world, ierr )
+    call mpi_bcast( nwrap,        1, mpi_integer,  0, mpi_comm_world, ierr )
+    call mpi_bcast( nsweep,       1, mpi_integer,  0, mpi_comm_world, ierr )
+    call mpi_bcast( nbin,         1, mpi_integer,  0, mpi_comm_world, ierr )
+    call mpi_bcast( llocal,       1, mpi_logical,  0, mpi_comm_world, ierr )
+    call mpi_bcast( nsw_stglobal, 1, mpi_integer,  0, mpi_comm_world, ierr )
+    call mpi_bcast( lsstau,       1, mpi_logical,  0, mpi_comm_world, ierr )
+    call mpi_bcast( ltau,         1, mpi_logical,  0, mpi_comm_world, ierr )
+    call mpi_bcast( nuse,         1, mpi_integer,  0, mpi_comm_world, ierr )
+    call mpi_bcast( nublock,      1, mpi_integer,  0, mpi_comm_world, ierr )
+    call mpi_barrier(mpi_comm_world,ierr)
+#endif
 
     ! tune parameters
     if( rhub .gt. 0.d0 ) lwrapu = .true.
@@ -341,7 +303,7 @@ module blockc
     nmeas_bin = 2*(2*obs_segment_len+1)*nsweep*isize
     weight_track = 0.d0
 
-   	a1_p(1) = 1 ; a1_p(2) =  0
+    a1_p(1) = 1 ; a1_p(2) =  0
     a2_p(1) = 0 ; a2_p(2) =  1
     L1_p = l*a1_p
     L2_p = l*a2_p
@@ -356,6 +318,8 @@ module blockc
     allocate( list_plaq(lq, 1:5) )
     allocate( ltpf(max(lq/2,1), 4) )
     allocate( lthf(max(lq/4,1), 2) )
+    allocate( lthf2(max(lq/4,1), 2) )
+    allocate( lthf3(max(lq/16,1), 8) )
 
     allocate( orblist(ndim) )
 
@@ -375,21 +339,27 @@ module blockc
     allocate( zexpiwt(0:ltrot-1,0:nuse) )
     allocate( zexpiqr(lq,lq) )
 
-#IFDEF BREAKUP_T
+#ifdef BREAKUP_T
     allocate( urt(max(lq/2,1),4,4), urtm1(max(lq/2,1),4,4) )
-#IFDEF SPINDOWN
+    allocate( urtc(max(lq,1),2,2), urtcm1(max(lq,1),2,2) )
+    allocate( urtd(max(lq/2,1),4,4), urtdm1(max(lq/2,1),4,4) )
+#ifdef SPINDOWN
     allocate( urt_dn(max(lq/2,1),4,4), urtm1_dn(max(lq/2,1),4,4) )
-#ENDIF
-#ELSE
+    allocate( urtc_dn(max(lq,1),2,2), urtcm1_dn(max(lq,1),2,2) )
+    allocate( urtd_dn(max(lq/2,1),4,4), urtdm1_dn(max(lq/2,1),4,4) )
+#endif
+#else
     allocate( urt(ndim,ndim), urtm1(ndim,ndim) )
-#IFDEF SPINDOWN
+#ifdef SPINDOWN
     allocate( urt_dn(ndim,ndim), urtm1_dn(ndim,ndim) )
-#ENDIF
-#ENDIF
-    allocate( hopping_tmp(4,max(lq/2,1)) )
-#IFDEF SPINDOWN
-    allocate( hopping_tmp_dn(4,max(lq/2,1)) )
-#ENDIF
+#endif
+#endif
+    !allocate( hopping_tmp(4,max(lq/2,1)) )
+    allocate( hopping_tmp(6,max(lq,1)) )
+#ifdef SPINDOWN
+    !allocate( hopping_tmp_dn(4,max(lq/2,1)) )
+    allocate( hopping_tmp_dn(6,max(lq,1)) )
+#endif
     allocate( hop_plusx(lq) )
     allocate( hop_minusx(lq) )
 
@@ -418,7 +388,6 @@ module blockc
     end if
     deallocate( Ivec, Imat )
     deallocate( grdnc, grupc, grdn, grup )
-
     deallocate( hop_minusx )
     deallocate( hop_plusx )
 #IFDEF SPINDOWN
@@ -428,7 +397,7 @@ module blockc
 
 #IFDEF SPINDOWN
     deallocate( urtm1_dn, urt_dn )
-#ENDIF
+#endif
     deallocate( urtm1, urt )
     deallocate( zexpiqr )
     deallocate( zexpiwt )
@@ -440,8 +409,19 @@ module blockc
     deallocate( equ_distance, distance_index )
     deallocate( imjdeg )
 
+#ifdef BREAKUP_T
+    deallocate(lthf, lthf2, lthf3)
+    deallocate( urtcm1, urtc )
+    deallocate( urtdm1, urtd )
+#ifdef SPINDOWN                      
+    deallocate( urtcm1_dn, urtc_dn )
+    deallocate( urtdm1_dn, urtd_dn )
+#endif
+#endif
+
+
     deallocate( listk, latt_imj )
-    deallocate( orblist, lthf, ltpf, list_plaq, nnlist, invlist, list )
+    deallocate( orblist, ltpf, list_plaq, nnlist, invlist, list )
     if(allocated(wrap_step) ) deallocate( wrap_step )
     deallocate( iwrap_nt )
   end subroutine deallocate_tables

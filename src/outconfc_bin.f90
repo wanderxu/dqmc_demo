@@ -1,20 +1,29 @@
 subroutine outconfc_bin(w_ratio)
 
+#ifdef MPI
+    use mpi
+#endif
     use blockc
     implicit none
 
-	include 'mpif.h'
     real(dp), intent(in) :: w_ratio
 
     ! local
     integer, dimension(:), allocatable :: b2int
     integer, dimension(:,:), allocatable ::  itmpu
+#ifdef MPI
 	integer  status(mpi_status_size)
+#endif
     integer :: i, n, nf, nt, iit, ibt, icount, itmp, nbits2int 
     real(dp) :: rtmp
 
+#ifdef MPI
 	call mpi_comm_size(mpi_comm_world,isize,ierr)
 	call mpi_comm_rank(mpi_comm_world,irank,ierr)
+#else
+    isize = 1
+    irank = 0
+#endif
 
     allocate ( itmpu(lq,ltrot) )
 	
@@ -24,12 +33,14 @@ subroutine outconfc_bin(w_ratio)
     endif
 
 	if ( irank.ne.0 )  then
+#ifdef MPI
 	   call mpi_send(nsigl_u,lq*ltrot,mpi_integer, 0, irank+512,mpi_comm_world,ierr)
 	   call mpi_send(w_ratio, 1, mpi_real8, 0, irank+2048,mpi_comm_world,ierr)
 
 	   !!!call mpi_send(nsigl_k, 2*lq*ltrot,mpi_integer, 0, irank+1024,mpi_comm_world,ierr)
 
 	   !!!call mpi_send(nsigl_j, 2*lq*ltrot,mpi_integer, 0, irank+1536,mpi_comm_world,ierr)
+#endif
 	endif
 	if (irank.eq.0)  then
 
@@ -56,8 +67,10 @@ subroutine outconfc_bin(w_ratio)
        end do
 
        do n = 1,isize - 1
+#ifdef MPI
 	      call mpi_recv(itmpu,lq*ltrot, mpi_integer,n, n+512, mpi_comm_world,status,ierr)
           call mpi_recv(rtmp, 1,mpi_real8,n, n+2048, mpi_comm_world,status,ierr)
+#endif
           write(773) rtmp
           b2int = 0
           icount = -1

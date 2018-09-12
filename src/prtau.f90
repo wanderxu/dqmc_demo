@@ -1,7 +1,10 @@
 subroutine prtau
-#IFDEF _OPENMP
+#ifdef _OPENMP
   USE OMP_LIB
-#ENDIF
+#endif
+#ifdef MPI
+  use mpi
+#endif
   use blockc
   use obser
   implicit none
@@ -20,12 +23,11 @@ subroutine prtau
      end subroutine fourier_trans_tau
   end interface
 
-  include 'mpif.h'
   znorm = cone / dcmplx( dble(nsweep), 0.d0 )
   gtau_up = znorm * gtau_up
-#IFDEF SPINDOWN
+#ifdef SPINDOWN
   gtau_dn = znorm * gtau_dn
-#ENDIF
+#endif
   chiszsz = znorm * chiszsz
   chijxjxaa = znorm * chijxjxaa
   chijxjxab = znorm * chijxjxab
@@ -35,13 +37,18 @@ subroutine prtau
       allocate(collect2(lq,ltrot))
       n = lq*ltrot
       collect2 = czero
+#ifdef MPI
       call mpi_reduce(gtau_up,collect2,n,mpi_complex16,mpi_sum,0,mpi_comm_world,ierr)
       gtau_up = collect2/dcmplx( dble(isize), 0.d0 )
-#IFDEF SPINDOWN
+#endif
+#ifdef SPINDOWN
+#ifdef MPI
       call mpi_reduce(gtau_dn,collect2,n,mpi_complex16,mpi_sum,0,mpi_comm_world,ierr)
       gtau_dn = collect2/dcmplx( dble(isize), 0.d0 )
-#ENDIF
+#endif
+#endif
 
+#ifdef MPI
       call mpi_reduce(chiszsz,collect2,n,mpi_complex16,mpi_sum,0,mpi_comm_world,ierr)
       chiszsz = collect2/dcmplx( dble(isize), 0.d0 )
 
@@ -56,6 +63,7 @@ subroutine prtau
 
       call mpi_reduce(chijxjxbb,collect2,n,mpi_complex16,mpi_sum,0,mpi_comm_world,ierr)
       chijxjxbb = collect2/dcmplx( dble(isize), 0.d0 )
+#endif
 
       deallocate(collect2)
   end if
@@ -66,7 +74,7 @@ subroutine prtau
 
          filek = "gtau_up.bin"
          call fourier_trans_tau(gtau_up,filek)
-#IFDEF SPINDOWN
+#ifdef SPINDOWN
          filek = "gtau_dn.bin"
          call fourier_trans_tau(gtau_dn,filek)
 #ENDIF
@@ -101,9 +109,9 @@ subroutine prtau
 end subroutine prtau
 
 subroutine fourier_trans_tau(gr,filek)
-#IFDEF _OPENMP
+#ifdef _OPENMP
   USE OMP_LIB
-#ENDIF
+#endif
   use blockc
   implicit none
   complex(dp), dimension(:,:) :: gr

@@ -4,20 +4,20 @@ subroutine ftdqmc_initial
 
   integer :: system_time
   integer :: stream_seed
-  character (len = 20) :: date_time_string
+  character (len = 24) :: date_time_string
 
   !================================================
   !%% inital the pseudo random number generator   $
   !------------------------------------------------
   call system_clock(system_time)
   stream_seed = abs( system_time - ( irank * 1981 + 2008 ) * 951049 )
-#IFDEF TEST
+#ifdef TEST
   stream_seed = abs( 0 - ( irank * 1981 + 2008 ) * 951049 )
   write(fout, '(a,i20)') ' stream_seed = ', stream_seed
-#ENDIF
+#endif
   call spring_sfmt_init(stream_seed)
 
-  call s_time_builder(date_time_string)
+  call fdate(date_time_string)
 
   ! print head
   if(irank.eq.0) then
@@ -57,15 +57,23 @@ subroutine ftdqmc_initial_print
   implicit none
 
   integer :: i, j
+  namelist /model_para/ l, beta, dtau, mu, muA, muB, rhub, rj, js, hx, xmag, flux_x, flux_y
+  namelist /ctrl_para/ nwrap, nsweep, nbin, llocal, nsw_stglobal, lsstau, ltau, nuse, nublock
 
   IF(irank.eq.0) THEN
 
+  write(fout,'(a)')' Input parameters after tuning  '
+  write(fout, model_para)
+  write(fout, ctrl_para)
+
   write(fout,*)
-  write(fout,'(a)')' --------------------- '
-  write(fout,'(a)')' The input parameters  '
-  write(fout,'(a)')' --------------------- '
+  write(fout,'(a)')' ----------------------------------------- '
+  write(fout,'(a)')'  Input parameters for human reading form  '
+  write(fout,'(a)')' ----------------------------------------- '
   write(fout,*)
   write(fout,'(a,f6.2)')    ' t      = ', rt
+  write(fout,'(a,f6.2)')    ' t_2    = ', rt2
+  write(fout,'(a,f6.2)')    ' t_3    = ', rt3
   write(fout,'(a,f6.2)')    ' U      = ', rhub
   write(fout,'(a,f6.2)')    ' js     = ', js
   write(fout,'(a,f6.2)')    ' rj     = ', rj

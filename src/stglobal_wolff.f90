@@ -5,6 +5,7 @@
       integer :: nt, n, nf, nflag, i, j, nt_ob, ilq, it, nn_ilq, nn_it, inn_st, info, nt1, nt2
       logical :: lterminate 
       real(dp) :: ratiof, logratiof
+      complex(dp) :: logwf_up_tmp, logwf_dn_tmp
 
       ! perform global update
       if( lstglobal ) then
@@ -12,13 +13,13 @@
          if( icount_nsw_stglobal .eq. nsw_stglobal ) then
              icount_nsw_stglobal = 0
 
-#IFDEF TEST
+#ifdef TEST
              write(fout,*)
              write(fout, '(a)') ' >>>>>>>>>> '
              write(fout, '(a)') ' in space time global update '
              write(fout, '(a)') ' >>>>>>>>>> '
              write(fout,*)
-#ENDIF
+#endif
 
              !! build the space-time cluster to be performed global update on
              !! use the Wolff algorithm
@@ -90,7 +91,12 @@
              end do
              end do
 
-             if(llocal) logweightf_old = dble( logweightf_up + logweightf_dn )*2.d0
+             !if(llocal) logweightf_old = dble( logweightf_up + logweightf_dn )*2.d0
+             logweightf_old = dble( logweightf_up + logweightf_dn )*2.d0
+             ! Store weight
+             logwf_up_tmp = logweightf_up
+             logwf_dn_tmp = logweightf_dn
+
              call ftdqmc_sweep_start_b0   ! update B(beta,0)
              logweightf_new = dble( logweightf_up + logweightf_dn )*2.d0
              call ftdqmc_calculate_weights( logweights_new )
@@ -111,14 +117,14 @@
                  weight_track = logweightf_new + logweights_new
                  main_obs(3) = main_obs(3) + dcmplx(1.d0,1.d0)
                  main_obs(4) = main_obs(4) + dcmplx(dble(nstcluster),dble(ltrot*lq))
-#IFDEF TEST
+#ifdef TEST
                  write(fout,'(a,e24.16,a,i8)') ' global update accepted, logratiof = ', logratiof, '  nstcluster = ',  nstcluster
                  write(fout,'(a,e24.16)') ' logweights_old = ', logweights_old
                  write(fout,'(a,e24.16)') ' logweights_new = ', logweights_new
                  write(fout,'(a,e24.16)') ' logweightf_old = ', logweightf_old
                  write(fout,'(a,e24.16)') ' logweightf_new = ', logweightf_new
                  write(fout,'(a,e24.16)') ' weight_track = ', weight_track
-#ENDIF
+#endif
                  ! update logweight
                  logweightf_old = logweightf_new
                  logweights_old = logweights_new
@@ -130,14 +136,14 @@
                  ! global update is rejected
                  weight_track = logweightf_old + logweights_old
                  main_obs(3) = main_obs(3) + dcmplx(0.d0,1.d0)
-#IFDEF TEST
+#ifdef TEST
                  write(fout,'(a,e24.16,a,i8)') ' global update rejected, logratiof = ', logratiof, '  nstcluster = ',  nstcluster
                  write(fout,'(a,e24.16)') ' logweights_old = ', logweights_old
                  write(fout,'(a,e24.16)') ' logweights_new = ', logweights_new
                  write(fout,'(a,e24.16)') ' logweightf_old = ', logweightf_old
                  write(fout,'(a,e24.16)') ' logweightf_new = ', logweightf_new
                  write(fout,'(a,e24.16)') ' weight_track = ', weight_track
-#ENDIF
+#endif
                  ! global update is rejected, you need flip back the spin
                  do nt = 1, ltrot
                  do i = 1, lq
@@ -145,6 +151,10 @@
                      if( stcluster(i,nt) .eq. 1 ) nsigl_u(i,nt) = nflipl( nsigl_u(i,nt), 1 )
                  end do
                  end do
+
+                 ! Reset weight
+                 logweightf_up = logwf_up_tmp
+                 logweightf_dn = logwf_dn_tmp
 
                  ! perform measurement  ! note no matter whether the update is aceepted, you should do measrement
                  if( lmeas ) then

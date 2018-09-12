@@ -1,14 +1,14 @@
 subroutine upgradeu(ntau, green_up, green_dn)
 
-#IFDEF _OPENMP
+#ifdef _OPENMP
   USE OMP_LIB
-#ENDIF
+#endif
   use spring
   use blockc
   use data_tmp
-#IFDEF CUMC
+#ifdef CUMC
   use mod_cumulate, only: heff, nei_cord, nei_Jeff, num_nei
-#ENDIF
+#endif
 
   implicit none
 
@@ -20,9 +20,9 @@ subroutine upgradeu(ntau, green_up, green_dn)
   complex(dp) ::  ratioup, ratiodn, ratiotot, del44_up, del44_dn
   integer :: i4, nl, nl1, nl2, nrflip, nfb, id, ntm1, nta1
   real(dp) :: accm, ratio_re, ratio_re_abs, random
-#IFDEF CUMC
+#ifdef CUMC
   integer :: inn, j, ntj
-#ENDIF
+#endif
 
   accm  = 0.d0
   do i4 = 1,lq
@@ -31,17 +31,17 @@ subroutine upgradeu(ntau, green_up, green_dn)
      del44_up   =  delta_u_up( nsigl_u(i4,ntau), nrflip )
      ratioup = dcmplx(1.d0,0.d0) + del44_up * ( cone - green_up(i4,i4) )
 
-#IFDEF TEST
+#ifdef TEST
      write(fout,'(a,2e16.8)') 'in upgradeu, ratioup = ', ratioup
-#ENDIF
+#endif
 
-#IFDEF SPINDOWN
+#ifdef SPINDOWN
      del44_dn   =  delta_u_dn( nsigl_u(i4,ntau), nrflip )
      ratiodn = dcmplx(1.d0,0.d0) + del44_dn * ( cone - green_dn(i4,i4) )
-#IFDEF TEST
+#ifdef TEST
      write(fout,'(a,2e16.8)') 'in upgradeu, ratiodn = ', ratiodn
-#ENDIF
-#ENDIF
+#endif
+#endif
 
      ! get Ising part ratio
      id = 0
@@ -57,18 +57,18 @@ subroutine upgradeu(ntau, green_up, green_dn)
      end do
      id = id + 1
 
-#IFDEF SPINDOWN
+#ifdef SPINDOWN
      ratiotot = (ratioup*ratiodn)*dconjg(ratioup*ratiodn) * wsxsz(id) !* deta_u( nsigl_u(i4,ntau), nrflip )
-#ELSE
+#else
      ratiotot = ratioup*dconjg(ratioup) * wsxsz(id) ! * deta_u( nsigl_u(i4,ntau), nrflip )
-#ENDIF
+#endif
 
      !ratio_re = dgaml(nsigl_u(i4,ntau),nrflip ) * dble( ratiotot * phaseu )/    dble( phaseu )
      ratio_re = dble( ratiotot ) ! * dgaml(nsigl_u(i4,ntau),nrflip)
 
-#IFDEF TEST
+#ifdef TEST
      write(fout,'(a,2e16.8)') 'in upgradeu, ratio_re = ', ratio_re
-#ENDIF
+#endif
 
      ratio_re_abs = ratio_re
      if (ratio_re .lt. 0.d0 )  ratio_re_abs = - ratio_re 
@@ -95,7 +95,7 @@ subroutine upgradeu(ntau, green_up, green_dn)
 !$OMP END DO
 !$OMP END PARALLEL
 
-#IFDEF SPINDOWN
+#ifdef SPINDOWN
         ! update greep_dn
         do nl = 1, ndim
             u1(nl) = green_dn(nl,i4)/ratiodn
@@ -111,16 +111,16 @@ subroutine upgradeu(ntau, green_up, green_dn)
         enddo
 !$OMP END DO
 !$OMP END PARALLEL
-#ENDIF
+#endif
 
-#IFDEF CUMC
+#ifdef CUMC
         ! update heff
         do inn = 1, num_nei
             j = nei_cord(1,inn,i4,ntau)
             ntj = nei_cord(2,inn,i4,ntau)
             heff(j,ntj) = heff(j,ntj) - 2.d0*nei_Jeff(inn,i4,ntau)*nsigl_u(i4,ntau)
         end do
-#ENDIF
+#endif
         ! flip
         nsigl_u(i4,ntau) =  nflipl(nsigl_u(i4,ntau), nrflip)
         
