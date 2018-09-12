@@ -58,7 +58,7 @@ subroutine ftdqmc_initial_print
 
   integer :: i, j
   namelist /model_para/ l, beta, dtau, mu, muA, muB, rhub, rj, js, hx, xmag, flux_x, flux_y
-  namelist /ctrl_para/ nwrap, nsweep, nbin, llocal, nsw_stglobal, lsstau, lsstau0r, ltau, ltauall, nuse, nublock
+  namelist /ctrl_para/ nwrap, nsweep, nbin, llocal, nsw_stglobal, lsstau, ltau, nuse, nublock
 
   IF(irank.eq.0) THEN
 
@@ -101,7 +101,6 @@ subroutine ftdqmc_initial_print
   write(fout,*)  ' lstglobal = ', lstglobal
   write(fout,*)  ' lsstau = ', lsstau
   write(fout,*)  ' ltau = ', ltau
-  write(fout,*)  ' ltauall = ', ltauall
   write(fout,*) ' number of meas for 1 bin = ', nmeas_bin
   write(fout,*) ' total number of measurements = ', nbin*nmeas_bin
 

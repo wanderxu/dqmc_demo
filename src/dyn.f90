@@ -8,10 +8,10 @@
                   ! B(nt1,nt2) with nt1 >= nt2
                   nt1 = nt
                   nt2 = nt
-                  ! G(t',0) = B(t',t) * G(t,0)
+                  ! G(t',0) = B(t',t) * G(t,0)       Gij(t,0) = < C_i(t) C_j(0)^\dagger >  (t>0)
                   call Bmat_tau_R( nt1, nt2, gt0up, gt0dn)
 
-                  ! G(0,t') = G(0,t) * B(t',t)^-1
+                  ! G(0,t') = G(0,t) * B(t',t)^-1    Gij(0,t) = - < C_j(t)^\dagger C_i(0) >  (t>0)
                   call Bmatinv_tau_L( nt1, nt2, g0tup, g0tdn)
               end if
 

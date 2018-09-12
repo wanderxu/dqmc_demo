@@ -91,6 +91,7 @@
              end do
              end do
 
+             !if(llocal) logweightf_old = dble( logweightf_up + logweightf_dn )*2.d0
              logweightf_old = dble( logweightf_up + logweightf_dn )*2.d0
              ! Store weight
              logwf_up_tmp = logweightf_up

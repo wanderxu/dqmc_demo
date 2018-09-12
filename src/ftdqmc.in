@@ -15,14 +15,12 @@ flux_y = 0,
 /
 &ctrl_para
 nwrap = 10,
-nsweep = 100,
+nsweep = 1,
 nbin = 3,
 llocal = T,
 nsw_stglobal = 1,
 lsstau = T,
-lsstau0r = F,
 ltau = T,
-ltauall = T,
 nuse = 0,
 nublock = 16
 /

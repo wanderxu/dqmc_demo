@@ -4,6 +4,7 @@ module blockc
   integer, save :: irank, isize, ierr
   real(dp), parameter :: zero = 0.d0
   complex(dp), parameter :: cone = dcmplx( 1.d0, 0.d0 )
+  complex(dp), parameter :: czi = dcmplx( 0.d0, 1.d0 )
   complex(dp), parameter :: czero = dcmplx( 0.d0, 0.d0 )
   complex(dp), parameter :: chalf = dcmplx( 0.5d0, 0.d0 )
   complex(dp), parameter :: cquarter = dcmplx( 0.25d0, 0.d0 )
@@ -77,6 +78,7 @@ module blockc
   ! cal. control
   integer, save :: nbin
   integer, save :: nsweep
+  integer, save :: nskip
   integer, save :: nst
   integer, save :: nwrap
   logical, save :: lwarnup
@@ -87,9 +89,7 @@ module blockc
 
   ! for dynamical
   logical, save :: lsstau
-  logical, save :: lsstau0r
   logical, save :: ltau
-  logical, save :: ltauall
   integer, save :: nuse
   real(dp), allocatable, dimension(:), save :: wn
   complex(dp), allocatable, dimension(:,:), save :: zexpiwt
@@ -130,6 +130,7 @@ module blockc
 #ifdef SPINDOWN
   complex(dp), allocatable, dimension(:,:), save :: hopping_tmp_dn
 #endif
+  complex(dp), allocatable, dimension(:), save :: hop_plusx, hop_minusx
 
   integer, allocatable, dimension(:,:), save :: nsigl_u
   integer, allocatable, dimension(:,:,:), save :: nsigl_k, nsigl_j
@@ -165,7 +166,7 @@ module blockc
     logical :: exists
 
     namelist /model_para/ l, beta, dtau, mu, muA, muB, rhub, rj, js, hx, xmag, flux_x, flux_y
-    namelist /ctrl_para/ nwrap, nsweep, nbin, llocal, nsw_stglobal, lsstau, lsstau0r, ltau, ltauall, nuse, nublock
+    namelist /ctrl_para/ nwrap, nsweep, nbin, llocal, nsw_stglobal, lsstau, ltau, nuse, nublock
 
     ! default parameters
     l    = 2
@@ -181,10 +182,8 @@ module blockc
     nwrap = 10
     n_outconf_pace = 1
 
-    lsstau = .false.
-    lsstau0r = .false.
     ltau = .false.
-    ltauall = .false.
+    lsstau = .false.
     nuse = 0
 
     xmag = 0.d0
@@ -193,6 +192,7 @@ module blockc
     flux_y = 0.d0
 
     nsweep = 20
+    nskip = 1
     nbin = 10
     obs_segment_len = 10
 
@@ -239,9 +239,7 @@ module blockc
     call mpi_bcast( llocal,       1, mpi_logical,  0, mpi_comm_world, ierr )
     call mpi_bcast( nsw_stglobal, 1, mpi_integer,  0, mpi_comm_world, ierr )
     call mpi_bcast( lsstau,       1, mpi_logical,  0, mpi_comm_world, ierr )
-    call mpi_bcast( lsstau0r,     1, mpi_logical,  0, mpi_comm_world, ierr )
     call mpi_bcast( ltau,         1, mpi_logical,  0, mpi_comm_world, ierr )
-    call mpi_bcast( ltauall,      1, mpi_logical,  0, mpi_comm_world, ierr )
     call mpi_bcast( nuse,         1, mpi_integer,  0, mpi_comm_world, ierr )
     call mpi_bcast( nublock,      1, mpi_integer,  0, mpi_comm_world, ierr )
     call mpi_barrier(mpi_comm_world,ierr)
@@ -356,10 +354,14 @@ module blockc
     allocate( urt_dn(ndim,ndim), urtm1_dn(ndim,ndim) )
 #endif
 #endif
+    !allocate( hopping_tmp(4,max(lq/2,1)) )
     allocate( hopping_tmp(6,max(lq,1)) )
 #ifdef SPINDOWN
+    !allocate( hopping_tmp_dn(4,max(lq/2,1)) )
     allocate( hopping_tmp_dn(6,max(lq,1)) )
 #endif
+    allocate( hop_plusx(lq) )
+    allocate( hop_minusx(lq) )
 
     allocate(grup(ndim,ndim), grdn(ndim,ndim), grupc(ndim,ndim), grdnc(ndim,ndim))
 
@@ -386,7 +388,14 @@ module blockc
     end if
     deallocate( Ivec, Imat )
     deallocate( grdnc, grupc, grdn, grup )
-#ifdef SPINDOWN
+    deallocate( hop_minusx )
+    deallocate( hop_plusx )
+#IFDEF SPINDOWN
+    deallocate( hopping_tmp_dn )
+#ENDIF
+    deallocate( hopping_tmp )
+
+#IFDEF SPINDOWN
     deallocate( urtm1_dn, urt_dn )
 #endif
     deallocate( urtm1, urt )
