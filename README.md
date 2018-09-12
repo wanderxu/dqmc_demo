@@ -10,33 +10,38 @@ These instructions will get you a copy of the project up and running on your loc
 FORTRAN Compiler such as Intel or Gfortran. Lapack and Blas libraries needed.
 ```
 
-### CUDA support
-
-
-This code supports **CUDA**. If possible, it can be linked with **CUBLAS** for BLAS subroutines and **MAGMA** ([Matrix Algebra for GPU and Multicore Architectures](http://icl.cs.utk.edu/projectsfiles/magma/doxygen/) ) for LAPACK subroutines. All one needs to do is set the path of corresponding libraries and compile with '**-DCUDA**' flag.
-
 ### Installation
 
 Firstly git clone the project with
 
 
-> git clone git@gitlab.theory.iphy.ac.cn:codes/Honeycomb_Holstein.git
+> git clone git@gitlab.com:xyxu/slmc.git
+
+To compile it, you should choose the right make.sys depends on your compiler. Let's take Gfortran as an example.
+
+Compile lib
 
 
-And compile
+> cd lib/
+>
+> cp make.sys.gfortran make.sys
+>
+>  make
 
+Compile src
 
-> cd commom/; make
-> cd src/;    make
-
+> cd src/
+>
+> cp make.sys.gfortran make.sys
+>
+>  make
 
 ## Code Introduction
 
-### ftdqmc_matrix.f90
-Module that contains subroutines associated with matrix operations in DQMC algorithm.
+### ftdqmc matrix operation subroutines
+Subroutines and modules associated with matrix operations in DQMC algorithm.
 
-- **ftdqmc_matrix_alloc** :  Allocate memory for those temporary matrices used in matrix operations
-- **ftdmqc_matrix_free** : Free up  space.
+- **data_tmp** :  Temporary matrices used in matrix operations
 - **mmuur** : Right multiply by exp(V) **V**: Interacting matrix
 - **mmuurH**: Right multiply by hermitian of exp(V)
 - **muurm1**: Right division by exp(V)
@@ -47,10 +52,6 @@ Module that contains subroutines associated with matrix operations in DQMC algor
 - **mmthrm1**: Right division by exp(-dtau*T)
 - **mmthl**: Left  multiply by exp(-dtau*T)
 - **mmthlm1**: Right division by exp(-dtau*T)
-- **Bmat_tau_R**:  Compute B(tau1, tau2) tau1 > tau2
-- **Bmat_tau_RH**: Compute B(tau1, tau2) * tau1 > tau2
-- **Bmat_tau_L**: Compute * B(tau1, tau2) tau1 > tau2
-- **Bmatinv_tau_L**: Compute * B(tau1, tau2)^-1 tau1 > tau2
 
 
 ### ftdqmc_asvqrd.f90
@@ -108,10 +109,11 @@ DQMC sweep
 - **ftdqmc_sweep_start_0b**: Sweep from 0 -> beta to prepare UDV.
 - **ftdqmc_sweep_start_b0**: Sweep from beta -> 0 to prepare UDV.
 - **ftdqmc_sweep_b0**: Sweep from beta -> 0 and doing measurements.
-- **ftdqmc_sweep_b0_transgf**: Transfer G(tau) to G(tau+1)
 - **ftdqmc_sweep_0b**: Sweep from 0 -> beta and doing measurements.
-- **ftdqmc_sweep_0b_transgf**: Transfer G(tau) to G(tau+1)
-- **upgradeph**: Update phonon field of one time slice.
+- **Bmat_tau_R**:  Compute B(tau1, tau2) tau1 > tau2
+- **Bmat_tau_RH**: Compute B(tau1, tau2) * tau1 > tau2
+- **Bmat_tau_L**: Compute * B(tau1, tau2) tau1 > tau2
+- **Bmatinv_tau_L**: Compute * B(tau1, tau2)^-1 tau1 > tau2
 
 
 ### ftdqmc_phy0.f90
