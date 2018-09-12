@@ -15,7 +15,11 @@ FORTRAN Compiler such as Intel or Gfortran. Lapack and Blas libraries needed.
 Firstly git clone the project with
 
 
-> git clone git@gitlab.com:xyxu/slmc.git
+> git clone git@github.com:wanderxu/dqmc_demo.git
+
+or
+
+> git clone https://github.com/wanderxu/dqmc_demo.git
 
 To compile it, you should choose the right make.sys depends on your compiler. Let's take Gfortran as an example.
 
