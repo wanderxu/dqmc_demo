@@ -54,7 +54,7 @@ module ftdqmc_core
       if( nst.gt.0 .or. llocal ) then
           allocate( Bdtau1_dn(ndim,ndim) )       ! 16
       end if
-#IFDEF SPINDOWN
+#ifdef SPINDOWN
       if(nst.gt.0) then
           allocate( Ust_dn(ndim,ndim,0:nst) )     ! 1
           allocate( Dst_dn(ndim,0:nst) )          ! 2
@@ -81,14 +81,14 @@ module ftdqmc_core
       if( llocal ) then 
           allocate( grdn_tmp(ndim,ndim) )         ! 20
       end if
-#ENDIF
+#endif
 
     end subroutine allocate_core
 
     subroutine deallocate_core
       implicit none
       if(allocated(Bdtau1_dn)) deallocate( Bdtau1_dn )      ! 16
-#IFDEF SPINDOWN
+#ifdef SPINDOWN
       if(allocated(grdn_tmp)) deallocate( grdn_tmp )         ! 20
       if(nst.gt.0) then
           deallocate( Vst_dn_tmp )       ! 19
@@ -112,7 +112,7 @@ module ftdqmc_core
           deallocate( Dst_dn )         ! 2
           deallocate( Ust_dn )         ! 1
       end if
-#ENDIF
+#endif
       if(allocated(grup_tmp)) deallocate( grup_tmp )         ! 20
       if(nst.gt.0) then
           deallocate( Vst_up_tmp )       ! 19
@@ -167,7 +167,7 @@ module ftdqmc_core
       Dst_up(:,n)   = Dvec2(:)
       Vst_up(:,:,n) = Vmat2(:,:)
 
-#IFDEF SPINDOWN
+#ifdef SPINDOWN
       Dvec1(:)   = Dst_dn(:,n-1)
       Vmat1(:,:) = Vst_dn(:,:,n-1)
       call s_z_x_diag_d(ndim,Bdtau1_dn,Dvec1,Btmp) ! Btmp = Bdtau1_dn * Dmat1
@@ -176,7 +176,7 @@ module ftdqmc_core
       Ust_dn(:,:,n) = Umat2(:,:)
       Dst_dn(:,n)   = Dvec2(:)
       Vst_dn(:,:,n) = Vmat2(:,:)
-#ENDIF
+#endif
 
       deallocate( Dvec2, Dvec1 )
       deallocate( Vmat2, Vmat1, Umat2 )
@@ -211,7 +211,7 @@ module ftdqmc_core
       Dst_up(:,n-1) = Dvec2(:)
       Ust_up(:,:,n-1) = Umat2(:,:)
 
-#IFDEF SPINDOWN
+#ifdef SPINDOWN
       Vmat1(:,:) = Vst_dn(:,:,n)
       Dvec1(:)   = Dst_dn(:,n)
       call s_diag_d_x_z(ndim,Dvec1,Bdtau1_dn,Btmp) ! Btmp = Dmat1 * Bdtau1_dn
@@ -220,7 +220,7 @@ module ftdqmc_core
       Vst_dn(:,:,n-1) = Vmat2(:,:)
       Dst_dn(:,n-1) = Dvec2(:)
       Ust_dn(:,:,n-1) = Umat2(:,:)
-#ENDIF
+#endif
 
       deallocate( Dvec2, Dvec1 )
       deallocate( Vmat2, Vmat1, Umat2 )
@@ -240,20 +240,20 @@ module ftdqmc_core
       Dst_up(:,0)   = Ivec(:)
       Vst_up(:,:,0) = Imat(:,:)
 
-#IFDEF SPINDOWN
+#ifdef SPINDOWN
       grdn(:,:) = Imat(:,:)
       Ust_dn(:,:,0) = Imat(:,:)
       Dst_dn(:,0)   = Ivec(:)
       Vst_dn(:,:,0) = Imat(:,:)
-#ENDIF
+#endif
 
       do n = 1, nst
           ! at tau = n * tau1
           call ftdqmc_stablize_0b_svd(n)
-#IFDEF TEST
+#ifdef TEST
           write(fout, '(a,i4,a)') ' in ftdqmc_sweep_start_0b, Dst_up(:,', n, ' ) = '
           write(fout,'(4(e16.8))') Dst_up(:,n)
-#ENDIF
+#endif
       end do
   
       ! at tau = beta
@@ -263,28 +263,28 @@ module ftdqmc_core
       !call green_equaltime( nst, ndim, UR_up, DRvec_up, VR_up, Imat, Ivec, Imat, grup, info )
       call green_equaltimebb( nst, ndim, UR_up, DRvec_up, VR_up, grup, info )
 
-#IFDEF SPINDOWN
+#ifdef SPINDOWN
       UR_dn(:,:) = Ust_dn(:,:,nst)
       DRvec_dn(:)= Dst_dn(:,nst)
       VR_dn(:,:) = Vst_dn(:,:,nst)
       !call green_equaltime( nst, ndim, UR_dn, DRvec_dn, VR_dn, Imat, Ivec, Imat, grdn, info )
       call green_equaltimebb( nst, ndim, UR_dn, DRvec_dn, VR_dn, grdn, info )
-#ENDIF
+#endif
 
       if( info .eq. -1 ) then
           write(fout,'(a)') ' WRONG in sweep_start, exit '
           stop
       end if
 
-#IFDEF TEST_LEVEL3
+#ifdef TEST_LEVEL3
       write(fout, '(a)') ' After sweep_start_0b, grup(:,:) = '
       do i = 1, ndim
           write(fout,'(4(2e12.4))') grup(i,:)
       end do
-#ENDIF
+#endif
 
 
-#IFDEF TEST
+#ifdef TEST
 
       tmp = 0.d0
       do i = 1, ndim
@@ -294,16 +294,16 @@ module ftdqmc_core
       write(fout,'(a,2e12.4)') ' grup(1,1) = ', grup(1,1)
       write(fout,'(a,e12.4)') ' ne_up = ', tmp
 
-#IFDEF SPINDOWN
+#ifdef SPINDOWN
       tmp = 0.d0
       do i = 1, ndim
           tmp = tmp + real( cone - grdn(i,i) )
       end do
       write(fout,'(a,2e12.4)') ' grdn(1,1) = ', grdn(1,1)
       write(fout,'(a,e12.4)') ' ne_dn = ', tmp
-#ENDIF
+#endif
 
-#ENDIF
+#endif
 
      ELSE
 
@@ -316,13 +316,13 @@ module ftdqmc_core
          end do
          call s_invlu_z( ndim, Bdtau1_up )
          grup(:,:) = Bdtau1_up
-#IFDEF SPINDOWN
+#ifdef SPINDOWN
          do  i = 1, ndim
              Bdtau1_dn(i,i) = Bdtau1_dn(i,i) + cone
          end do
          call s_invlu_z( ndim, Bdtau1_dn )
          grdn(:,:) = Bdtau1_dn
-#ENDIF
+#endif
      else
          grup(:,:) = Imat(:,:)
          grdn(:,:) = Imat(:,:)
@@ -348,20 +348,20 @@ module ftdqmc_core
       Vst_up(:,:,nst) = Imat(:,:)
       Dst_up(:,nst)   = Ivec(:)
       Ust_up(:,:,nst) = Imat(:,:)
-#IFDEF SPINDOWN
+#ifdef SPINDOWN
       Vst_dn(:,:,nst) = Imat(:,:)
       Dst_dn(:,nst)   = Ivec(:)
       Ust_dn(:,:,nst) = Imat(:,:)
-#ENDIF
+#endif
 
       do n = nst, 1, -1
           ! at tau = (n-1) * tau1
           ! calculate B(n*tau1,(n-1)*tau1), and set Vst(:,:,n-1), Dst(:,:,n-1), Ust(:,:,n-1)
           call ftdqmc_stablize_b0_svd(n)
-#IFDEF TEST
+#ifdef TEST
           write(fout, '(a,i4,a)') ' Dst_up(:,', n, ' ) = '
           write(fout,'(4(e16.8))') Dst_up(:,n)
-#ENDIF
+#endif
       end do
 
       ! at tau = 0
@@ -371,28 +371,28 @@ module ftdqmc_core
       !call green_equaltime( nst, ndim, Imat, Ivec, Imat, VL_up, DLvec_up, UL_up, grup, info )
       call green_equaltime00( nst, ndim, VL_up, DLvec_up, UL_up, grup, info )
 
-#IFDEF SPINDOWN
+#ifdef SPINDOWN
       UL_dn(:,:) = Ust_dn(:,:,0)
       DLvec_dn(:)= Dst_dn(:,0)
       VL_dn(:,:) = Vst_dn(:,:,0)
       !call green_equaltime( nst, ndim, Imat, Ivec, Imat, VL_dn, DLvec_dn, UL_dn, grdn, info )
       call green_equaltime00( nst, ndim, VL_dn, DLvec_dn, UL_dn, grdn, info )
-#ENDIF
+#endif
 
       if( info .eq. -1 ) then
           write(fout,'(a)') ' WRONG in sweep_start, exit '
           stop
       end if
 
-#IFDEF TEST_LEVEL3
+#ifdef TEST_LEVEL3
       write(fout, '(a)') ' After sweep_start, grup(:,:) = '
       do i = 1, ndim
           write(fout,'(4(2e12.4))') grup(i,:)
       end do
-#ENDIF
+#endif
 
 
-#IFDEF TEST
+#ifdef TEST
 
       tmp = 0.d0
       do i = 1, ndim
@@ -401,16 +401,16 @@ module ftdqmc_core
       write(fout,'(a,2e12.4)') ' grup(1,1) = ', grup(1,1)
       write(fout,'(a,e12.4)') ' ne_up = ', tmp
 
-#IFDEF SPINDOWN
+#ifdef SPINDOWN
       tmp = 0.d0
       do i = 1, ndim
           tmp = tmp + real( cone - grdn(i,i) )
       end do
       write(fout,'(a,2e12.4)') ' grdn(1,1) = ', grdn(1,1)
       write(fout,'(a,e12.4)') ' ne_dn = ', tmp
-#ENDIF
+#endif
 
-#ENDIF
+#endif
 
      ELSE
 
@@ -423,13 +423,13 @@ module ftdqmc_core
          end do
          call s_invlu_z( ndim, Bdtau1_up )
          grup(:,:) = Bdtau1_up
-#IFDEF SPINDOWN
+#ifdef SPINDOWN
          do  i = 1, ndim
              Bdtau1_dn(i,i) = Bdtau1_dn(i,i) + cone
          end do
          call s_invlu_z( ndim, Bdtau1_dn )
          grdn(:,:) = Bdtau1_dn
-#ENDIF
+#endif
      else
          grup(:,:) = Imat(:,:)
          grdn(:,:) = Imat(:,:)
@@ -455,22 +455,22 @@ module ftdqmc_core
       Vst_up(:,:,nst) = Imat(:,:)
       Dst_up(:,nst)   = Ivec(:)
       Ust_up(:,:,nst) = Imat(:,:)
-#IFDEF SPINDOWN
+#ifdef SPINDOWN
       Vst_dn(:,:,nst) = Imat(:,:)
       Dst_dn(:,nst)   = Ivec(:)
       Ust_dn(:,:,nst) = Imat(:,:)
-#ENDIF
+#endif
   
       nt_ob = ceiling( spring_sfmt_stream() * ltrot )
 
       do nt = ltrot, 1, -1
-#IFDEF TEST
+#ifdef TEST
           write(fout,*)
           write(fout,'(a)') " ----------------"
           write(fout, '(a,i8)') ' |=> nt = ',  nt
           write(fout,'(a)') " ----------------"
           write(fout,*)
-#ENDIF
+#endif
           ! obser
           if( lmeasure_equaltime .and. ( abs(nt-nt_ob) .le. obs_segment_len .or. abs(nt-nt_ob) .ge. (ltrot-obs_segment_len) ) ) then
              call obser_equaltime(nt)
@@ -509,11 +509,11 @@ module ftdqmc_core
               DRvec_up(:)= Dst_up(:,n)
               VR_up(:,:) = Vst_up(:,:,n)
 
-#IFDEF SPINDOWN
+#ifdef SPINDOWN
               UR_dn(:,:) = Ust_dn(:,:,n)
               DRvec_dn(:)= Dst_dn(:,n)
               VR_dn(:,:) = Vst_dn(:,:,n)
-#ENDIF
+#endif
 
               call ftdqmc_stablize_b0_svd(n+1)
 
@@ -528,7 +528,7 @@ module ftdqmc_core
               !end if
               call s_compare_max_z( ndim, grtmp, grup, max_wrap_error_tmp )
               if( max_wrap_error_tmp .gt. max_wrap_error ) max_wrap_error = max_wrap_error_tmp
-#IFDEF TEST_LEVEL3
+#ifdef TEST_LEVEL3
               write(fout,*)
               write(fout, '(a,i5,a)') 'nt = ', nt, ' progating grup(:,:) = '
               do i = 1, ndim
@@ -558,16 +558,16 @@ module ftdqmc_core
                   tmp = tmp + real( cone - grup(i,i) )
               end do
               write(fout,'(a,e12.4)') ' scratch  ne_up = ', tmp
-#ENDIF
+#endif
 
-#IFDEF TEST
+#ifdef TEST
               write(fout,*)
               write(fout, '(a,e16.8)') ' grup, max_wrap_error_tmp = ',  max_wrap_error_tmp
-#ENDIF
+#endif
               ! whether use the scrath grup
               if( info .eq. 0 ) grup(:,:) = grtmp(:,:)
 
-#IFDEF SPINDOWN
+#ifdef SPINDOWN
               ! for spin down
               UL_dn(:,:)  = Ust_dn(:,:,n)
               DLvec_dn(:) = Dst_dn(:,n)  
@@ -575,7 +575,7 @@ module ftdqmc_core
               call green_equaltime( n, ndim, UR_dn, DRvec_dn, VR_dn, VL_dn, DLvec_dn, UL_dn, grtmp, info )
               call s_compare_max_z( ndim, grtmp, grdn, max_wrap_error_tmp )
               if( max_wrap_error_tmp .gt. max_wrap_error ) max_wrap_error = max_wrap_error_tmp
-#IFDEF TEST_LEVEL3
+#ifdef TEST_LEVEL3
               write(fout,*)
               write(fout, '(a,i5,a)') 'nt = ', nt, ' progating grdn(:,:) = '
               do i = 1, ndim
@@ -609,15 +609,15 @@ module ftdqmc_core
                   tmp = tmp + real( cone - grdn(i,i) )
               end do
               write(fout,'(a,e12.4)') ' scratch  ne_dn = ', tmp
-#ENDIF
+#endif
 
-#IFDEF TEST
+#ifdef TEST
               write(fout,*)
               write(fout, '(a,e16.8)') ' grdn, max_wrap_error_tmp = ',  max_wrap_error_tmp
-#ENDIF
+#endif
               ! whether use the scrath grdn
               if( info .eq. 0 ) grdn(:,:) = grtmp(:,:)
-#ENDIF
+#endif
           end if
   
   
@@ -635,11 +635,11 @@ module ftdqmc_core
       Ust_up(:,:,0) = Imat(:,:)
       Dst_up(:,0)   = Ivec(:)
       Vst_up(:,:,0) = Imat(:,:)
-#IFDEF SPINDOWN
+#ifdef SPINDOWN
       Ust_dn(:,:,0) = Imat(:,:)
       Dst_dn(:,0)   = Ivec(:)
       Vst_dn(:,:,0) = Imat(:,:)
-#ENDIF
+#endif
 
 
 !!!!#include "stglobal.f90"
@@ -648,23 +648,23 @@ module ftdqmc_core
           g00up = grup
           gt0up = grup
           g0tup = grup-Imat
-#IFDEF SPINDOWN
+#ifdef SPINDOWN
           g00dn = grdn
           gt0dn = grdn
           g0tdn = grdn-Imat
-#ENDIF
+#endif
       end if
   
       nt_ob = ceiling( spring_sfmt_stream() * ltrot )
       do nt = 1, ltrot, 1
 
-#IFDEF TEST
+#ifdef TEST
           write(fout,*)
           write(fout,'(a)') " ----------------"
           write(fout, '(a,i8)') ' |=> nt = ',  nt
           write(fout,'(a)') " ----------------"
           write(fout,*)
-#ENDIF
+#endif
   
           ! wrap H0
           call mmthr  (grup, grdn)
@@ -702,11 +702,11 @@ module ftdqmc_core
               VL_up(:,:) = Vst_up(:,:,n)
               DLvec_up(:)= Dst_up(:,n)
               UL_up(:,:) = Ust_up(:,:,n)
-#IFDEF SPINDOWN
+#ifdef SPINDOWN
               VL_dn(:,:) = Vst_dn(:,:,n)
               DLvec_dn(:)= Dst_dn(:,n)
               UL_dn(:,:) = Ust_dn(:,:,n)
-#ENDIF
+#endif
               call ftdqmc_stablize_0b_svd(n)
 
               ! for spin up
@@ -717,7 +717,7 @@ module ftdqmc_core
                   call green_equaltime( n, ndim, UR_up, DRvec_up, VR_up, VL_up, DLvec_up, UL_up, grtmp, info )
               else
               ! only when we need measure dynamical quantities, we will call green_tau
-#IFDEF DYNERROR
+#ifdef DYNERROR
                   ! B(nt1,nt2) with nt1 >= nt2
                   nt1 = nt
                   nt2 = nt
@@ -726,11 +726,11 @@ module ftdqmc_core
 
                   ! G(0,t') = G(0,t) * B(t',t)^-1
                   call Bmatinv_tau_L( nt1, nt2, g0tup, g0tdn)
-#ENDIF
+#endif
 
                   !call green_tau(n, ndim, UR_up, DRvec_up, VR_up, VL_up, DLvec_up, UL_up, g00up, gt0up,   g0tup,   grtmp, info )
                   call  green_tau(n, ndim, UR_up, DRvec_up, VR_up, VL_up, DLvec_up, UL_up, g00up, gt0tmp,  g0ttmp,  grtmp, info )
-#IFDEF TEST_LEVEL3
+#ifdef TEST_LEVEL3
                   write(fout,*)
                   write(fout, '(a,i5,a)') 'nt = ', nt, ' progating gt0up(:,:) = '
                   do i = 1, ndim
@@ -754,28 +754,28 @@ module ftdqmc_core
                   do i = 1, ndim
                       write(fout,'(4(2e12.4))') g0ttmp(i,:)
                   end do
-#ENDIF
+#endif
 
-#IFDEF DYNERROR
+#ifdef DYNERROR
                   call s_compare_max_z( ndim, gt0up, gt0tmp, xmax_dyn_tmp )
                   if( xmax_dyn_tmp .gt. xmax_dyn ) xmax_dyn = xmax_dyn_tmp
-#ENDIF
+#endif
                   gt0up = gt0tmp
-#IFDEF TEST
+#ifdef TEST
                   write(fout, '(a,e16.8)') 'gt0up, xmax_dyn_tmp = ',  xmax_dyn_tmp
-#ENDIF
-#IFDEF DYNERROR
+#endif
+#ifdef DYNERROR
                   call s_compare_max_z( ndim, g0tup, g0ttmp, xmax_dyn_tmp )
                   if( xmax_dyn_tmp .gt. xmax_dyn ) xmax_dyn = xmax_dyn_tmp
-#ENDIF
+#endif
                   g0tup = g0ttmp
-#IFDEF TEST
+#ifdef TEST
                   write(fout, '(a,e16.8)') 'g0tup, xmax_dyn_tmp = ',  xmax_dyn_tmp
-#ENDIF
+#endif
               end if
               call s_compare_max_z( ndim, grtmp, grup, max_wrap_error_tmp )
               if( max_wrap_error_tmp .gt. max_wrap_error ) max_wrap_error = max_wrap_error_tmp
-#IFDEF TEST_LEVEL3
+#ifdef TEST_LEVEL3
               write(fout,*)
               write(fout, '(a,i5,a)') 'nt = ', nt, ' progating grup(:,:) = '
               do i = 1, ndim
@@ -795,15 +795,15 @@ module ftdqmc_core
               write(fout,*)
               write(fout, '(a,i4,a)') ' Dst_up(:,', n, ' ) after wrap = '
               write(fout,'(4(e16.8))') Dst_up(:,n)
-#ENDIF
+#endif
 
-#IFDEF TEST
+#ifdef TEST
               write(fout,*)
               write(fout, '(a,e16.8)') ' grup, max_wrap_error_tmp = ',  max_wrap_error_tmp
-#ENDIF
+#endif
               if( info .eq. 0 ) grup(:,:) = grtmp(:,:)
 
-#IFDEF SPINDOWN
+#ifdef SPINDOWN
               ! for spin down
               UR_dn(:,:)  = Ust_dn(:,:,n)
               DRvec_dn(:) = Dst_dn(:,n)
@@ -813,7 +813,7 @@ module ftdqmc_core
               else
                   !call green_tau(n, ndim, UR_dn, DRvec_dn, VR_dn, VL_dn, DLvec_dn, UL_dn, g00dn, gt0dn,  g0tdn,  grtmp, info )
                   call  green_tau(n, ndim, UR_dn, DRvec_dn, VR_dn, VL_dn, DLvec_dn, UL_dn, g00dn, gt0tmp, g0ttmp, grtmp, info )
-#IFDEF TEST_LEVEL3
+#ifdef TEST_LEVEL3
                   write(fout,*)
                   write(fout, '(a,i5,a)') 'nt = ', nt, ' progating gt0dn(:,:) = '
                   do i = 1, ndim
@@ -837,28 +837,28 @@ module ftdqmc_core
                   do i = 1, ndim
                       write(fout,'(4(2e12.4))') g0ttmp(i,:)
                   end do
-#ENDIF
+#endif
 
-#IFDEF DYNERROR
+#ifdef DYNERROR
                   call s_compare_max_z( ndim, gt0dn, gt0tmp, xmax_dyn_tmp )
                   if( xmax_dyn_tmp .gt. xmax_dyn ) xmax_dyn = xmax_dyn_tmp
-#ENDIF
+#endif
                   gt0dn = gt0tmp
-#IFDEF TEST
+#ifdef TEST
                   write(fout, '(a,e16.8)') 'gt0dn, xmax_dyn_tmp = ',  xmax_dyn_tmp
-#ENDIF
-#IFDEF DYNERROR
+#endif
+#ifdef DYNERROR
                   call s_compare_max_z( ndim, g0tdn, g0ttmp, xmax_dyn_tmp )
                   if( xmax_dyn_tmp .gt. xmax_dyn ) xmax_dyn = xmax_dyn_tmp
-#ENDIF
+#endif
                   g0tdn = g0ttmp
-#IFDEF TEST
+#ifdef TEST
                   write(fout, '(a,e16.8)') 'g0tdn, xmax_dyn_tmp = ',  xmax_dyn_tmp
-#ENDIF
+#endif
               end if
               call s_compare_max_z( ndim, grtmp, grdn, max_wrap_error_tmp )
               if( max_wrap_error_tmp .gt. max_wrap_error ) max_wrap_error = max_wrap_error_tmp
-#IFDEF TEST_LEVEL3
+#ifdef TEST_LEVEL3
               write(fout,*)
               write(fout, '(a,i5,a)') 'nt = ', nt, ' progating grdn(:,:) = '
               do i = 1, ndim
@@ -878,14 +878,14 @@ module ftdqmc_core
               write(fout,*)
               write(fout, '(a,i4,a)') ' Dst_dn(:,', n, ' ) after wrap = '
               write(fout,'(4(e16.8))') Dst_dn(:,n)
-#ENDIF
+#endif
 
-#IFDEF TEST
+#ifdef TEST
               write(fout,*)
               write(fout, '(a,e16.8)') ' grdn, max_wrap_error_tmp = ',  max_wrap_error_tmp
-#ENDIF
+#endif
               if( info .eq. 0 ) grdn(:,:) = grtmp(:,:)
-#ENDIF
+#endif
 
           end if
 
@@ -916,7 +916,7 @@ module ftdqmc_core
       call s_dvec_min_max(ndm,dre,drmax,drmin)
       call s_dvec_min_max(ndm,dle,dlmax,dlmin)
 
-#IFDEF TEST
+#ifdef TEST
       write(fout,*)
       write(fout,'(a,i6)') ' in green_equaltime, n = ', n
       write(fout,'(a)') '     dre(i)        drmax(i)        drmin(i) '
@@ -928,7 +928,7 @@ module ftdqmc_core
       do i = 1, ndm
           write(fout, '(3e16.8)') dle(i), dlmax(i), dlmin(i)
       end do
-#ENDIF
+#endif
 
 !$OMP PARALLEL &
 !$OMP PRIVATE ( j, i )
@@ -997,13 +997,13 @@ module ftdqmc_core
       ! with <1 value set to 1 in dmax,  >1 value to 1 in dmin
       call s_dvec_min_max(ndm,dle,dlmax,dlmin)
 
-#IFDEF TEST
+#ifdef TEST
       write(fout,'(a,i6)') ' in green_equaltime00, n = ', n
       write(fout,'(a)') '     dle(i)        dlmax(i)        dlmin(i) '
       do i = 1, ndm
           write(fout, '(3e16.8)') dle(i), dlmax(i), dlmin(i)
       end do
-#ENDIF
+#endif
 
       !! >> g(0,0)
       ! ule^-1 * dlmax^-1
@@ -1051,14 +1051,14 @@ module ftdqmc_core
       ! with <1 value set to 1 in dmax,  >1 value to 1 in dmin
       call s_dvec_min_max(ndm,dre,drmax,drmin)
 
-#IFDEF TEST
+#ifdef TEST
       write(fout,*)
       write(fout,'(a,i6)') ' in green_equaltimebb, n = ', n
       write(fout,'(a)') '     dre(i)        drmax(i)        drmin(i) '
       do i = 1, ndm
           write(fout, '(3e16.8)') dre(i), drmax(i), drmin(i)
       end do
-#ENDIF
+#endif
 
       !! >> g(beta,beta)
       ! drmax^-1 * ure^-1
@@ -1108,7 +1108,7 @@ module ftdqmc_core
       call s_dvec_min_max(ndm,dre,drmax,drmin)
       call s_dvec_min_max(ndm,dle,dlmax,dlmin)
 
-#IFDEF TEST
+#ifdef TEST
       write(fout,*)
       write(fout,'(a)') '     dre(i)        drmax(i)        drmin(i) '
       do i = 1, ndm
@@ -1119,7 +1119,7 @@ module ftdqmc_core
       do i = 1, ndm
           write(fout, '(3e16.8)') dle(i), dlmax(i), dlmin(i)
       end do
-#ENDIF
+#endif
 !$OMP PARALLEL &
 !$OMP PRIVATE ( j, i )
 !$OMP DO
@@ -1410,11 +1410,11 @@ module ftdqmc_core
       end do
     end subroutine Bmatinv_tau_L
 
-#IFDEF CUMC
+#ifdef CUMC
 #include "stglobal_sl.f90"
-#ELSE
+#else
 #include "stglobal_wolff.f90"
-#ENDIF
+#endif
 
     subroutine push_stage
       implicit none
@@ -1422,12 +1422,12 @@ module ftdqmc_core
       Dst_up_tmp(:,:)   = Dst_up(:,:)
       Vst_up_tmp(:,:,:) = Vst_up(:,:,:)
       grup_tmp(:,:)     = grup(:,:)
-#IFDEF SPINDOWN
+#ifdef SPINDOWN
       Ust_dn_tmp(:,:,:) = Ust_dn(:,:,:)
       Dst_dn_tmp(:,:)   = Dst_dn(:,:)
       Vst_dn_tmp(:,:,:) = Vst_dn(:,:,:)
       grdn_tmp(:,:)     = grdn(:,:)
-#ENDIF
+#endif
     end subroutine
 
     subroutine pop_stage
@@ -1436,12 +1436,12 @@ module ftdqmc_core
       Dst_up(:,:)   =  Dst_up_tmp(:,:)
       Vst_up(:,:,:) =  Vst_up_tmp(:,:,:)
       grup(:,:)     =  grup_tmp(:,:)
-#IFDEF SPINDOWN
+#ifdef SPINDOWN
       Ust_dn(:,:,:) =  Ust_dn_tmp(:,:,:)
       Dst_dn(:,:)   =  Dst_dn_tmp(:,:)
       Vst_dn(:,:,:) =  Vst_dn_tmp(:,:,:)
       grdn(:,:)     =  grdn_tmp(:,:)
-#ENDIF
+#endif
     end subroutine pop_stage
 
 end module ftdqmc_core

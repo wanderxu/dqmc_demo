@@ -5,9 +5,9 @@ subroutine mmthr(a_up, a_dn)
   !	    exp(- dtau*t4) * exp(-dtau*t3) * a
   !     t1 and t2 is 4x4 matrix, t3, t4, t5 and t6 is 2x2 matrix
 
-#IFDEF _OPENMP
+#ifdef _OPENMP
   USE OMP_LIB
-#ENDIF
+#endif
   use blockc
   use data_tmp
     
@@ -15,7 +15,7 @@ subroutine mmthr(a_up, a_dn)
   complex(dp), dimension(ndim,ndim), intent(inout) :: a_up
   complex(dp), dimension(ndim,ndim), intent(inout) :: a_dn
 
-#IFDEF BREAKUP_T
+#ifdef BREAKUP_T
   ! local
   integer :: nf_tmp, nf, i, j, i1, i2, i3, i4, ist
 
@@ -118,7 +118,7 @@ subroutine mmthr(a_up, a_dn)
       enddo
   endif 
 
-#IFDEF SPINDOWN
+#ifdef SPINDOWN
   if (rt.gt.zero) then
       do nf = 1,4
 !$OMP PARALLEL &
@@ -217,18 +217,18 @@ subroutine mmthr(a_up, a_dn)
 !$OMP END PARALLEL
       enddo
   endif 
-#ENDIF
+#endif
 
-#ELSE
+#else
   call zgemm('n','n',ndim,ndim,ndim,cone,urt,ndim,a_up,ndim,czero,Atmp,ndim)
   a_up(:,:) = Atmp(:,:)
 
-#IFDEF SPINDOWN
+#ifdef SPINDOWN
   call zgemm('n','n',ndim,ndim,ndim,cone,urt_dn,ndim,a_dn,ndim,czero,Atmp,ndim)
   a_dn(:,:) = Atmp(:,:)
-#ENDIF
+#endif
 
-#ENDIF
+#endif
 
 end subroutine mmthr
 
@@ -236,9 +236,9 @@ end subroutine mmthr
 subroutine mmthrH(a_up, a_dn)
   !	in  a 
   !	out exp(- dtau*t2) * exp(-dtau*t1) * a
-#IFDEF _OPENMP
+#ifdef _OPENMP
   USE OMP_LIB
-#ENDIF
+#endif
   use blockc
   use data_tmp
     
@@ -246,7 +246,7 @@ subroutine mmthrH(a_up, a_dn)
   complex(dp), dimension(ndim,ndim), intent(inout) :: a_up
   complex(dp), dimension(ndim,ndim), intent(inout) :: a_dn
 
-#IFDEF BREAKUP_T
+#ifdef BREAKUP_T
   ! local
   integer :: nf, i, j, i1, i2, i3, i4, ist
   if (rt.gt.zero) then
@@ -348,7 +348,7 @@ subroutine mmthrH(a_up, a_dn)
       enddo
   endif
 
-#IFDEF SPINDOWN
+#ifdef SPINDOWN
   if (rt.gt.zero) then
       do nf = 2,1,-1
 !$OMP PARALLEL &
@@ -447,17 +447,17 @@ subroutine mmthrH(a_up, a_dn)
 !$OMP END PARALLEL
       enddo
   endif 
-#ENDIF
+#endif
 
-#ELSE
+#else
   call zgemm('n','n',ndim,ndim,ndim,cone,urt,ndim,a_up,ndim,czero,Atmp,ndim)
   a_up(:,:) = Atmp(:,:)
 
-#IFDEF SPINDOWN
+#ifdef SPINDOWN
   call zgemm('n','n',ndim,ndim,ndim,cone,urt_dn,ndim,a_dn,ndim,czero,Atmp,ndim)
   a_dn(:,:) = Atmp(:,:)
-#ENDIF
+#endif
 
-#ENDIF
+#endif
 
 end subroutine mmthrH

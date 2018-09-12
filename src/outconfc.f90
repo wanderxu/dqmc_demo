@@ -1,18 +1,26 @@
 subroutine outconfc
-
+#ifdef MPI
+    use mpi
+#endif
     use blockc
     implicit none
 
-	include 'mpif.h'
 
     ! local
     integer, dimension(:), allocatable :: b2int
     integer, dimension(:,:), allocatable ::  itmpu
+#ifdef MPI
 	integer  status(mpi_status_size)
+#endif
     integer :: i, n, nf, nt, iit, ibt, icount, itmp, nbits2int 
 
+#ifdef MPI
 	call mpi_comm_size(mpi_comm_world,isize,ierr)
 	call mpi_comm_rank(mpi_comm_world,irank,ierr)
+#else
+    isize = 1
+    irank = 0
+#endif
 
     allocate ( itmpu(lq,ltrot) )
 	
@@ -22,18 +30,20 @@ subroutine outconfc
     endif
 
 	if ( irank.ne.0 )  then
+#ifdef MPI
 	   call mpi_send(nsigl_u,lq*ltrot,mpi_integer, 0, irank+512,mpi_comm_world,ierr)
 
 	   !!!call mpi_send(nsigl_k, 2*lq*ltrot,mpi_integer, 0, irank+1024,mpi_comm_world,ierr)
 
 	   !!!call mpi_send(nsigl_j, 2*lq*ltrot,mpi_integer, 0, irank+1536,mpi_comm_world,ierr)
+#endif
 	endif
 	if (irank.eq.0)  then
 
        write(35) 1
-#IF DEFINED (CUMC) || DEFINED (GEN_CONFC_LEARNING)
+#if defined (CUMC) || defined (GEN_CONFC_LEARNING)
        write(35) weight_track
-#ENDIF
+#endif
 
        nbits2int = ltrot*lq/32
        if(mod(ltrot*lq,32).ne.0) nbits2int = nbits2int + 1
@@ -55,7 +65,9 @@ subroutine outconfc
        end do
 
        do n = 1,isize - 1
+#ifdef MPI
 	      call mpi_recv(itmpu,lq*ltrot, mpi_integer,n, n+512, mpi_comm_world,status,ierr)
+#endif
           b2int = 0
           icount = -1
           do nt = 1,ltrot

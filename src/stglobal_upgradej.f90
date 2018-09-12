@@ -52,18 +52,18 @@ subroutine stglobal_upgradej(ntau,nf,ni,green_up,green_dn, ratiofi)
   
      ratioup = (dcmplx(1.d0,0.d0) + g44up) * (dcmplx(1.d0,0.d0) + g55up) - g45up*g54up
 
-#IFDEF TEST
+#ifdef TEST
      write(fout,'(a,2e16.8)') 'in stglobal_upgradej, ratioup = ', ratioup
-#ENDIF
+#endif
 
      ! total ratio
      ratiotot = ratioup*dconjg(ratioup)
      ratio_re = dble( ratiotot )
      ratiofi = ratio_re
 
-#IFDEF TEST
+#ifdef TEST
      write(fout,'(a,e16.8)') 'in stglobal_upgradej, ratio_re = ', ratio_re
-#ENDIF
+#endif
      
      ratio_re_abs = ratio_re
      if (ratio_re .lt. 0.d0 )  ratio_re_abs = - ratio_re 

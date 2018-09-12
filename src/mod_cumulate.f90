@@ -35,7 +35,7 @@ module mod_cumulate
               end do
           end do
       end do
-#IFDEF TEST
+#ifdef TEST
       write(*,'(a)') ' nsigl_u = '
       do nt = 1, ltrot
           write(*,'(40i7)') nsigl_u(:,nt)
@@ -44,7 +44,7 @@ module mod_cumulate
       do nt = 1, ltrot
           write(*,'(40f7.3)') heff(:,nt)
       end do
-#ENDIF
+#endif
     end subroutine initial_heff
 
     subroutine set_neighbor
@@ -85,7 +85,7 @@ module mod_cumulate
     
         ! generate neightbor table
         call generate_neighbor(zmax,nnimax,nntable)
-#IFDEF TEST
+#ifdef TEST
         write(*,*)
         write(*,'(a)') '  nn    ni     nntable(:,ni,i) '
         do i = 1, nnimax
@@ -93,7 +93,7 @@ module mod_cumulate
                 write(*,'(4i6)') i, ni, nntable(:,ni,i)
             end do
         end do
-#ENDIF
+#endif
 
         !!! count number of neighbor
         ! count spatial and temporal
@@ -115,9 +115,9 @@ module mod_cumulate
             end do
         end do
         num_nei = num_nei + inn*nntmax_hyb*2
-#IFDEF TEST
+#ifdef TEST
         write(*,'(a,i8)') ' first count, num_nei = ', num_nei
-#ENDIF
+#endif
         allocate( nei_cord(2,num_nei,lq,ltrot) )
         allocate( nei_Jeff(num_nei,lq,ltrot) )
         
@@ -149,9 +149,9 @@ module mod_cumulate
         end do
         end do
         nncount = inn
-#IFDEF TEST
+#ifdef TEST
         write(*,'(a,i8)') ' after spatial, nncount = ', nncount
-#ENDIF
+#endif
     
         ! temporal
         do i = 1, lq
@@ -175,9 +175,9 @@ module mod_cumulate
             end do
         end do
         nncount = inn
-#IFDEF TEST
+#ifdef TEST
         write(*,'(a,i8)') ' after temporal, nncount = ', nncount
-#ENDIF
+#endif
     
         ! spatial temporal hybrid
         do nt = 1, ltrot
@@ -219,7 +219,7 @@ module mod_cumulate
         end do
         end do
         nncount = inn
-#IFDEF TEST
+#ifdef TEST
         write(*,'(a,i8)') ' after spatial-temporal-hybrid, nncount = ', nncount
         write(*,'(a,i8)') ' recheck count, num_nei = ', nncount
         write(*,*)
@@ -242,7 +242,7 @@ module mod_cumulate
                 write(*,'(40f8.4)') nei_Jeff(:,i,nt)
             end do
         end do
-#ENDIF
+#endif
         if( nncount .ne. num_nei ) stop 'wrong in count num_nei'
     
         deallocate( nntable )

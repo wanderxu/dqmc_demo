@@ -79,7 +79,7 @@ module blockc
   integer, save :: nsweep
   integer, save :: nst
   integer, save :: nwrap
-  integer, save :: lwarnup
+  logical, save :: lwarnup
   integer, save :: nwarnup
   integer, save :: n_outconf_pace 
   integer, allocatable, dimension(:) :: iwrap_nt
@@ -111,25 +111,25 @@ module blockc
 
   complex(dp), dimension(2,2), save :: ur_k, urt_k, ur_j, urt_j
 
-#IFDEF BREAKUP_T
+#ifdef BREAKUP_T
   complex(dp), allocatable, dimension(:,:,:), save :: urt, urtm1
   complex(dp), allocatable, dimension(:,:,:), save :: urtc, urtcm1 ! next nearest
   complex(dp), allocatable, dimension(:,:,:), save :: urtd, urtdm1 ! 3rd nearest
-#IFDEF SPINDOWN
+#ifdef SPINDOWN
   complex(dp), allocatable, dimension(:,:,:), save :: urt_dn, urtm1_dn
   complex(dp), allocatable, dimension(:,:,:), save :: urtc_dn, urtcm1_dn
   complex(dp), allocatable, dimension(:,:,:), save :: urtd_dn, urtdm1_dn
-#ENDIF
-#ELSE
+#endif
+#else
   complex(dp), allocatable, dimension(:,:), save :: urt, urtm1
-#IFDEF SPINDOWN
+#ifdef SPINDOWN
   complex(dp), allocatable, dimension(:,:), save :: urt_dn, urtm1_dn
-#ENDIF
-#ENDIF
+#endif
+#endif
   complex(dp), allocatable, dimension(:,:), save :: hopping_tmp
-#IFDEF SPINDOWN
+#ifdef SPINDOWN
   complex(dp), allocatable, dimension(:,:), save :: hopping_tmp_dn
-#ENDIF
+#endif
 
   integer, allocatable, dimension(:,:), save :: nsigl_u
   integer, allocatable, dimension(:,:,:), save :: nsigl_k, nsigl_j
@@ -154,12 +154,18 @@ module blockc
   contains
 
   subroutine make_tables
+#ifdef MPI
+    use mpi
+#endif
     implicit none
 
-    include 'mpif.h'
+    !include 'mpif.h'
 
     integer :: i, nwrap_mid
     logical :: exists
+
+    namelist /model_para/ l, beta, dtau, mu, muA, muB, rhub, rj, js, hx, xmag, flux_x, flux_y
+    namelist /ctrl_para/ nwrap, nsweep, nbin, llocal, nsw_stglobal, lsstau, lsstau0r, ltau, ltauall, nuse, nublock
 
     ! default parameters
     l    = 2
@@ -206,8 +212,6 @@ module blockc
         exists = .false.
         inquire (file = 'ftdqmc.in', exist = exists)
         if ( exists .eqv. .true. ) then
-            namelist /model_para/ l, beta, dtau, mu, muA, muB, rhub, rj, js, hx, xmag, flux_x, flux_y
-            namelist /ctrl_para/ nwrap, nsweep, nbin, llocal, nsw_stglobal, lsstau, lsstau0r, ltau, ltauall, nuse, nublock
             open(unit=100, file='ftdqmc.in',status='unknown')
             read(100, model_para)
             read(100, ctrl_para)
@@ -215,6 +219,7 @@ module blockc
         end if
     end if
 
+#ifdef MPI
     call mpi_bcast( l,            1, mpi_integer,  0, mpi_comm_world, ierr )
     call mpi_bcast( beta,         1, mpi_real8,    0, mpi_comm_world, ierr )
     call mpi_bcast( dtau,         1, mpi_real8,    0, mpi_comm_world, ierr )
@@ -240,6 +245,7 @@ module blockc
     call mpi_bcast( nuse,         1, mpi_integer,  0, mpi_comm_world, ierr )
     call mpi_bcast( nublock,      1, mpi_integer,  0, mpi_comm_world, ierr )
     call mpi_barrier(mpi_comm_world,ierr)
+#endif
 
     ! tune parameters
     if( rhub .gt. 0.d0 ) lwrapu = .true.
@@ -335,25 +341,25 @@ module blockc
     allocate( zexpiwt(0:ltrot-1,0:nuse) )
     allocate( zexpiqr(lq,lq) )
 
-#IFDEF BREAKUP_T
+#ifdef BREAKUP_T
     allocate( urt(max(lq/2,1),4,4), urtm1(max(lq/2,1),4,4) )
     allocate( urtc(max(lq,1),2,2), urtcm1(max(lq,1),2,2) )
     allocate( urtd(max(lq/2,1),4,4), urtdm1(max(lq/2,1),4,4) )
-#IFDEF SPINDOWN
+#ifdef SPINDOWN
     allocate( urt_dn(max(lq/2,1),4,4), urtm1_dn(max(lq/2,1),4,4) )
     allocate( urtc_dn(max(lq,1),2,2), urtcm1_dn(max(lq,1),2,2) )
     allocate( urtd_dn(max(lq/2,1),4,4), urtdm1_dn(max(lq/2,1),4,4) )
-#ENDIF
-#ELSE
+#endif
+#else
     allocate( urt(ndim,ndim), urtm1(ndim,ndim) )
-#IFDEF SPINDOWN
+#ifdef SPINDOWN
     allocate( urt_dn(ndim,ndim), urtm1_dn(ndim,ndim) )
-#ENDIF
-#ENDIF
+#endif
+#endif
     allocate( hopping_tmp(6,max(lq,1)) )
-#IFDEF SPINDOWN
+#ifdef SPINDOWN
     allocate( hopping_tmp_dn(6,max(lq,1)) )
-#ENDIF
+#endif
 
     allocate(grup(ndim,ndim), grdn(ndim,ndim), grupc(ndim,ndim), grdnc(ndim,ndim))
 
@@ -380,9 +386,9 @@ module blockc
     end if
     deallocate( Ivec, Imat )
     deallocate( grdnc, grupc, grdn, grup )
-#IFDEF SPINDOWN
+#ifdef SPINDOWN
     deallocate( urtm1_dn, urt_dn )
-#ENDIF
+#endif
     deallocate( urtm1, urt )
     deallocate( zexpiqr )
     deallocate( zexpiwt )
@@ -394,15 +400,15 @@ module blockc
     deallocate( equ_distance, distance_index )
     deallocate( imjdeg )
 
-#IFDEF BREAKUP_T
+#ifdef BREAKUP_T
     deallocate(lthf, lthf2, lthf3)
     deallocate( urtcm1, urtc )
     deallocate( urtdm1, urtd )
-#IFDEF SPINDOWN                      
+#ifdef SPINDOWN                      
     deallocate( urtcm1_dn, urtc_dn )
     deallocate( urtdm1_dn, urtd_dn )
-#ENDIF
-#ENDIF
+#endif
+#endif
 
 
     deallocate( listk, latt_imj )

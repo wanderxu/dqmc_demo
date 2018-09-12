@@ -4,13 +4,13 @@
          if( icount_nsw_stglobal .eq. nsw_stglobal ) then
              icount_nsw_stglobal = 0
 
-#IFDEF TEST
+#ifdef TEST
              write(fout,*)
              write(fout, '(a)') ' >>>>>>>>>> '
              write(fout, '(a)') ' in space time global update '
              write(fout, '(a)') ' >>>>>>>>>> '
              write(fout,*)
-#ENDIF
+#endif
 
              ! store the current state
              Ust_up_tmp(:,:,:) = Ust_up(:,:,:)
@@ -18,12 +18,12 @@
              Vst_up_tmp(:,:,:) = Vst_up(:,:,:)
              grup_tmp(:,:) = grup(:,:)
 
-#IFDEF SPINDOWN
+#ifdef SPINDOWN
              Ust_dn_tmp(:,:,:) = Ust_dn(:,:,:)
              Dst_dn_tmp(:,:)   = Dst_dn(:,:)
              Vst_dn_tmp(:,:,:) = Vst_dn(:,:,:)
              grdn_tmp(:,:) = grdn(:,:)
-#ENDIF
+#endif
 
              !! build the space-time cluster to be performed global update on
              !! use the Wolff algorithm
@@ -113,11 +113,11 @@
                      VL_up(:,:) = Vst_up(:,:,n)
                      DLvec_up(:)= Dst_up(:,n)
                      UL_up(:,:) = Ust_up(:,:,n)
-#IFDEF SPINDOWN
+#ifdef SPINDOWN
                      VL_dn(:,:) = Vst_dn(:,:,n)
                      DLvec_dn(:)= Dst_dn(:,n)
                      UL_dn(:,:) = Ust_dn(:,:,n)
-#ENDIF
+#endif
                      call ftdqmc_stablize_0b_svd(n)
 
                      ! for spin up
@@ -128,12 +128,12 @@
                      call s_compare_max_z( ndim, grtmp, grup, max_wrap_error_tmp )
                      if( max_wrap_error_tmp .gt. max_wrap_error ) max_wrap_error = max_wrap_error_tmp
                      if( info .eq. 0 ) grup(:,:) = grtmp(:,:)
-#IFDEF TEST
+#ifdef TEST
                      write(fout,*)
                      write(fout, '(a,e16.8)') ' grup, max_wrap_error_tmp = ',  max_wrap_error_tmp
-#ENDIF
+#endif
 
-#IFDEF SPINDOWN
+#ifdef SPINDOWN
                      ! for spin down
                      UR_dn(:,:)  = Ust_dn(:,:,n)
                      DRvec_dn(:) = Dst_dn(:,n)
@@ -142,11 +142,11 @@
                      call s_compare_max_z( ndim, grtmp, grdn, max_wrap_error_tmp )
                      if( max_wrap_error_tmp .gt. max_wrap_error ) max_wrap_error = max_wrap_error_tmp
                      if( info .eq. 0 ) grdn(:,:) = grtmp(:,:)
-#IFDEF TEST
+#ifdef TEST
                      write(fout,*)
                      write(fout, '(a,e16.8)') ' grdn, max_wrap_error_tmp = ',  max_wrap_error_tmp
-#ENDIF
-#ENDIF
+#endif
+#endif
                  end if
   
              end do
@@ -154,18 +154,18 @@
              if( ratiof .gt. spring_sfmt_stream() ) then
                  ! global update is accepted, perfrom an sweep from beta to 0
                  main_obs(3) = main_obs(3) + dcmplx(1.d0,1.d0)
-#IFDEF TEST
+#ifdef TEST
                  write(fout,'(a,e16.8,a,i8)') ' global update accepted, ratiof = ', ratiof, '  nstcluster = ',  nstcluster
-#ENDIF
+#endif
 
                  Vst_up(:,:,nst) = Imat(:,:)
                  Dst_up(:,nst)   = Ivec(:)
                  Ust_up(:,:,nst) = Imat(:,:)
-#IFDEF SPINDOWN
+#ifdef SPINDOWN
                  Vst_dn(:,:,nst) = Imat(:,:)
                  Dst_dn(:,nst)   = Ivec(:)
                  Ust_dn(:,:,nst) = Imat(:,:)
-#ENDIF
+#endif
   
                  nt_ob = ceiling( spring_sfmt_stream() * ltrot )
 
@@ -177,11 +177,11 @@
                          DRvec_up(:)= Dst_up(:,n)
                          VR_up(:,:) = Vst_up(:,:,n)
 
-#IFDEF SPINDOWN
+#ifdef SPINDOWN
                          UR_dn(:,:) = Ust_dn(:,:,n)
                          DRvec_dn(:)= Dst_dn(:,n)
                          VR_dn(:,:) = Vst_dn(:,:,n)
-#ENDIF
+#endif
 
                          call ftdqmc_stablize_b0_svd(n+1)
 
@@ -193,14 +193,14 @@
                          call s_compare_max_z( ndim, grtmp, grup, max_wrap_error_tmp )
                          if( max_wrap_error_tmp .gt. max_wrap_error ) max_wrap_error = max_wrap_error_tmp
 
-#IFDEF TEST
+#ifdef TEST
                          write(fout,*)
                          write(fout, '(a,e16.8)') ' grup, max_wrap_error_tmp = ',  max_wrap_error_tmp
-#ENDIF
+#endif
                          ! whether use the scrath grup
                          if( info .eq. 0 ) grup(:,:) = grtmp(:,:)
 
-#IFDEF SPINDOWN
+#ifdef SPINDOWN
                          ! for spin down
                          UL_dn(:,:)  = Ust_dn(:,:,n)
                          DLvec_dn(:) = Dst_dn(:,n)  
@@ -209,13 +209,13 @@
                          call s_compare_max_z( ndim, grtmp, grdn, max_wrap_error_tmp )
                          if( max_wrap_error_tmp .gt. max_wrap_error ) max_wrap_error = max_wrap_error_tmp
 
-#IFDEF TEST
+#ifdef TEST
                          write(fout,*)
                          write(fout, '(a,e16.8)') ' grdn, max_wrap_error_tmp = ',  max_wrap_error_tmp
-#ENDIF
+#endif
                          ! whether use the scrath grdn
                          if( info .eq. 0 ) grdn(:,:) = grtmp(:,:)
-#ENDIF
+#endif
                      end if
   
                      !! update
@@ -251,28 +251,28 @@
                  Ust_up(:,:,n) = Imat(:,:)
                  Dst_up(:,n)   = Ivec(:)
                  Vst_up(:,:,n) = Imat(:,:)
-#IFDEF SPINDOWN
+#ifdef SPINDOWN
                  Ust_dn(:,:,n) = Imat(:,:)
                  Dst_dn(:,n)   = Ivec(:)
                  Vst_dn(:,:,n) = Imat(:,:)
-#ENDIF
+#endif
 
              else
                  ! global update is rejected, recover the stored state
                  main_obs(3) = main_obs(3) + dcmplx(0.d0,1.d0)
-#IFDEF TEST
+#ifdef TEST
                  write(fout,'(a,e16.8,a,i8)') ' global update rejected, ratiof = ', ratiof, '  nstcluster = ',  nstcluster
-#ENDIF
+#endif
                  Ust_up(:,:,:) =  Ust_up_tmp(:,:,:)
                  Dst_up(:,:)   =  Dst_up_tmp(:,:)
                  Vst_up(:,:,:) =  Vst_up_tmp(:,:,:)
                  grup(:,:)     =  grup_tmp(:,:)
-#IFDEF SPINDOWN
+#ifdef SPINDOWN
                  Ust_dn(:,:,:) =  Ust_dn_tmp(:,:,:)
                  Dst_dn(:,:)   =  Dst_dn_tmp(:,:)
                  Vst_dn(:,:,:) =  Vst_dn_tmp(:,:,:)
                  grdn(:,:)     =  grdn_tmp(:,:)
-#ENDIF
+#endif
                  ! also you need flip back the spin
                  do nt = 1, ltrot
                  do i = 1, lq

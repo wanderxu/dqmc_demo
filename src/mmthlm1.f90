@@ -5,9 +5,9 @@ subroutine mmthlm1(a_up, a_dn)
   !             (exp(-dtau*t2) * exp(-dtau*t1))^{-1}
   !     t1 and t2 is 4x4 matrix, t3, t4, t5 and t6 is 2x2 matrix
 
-#IFDEF _OPENMP
+#ifdef _OPENMP
   USE OMP_LIB
-#ENDIF
+#endif
   use blockc
   use data_tmp
   implicit none
@@ -16,7 +16,7 @@ subroutine mmthlm1(a_up, a_dn)
   complex(dp), dimension(ndim,ndim), intent(inout) :: a_up
   complex(dp), dimension(ndim,ndim), intent(inout) :: a_dn
 
-#IFDEF BREAKUP_T
+#ifdef BREAKUP_T
   ! local
   integer :: nf_tmp, nf, i, j, i1, i2, i3, i4, ist
 
@@ -117,7 +117,7 @@ subroutine mmthlm1(a_up, a_dn)
       enddo
   endif
 
-#IFDEF SPINDOWN
+#ifdef SPINDOWN
   if ( rt.gt.zero) then
       do nf = 1,4
 !$OMP PARALLEL &
@@ -214,15 +214,15 @@ subroutine mmthlm1(a_up, a_dn)
 !$OMP END PARALLEL
       enddo
   endif
-#ENDIF
+#endif
 
-#ELSE
+#else
   call zgemm('n','n',ndim,ndim,ndim,cone,a_up,ndim,urtm1,ndim,czero,Atmp,ndim)
   a_up(:,:) = Atmp(:,:)
-#IFDEF SPINDOWN
+#ifdef SPINDOWN
   call zgemm('n','n',ndim,ndim,ndim,cone,a_dn,ndim,urtm1_dn,ndim,czero,Atmp,ndim)
   a_dn(:,:) = Atmp(:,:)
-#ENDIF
+#endif
 
-#ENDIF
+#endif
 end subroutine mmthlm1

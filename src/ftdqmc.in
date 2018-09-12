@@ -15,8 +15,8 @@ flux_y = 0,
 /
 &ctrl_para
 nwrap = 10,
-nsweep = 2,
-nbin = 2,
+nsweep = 100,
+nbin = 3,
 llocal = T,
 nsw_stglobal = 1,
 lsstau = T,

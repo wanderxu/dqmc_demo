@@ -4,7 +4,7 @@ subroutine sthop
   implicit none
   
   ! local
-#IFDEF BREAKUP_T
+#ifdef BREAKUP_T
   integer, parameter :: nch = 4
   integer, parameter :: nch2 = 2
   integer, parameter :: nch3 = 4
@@ -62,7 +62,7 @@ subroutine sthop
         hlp2(3,4) = dconjg(zx)
         !hopping_tmp(4,ist)=zx
 
-#IFDEF TEST
+#ifdef TEST
         if(irank.eq.0)then
 
         write(fout,*)
@@ -72,7 +72,7 @@ subroutine sthop
         end do
 
         end if
-#ENDIF
+#endif
 
         ! add the chemical potential term
         do i = 1, nch
@@ -191,7 +191,7 @@ subroutine sthop
              !hopping_tmp(2,ist)=zy
         end if
 
-#IFDEF TEST
+#ifdef TEST
         if(irank.eq.0)then
 
         write(fout,*)
@@ -201,7 +201,7 @@ subroutine sthop
         end do
 
         end if
-#ENDIF
+#endif
 
         ! add the chemical potential term
         do i = 1, nch2
@@ -249,7 +249,7 @@ subroutine sthop
      hopping_tmp(6,n)=zy3
   end do                 
 
-#IFDEF SPINDOWN
+#ifdef SPINDOWN
   do nf = 1,2
      do i_1 = 1,lq/4
         ist = i_1 + (nf - 1)*lq/4
@@ -312,7 +312,7 @@ subroutine sthop
         hlpd3(4,3) =        zx
         hlpd3(3,4) = dconjg(zx)
 
-#IFDEF TEST
+#ifdef TEST
         if(irank.eq.0)then
 
         write(fout,*)
@@ -322,7 +322,7 @@ subroutine sthop
         end do
 
         end if
-#ENDIF
+#endif
 
         ! add the chemical potential term
         do i = 1, nch
@@ -440,7 +440,7 @@ subroutine sthop
              !hopping_tmp(2,ist)=zy
         end if
 
-#IFDEF TEST
+#ifdef TEST
         if(irank.eq.0)then
 
         write(fout,*)
@@ -450,7 +450,7 @@ subroutine sthop
         end do
 
         end if
-#ENDIF
+#endif
 
         ! add the chemical potential term
         do i = 1, nch2
@@ -498,9 +498,9 @@ subroutine sthop
      hopping_tmp_dn(6,n)=zy3
   end do
 
-#ENDIF
+#endif
 
-#ELSE
+#else
   ! local
   integer :: i_1, ist, i1, i2, i3, i4, i5, i6, i7, i8, n, i, j, m, nf
   complex(dp) :: zx, zy, zz, zzm, zx3, zy3, z0, z1
@@ -555,13 +555,13 @@ subroutine sthop
   ELSE
       hmat(1,1) = dcmplx(-4.d0*rt, 0.d0 )
   END IF
-#IFDEF TEST
+#ifdef TEST
   write(fout,*)
   write(fout, '(a)') ' hmat = '
   do i = 1, ndim
       write(fout,'(40(2f8.4))') hmat(i,:)
   end do
-#ENDIF
+#endif
   ! add the chemical potential term
   do i = 1, ndim
       hmat(i,i) = hmat(i,i) - dcmplx(mu,0.d0)
@@ -587,7 +587,7 @@ subroutine sthop
   enddo
 
   ! urt
-#IFDEF TEST
+#ifdef TEST
 
   write(fout,*)
   write(fout,'(a)') 'urt(:,:) = '
@@ -595,7 +595,7 @@ subroutine sthop
       write(fout,'(40(2f9.5))') urt(:,i)
   end do
 
-#ENDIF
+#endif
 
   if( irank.eq.0 ) then
       write(fout,*)
@@ -614,7 +614,7 @@ subroutine sthop
 
 
 
-#IFDEF SPINDOWN
+#ifdef SPINDOWN
   hmat(:,:) = dcmplx(0.d0,0.d0)
   IF( l .gt. 1 ) THEN
       do n = 1, lq 
@@ -657,13 +657,13 @@ subroutine sthop
   ELSE
       hmat(1,1) = dcmplx(-4.d0*rt, 0.d0 )
   END IF
-#IFDEF TEST
+#ifdef TEST
   write(fout,*)
   write(fout, '(a)') ' hmat = '
   do i = 1, ndim
       write(fout,'(40(2f8.4))') hmat(i,:)
   end do
-#ENDIF
+#endif
   ! add the chemical potential term
   do i = 1, ndim
       hmat(i,i) = hmat(i,i) - dcmplx(mu,0.d0)
@@ -689,7 +689,7 @@ subroutine sthop
   enddo
 
   ! urt_dn
-#IFDEF TEST
+#ifdef TEST
 
   write(fout,*)
   write(fout,'(a)') 'urt_dn(:,:) = '
@@ -697,7 +697,7 @@ subroutine sthop
       write(fout,'(40(2f9.5))') urt_dn(:,i)
   end do
 
-#ENDIF
+#endif
 
   if( irank.eq.0 ) then
       write(fout,*)
@@ -713,11 +713,11 @@ subroutine sthop
       write(fout,*)
       write(fout,'(a,e16.8)') ' half-filling en_free = ', 2.d0*en_free   ! 2 spin flavor
   end if
-#ENDIF
+#endif
 
   deallocate( heig )
   deallocate( hvec )
 
-#ENDIF
+#endif
 
 end subroutine sthop

@@ -18,7 +18,7 @@ main = ftdqmc_main.o
 
 objects = $(modu1) $(modu2) $(dqmcf1) $(main)
 
-#LIBS+= ../common/libMM.a
+#LIBS+= ../lib/libMM.a
 
 all: cpmod ftdqmc
 
@@ -26,7 +26,7 @@ ftdqmc: $(objects)
 	$(LINKER) $(objects) -o ftdqmc $(LFLAGS) $(LIBS)
 
 cpmod:
-	cp ../common/*.mod .
+	cp ../lib/*.mod .
 
 .f90.o:
 	$(F90) $(FFLAGS) $*.f90

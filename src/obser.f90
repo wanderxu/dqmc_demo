@@ -22,9 +22,9 @@ module obser
     if(lsstau) allocate( isingzztau_corrlt(lq,ltrot) )
     if(ltau) then
         allocate( gtau_up(ndim,ltrot) )
-#IFDEF SPINDOWN
+#ifdef SPINDOWN
         allocate( gtau_dn(ndim,ltrot) )
-#ENDIF
+#endif
         allocate( chiszsz(ndim,ltrot) )
         allocate( chininj(ndim,ltrot) )
         allocate( chijxjx(ndim,ltrot) )
@@ -41,9 +41,9 @@ module obser
         deallocate( chijxjx )
         deallocate( chiszsz )
         deallocate( chininj ) 
-#IFDEF SPINDOWN
+#ifdef SPINDOWN
         deallocate( gtau_dn )
-#ENDIF
+#endif
         deallocate( gtau_up )
     end if
     if(lsstau) deallocate( isingzztau_corrlt )
@@ -62,9 +62,9 @@ module obser
     obs_bin(:) = czero
     if(ltau) then
         gtau_up(:,:) = czero
-#IFDEF SPINDOWN
+#ifdef SPINDOWN
         gtau_dn(:,:) = czero
-#ENDIF
+#endif
         chiszsz(:,:) = czero
         chijxjx(:,:) = czero
         chininj(:,:) = czero
@@ -75,9 +75,9 @@ module obser
   end subroutine obser_init
 
   subroutine obser_equaltime(nt)
-#IFDEF _OPENMP
+#ifdef _OPENMP
     USE OMP_LIB
-#ENDIF
+#endif
     implicit none
     integer,intent(in) :: nt
 
@@ -109,7 +109,7 @@ module obser
 !$OMP END PARALLEL
 
     ! get grdn and grdnc
-#IFDEF SPINDOWN
+#ifdef SPINDOWN
 !$OMP PARALLEL &
 !$OMP PRIVATE ( i, j )
 !$OMP DO
@@ -121,7 +121,7 @@ module obser
     end do
 !$OMP END DO
 !$OMP END PARALLEL
-#ELSE
+#else
 !$OMP PARALLEL &
 !$OMP PRIVATE ( i, xi, j, xj )
 !$OMP DO
@@ -137,7 +137,7 @@ module obser
     enddo
 !$OMP END DO
 !$OMP END PARALLEL
-#ENDIF
+#endif
 
     ! zne
     zne = czero
@@ -198,39 +198,39 @@ module obser
 !!!                           dconjg(zx) * grupc(i2,i1)
 !!!          zkint = zkint  +        zy *  grupc(i1,i4) + &
 !!!                           dconjg(zy) * grupc(i4,i1) 
-!!!#IFDEF SPINDOWN
+!!!#ifdef SPINDOWN
 !!!          zx = hopping_tmp_dn(1,ist)
 !!!          zy = hopping_tmp_dn(2,ist)
 !!!          zkint = zkint  +        zx *  grdnc(i1,i2) + &
 !!!                           dconjg(zx) * grdnc(i2,i1)
 !!!          zkint = zkint  +        zy *  grdnc(i1,i4) + &
 !!!                           dconjg(zy) * grdnc(i4,i1) 
-!!!#ENDIF
+!!!#endif
 !!!
 !!!          zy = hopping_tmp(3,ist)
 !!!          zkint = zkint  +        zy *  grupc(i2,i3) + &
 !!!                           dconjg(zy) * grupc(i3,i2) 
-!!!#IFDEF SPINDOWN
+!!!#ifdef SPINDOWN
 !!!          zy = hopping_tmp_dn(3,ist)
 !!!          zkint = zkint  +        zy *  grdnc(i2,i3) + &
 !!!                           dconjg(zy) * grdnc(i3,i2)
-!!!#ENDIF
+!!!#endif
 !!!
 !!!          zx = hopping_tmp(4,ist)
 !!!          zkint = zkint  +        zx *  grupc(i4,i3) + &
 !!!                           dconjg(zx) * grupc(i3,i4) 
-!!!#IFDEF SPINDOWN
+!!!#ifdef SPINDOWN
 !!!          zx = hopping_tmp_dn(4,ist)
 !!!          zkint = zkint  +        zx *  grdnc(i4,i3) + &
 !!!                           dconjg(zx) * grdnc(i3,i4) 
-!!!#ENDIF
+!!!#endif
 !!!       end do
 !!!!$OMP END DO
 !!!!$OMP END PARALLEL
 !!!    end do
 !!!    ELSE
 !!!        zkint = zkint + dcmplx(-4.d0*rt,0.d0) * ( grupc(1,1) + grdnc(1,1) )
-!!!    ENDIF
+!!!    endif
 
     IF ( l .gt. 1 ) THEN
 !$OMP PARALLEL &
@@ -265,7 +265,7 @@ module obser
                        dconjg(zx3) * grupc(i6,i1)
        zkint = zkint +        zy3 *  grupc(i1,i8) + &
                        dconjg(zy3) * grupc(i8,i1)
-#IFDEF SPINDOWN
+#ifdef SPINDOWN
        zx = hopping_tmp_dn(1,n)
        zy = hopping_tmp_dn(2,n)
        zz = hopping_tmp_dn(3,n)
@@ -284,13 +284,13 @@ module obser
                        dconjg(zx3) * grupc(i6,i1)
        zkint = zkint +        zy3 *  grupc(i1,i8) + &
                        dconjg(zy3) * grupc(i8,i1)
-#ENDIF
+#endif
     enddo
 !$OMP END DO
 !$OMP END PARALLEL
     ELSE
         zkint = zkint + dcmplx(-4.0*rt,0.d0) * ( grupc(1,1) + grdnc(1,1) )
-    ENDIF
+    endif
 
     obs_bin(4) = obs_bin(4) + zkint + dconjg(zkint)  ! layer 1 and layer 2
 
@@ -393,9 +393,9 @@ module obser
   end subroutine obser_equaltime
 
   subroutine obsert(nt, grt0_up, grt0_dn, gr0t_up, gr0t_dn, grtt_up, grtt_dn, gr00_up, gr00_dn)
-#IFDEF _OPENMP
+#ifdef _OPENMP
     USE OMP_LIB
-#ENDIF
+#endif
     implicit none
     integer, intent(in) :: nt
     complex(dp), dimension(ndim,ndim), intent(in) :: grt0_up, grt0_dn, gr0t_up, gr0t_dn, grtt_up, grtt_dn, gr00_up, gr00_dn

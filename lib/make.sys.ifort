@@ -1,0 +1,34 @@
+# fortran compiler, linker, and archiver
+#-------------------------------------------------------------------------
+F90    = ifort
+LINKER = $(F90)
+ARCHIVER = ar -ruv
+
+# fortran preprocessor options, common setting
+#-------------------------------------------------------------------------
+MPI    = # -DMPI
+#OMP    = -openmp
+API    = #-DAPI -DMPY
+FPP    = -fpp
+CPP    = $(FPP) $(MPI) $(OMP) $(API)
+
+# machine tuning options, just for my laptop: iris system
+#-------------------------------------------------------------------------
+GPROF  = #-pg
+#CHECK  =  -warn all -check all -traceback -g
+#CDUMP  =  -vec-report2 -openmp-report2 -nogen-interfaces
+LEVEL  = -O3 -march=core-avx2 -unroll-aggressive  -align all
+MARCH  = # -march=corei7-avx # core2 corei7 corei7-avx core-avx-i core-avx2
+#MKL    =  -mkl=sequential
+#MKL =  -mkl=parallel
+#INCLUDE= -I${MKLROOT}/include
+
+# flags for compiler and linker
+#-------------------------------------------------------------------------
+FFLAGS = -c $(CPP) $(CHECK) $(CDUMP) $(LEVEL) $(MARCH) $(GPROF) $(MKL) ${INCLUDE}
+LFLAGS = -static -Wl,-no_pie $(OMP) $(GPROF) $(MKL)
+
+# linear algebra library, lapack and blas
+#-------------------------------------------------------------------------
+#LIBS = -Wl,--start-group ${MKLROOT}/lib/intel64/libmkl_intel_lp64.a ${MKLROOT}/lib/intel64/libmkl_core.a \
+#       ${MKLROOT}/lib/intel64/libmkl_sequential.a -Wl,--end-group -lpthread -lm

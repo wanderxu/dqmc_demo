@@ -91,7 +91,7 @@ subroutine sltpf
         nc2 = nc2 + 1
         lthf(nc2,2) = i
      endif
-#IFDEF BREAKUP_T
+#ifdef BREAKUP_T
      !3rd nearest
      !=====================================================!
      if (mod(ix-3,4).eq.0 .and. mod(iy-3,4).eq.0 ) then
@@ -127,7 +127,7 @@ subroutine sltpf
         lthf3(nc12,8) = i
      endif
      !=====================================================!
-#ENDIF
+#endif
      if (mod(ix,2).eq.0 .and. mod(iy,2).ne.0 ) then
         nc3 = nc3 + 1
         lthf2(nc3,1) = i
@@ -143,10 +143,10 @@ subroutine sltpf
          stop
       endif
   end if
-#IFDEF BREAKUP_T
+#ifdef BREAKUP_T
   if( mod(l,4) .ne. 0 ) then
       write(6,*) 'error 2'
       stop
   endif
-#ENDIF
+#endif
 end subroutine sltpf

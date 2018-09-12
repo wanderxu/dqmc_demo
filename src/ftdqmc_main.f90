@@ -1,48 +1,54 @@
 program ftdqmc_main
-#IFDEF _OPENMP
+#ifdef _OPENMP
   USE OMP_LIB
-#ENDIF
+#endif
+#ifdef MPI
+  use mpi
+#endif
   use blockc
   use data_tmp
-#IFDEF CUMC
+#ifdef CUMC
   use mod_cumulate
-#ENDIF
+#endif
   use ftdqmc_core
   implicit none
-
-  include 'mpif.h'
 
   ! local
   integer :: nbc, nsw
   character (len = 24) :: date_time_string
   real(dp) :: start_time, end_time, time1, time2
-#IFDEF CAL_AUTO
+#ifdef CAL_AUTO
   integer :: i, j, imj, n, totsz, nti, ntj
   integer, allocatable, dimension(:) :: totsz_bin
   integer, allocatable, dimension(:,:) :: jjcorr_Rtau, mpi_jjcorr_Rtau
   real(dp), allocatable, dimension(:,:) :: jjcorr_Rtau_real
-#ENDIF
+#endif
 
+#ifdef MPI
   call MPI_INIT(ierr)                             
   call MPI_COMM_RANK(MPI_COMM_WORLD,irank,ierr) 
   call MPI_COMM_SIZE(MPI_COMM_WORLD,isize,ierr) 
+#else
+  irank = 0
+  isize = 1
+#endif
 
-#IFDEF _OPENMP
+#ifdef _OPENMP
   start_time = omp_get_wtime()
-#ELSE
+#else
   call cpu_time(start_time)
-#ENDIF
+#endif
 
   if( irank.eq.0 ) then
       open( unit=fout, file='ftdqmc.out', status='unknown' )
   end if
 
-#IFDEF TEST
+#ifdef TEST
   write(fout,'(a,e32.15)')  ' zero  = ', zero
   write(fout,'(a,e32.15)')  ' pi    = ', pi
   write(fout,'(a,2e32.15)') ' czero = ', czero
   write(fout,'(a,2e32.15)') ' cone  = ', cone
-#ENDIF
+#endif
 
   main_obs(:) = czero
 
@@ -63,28 +69,28 @@ program ftdqmc_main
 
   call allocate_data_tmp
   call allocate_core
-#IFNDEF CAL_AUTO
+#ifndef CAL_AUTO
   call allocate_obs
-#ENDIF
+#endif
 
-#IFDEF CUMC
+#ifdef CUMC
   call set_neighbor
   call initial_heff
-#ENDIF
+#endif
 
-#IFDEF CAL_AUTO
-#IFDEF GEN_CONFC_LEARNING
+#ifdef CAL_AUTO
+#ifdef GEN_CONFC_LEARNING
   if( llocal .and. .not. lstglobal ) then
       allocate( totsz_bin(2*nsweep) )
   else
       allocate( totsz_bin(nsweep) )
   end if
-#ELSE
+#else
   allocate(jjcorr_Rtau(lq,ltrot/2+1))
   allocate(jjcorr_Rtau_real(lq,ltrot/2+1))
   allocate(mpi_jjcorr_Rtau(lq,ltrot/2+1))
-#ENDIF
-#ENDIF
+#endif
+#endif
 
   max_wrap_error = 0.d0
   if(ltau) xmax_dyn = 0.d0
@@ -104,9 +110,9 @@ program ftdqmc_main
       !nwarnup = nint( beta ) + 3
       nwarnup = 300
       if(rhub.le.0.d0) nwarnup = 0
-#IFDEF TEST
+#ifdef TEST
       nwarnup = 0
-#ENDIF
+#endif
       if( irank.eq.0 ) then
           write(fout,'(a,i8)') ' nwarnup = ', nwarnup
       end if
@@ -122,33 +128,35 @@ program ftdqmc_main
       xmax_dyn = 0.d0 ! in warnup, xmax_dyn is not right, reset it here
   end if
 
-#IFDEF _OPENMP
+#ifdef _OPENMP
   time1 = omp_get_wtime()
-#ELSE
+#else
   call cpu_time(time1)
-#ENDIF
+#endif
   do nbc =  1, nbin
 
-#IFDEF CAL_AUTO
-#include 'sweep_auto.f90'
-#ELSE
-#include 'sweep.f90'
-#ENDIF
+#ifdef CAL_AUTO
+#include "sweep_auto.f90"
+#else
+#include "sweep.f90"
+#endif
 
       !!! --- Timming and outconfc
       if( nbc .eq. 1 )  then
-#IFDEF _OPENMP
+#ifdef _OPENMP
           time2 = omp_get_wtime()
-#ELSE
+#else
           call cpu_time(time2)
-#ENDIF
+#endif
           if(irank.eq.0) then
               n_outconf_pace = nint( dble( 3600 * 12 ) / ( time2-time1 ) )
               if( n_outconf_pace .lt. 1 ) n_outconf_pace = 1
               write(fout,'(a,e16.8,a)') ' time for 1 bin: ', time2-time1, ' s'
               write(fout,'(a,i12)') ' n_out_conf_pace = ', n_outconf_pace
           end if
+#ifdef MPI
           call mpi_bcast( n_outconf_pace, 1, mpi_integer, 0, MPI_COMM_WORLD, ierr )
+#endif
       end if
 
       if( n_outconf_pace .lt. nbin/3 ) then
@@ -170,7 +178,9 @@ program ftdqmc_main
 
   call outconfc
 
+#ifdef MPI
   call mpi_reduce(main_obs, mpi_main_obs, size(main_obs), mpi_complex16, mpi_sum, 0, mpi_comm_world, ierr )
+#endif
   if(irank.eq.0) then
       if(lwrapu)  write(fout,'(a,e16.8)') ' >>> accep_u  = ', dble(main_obs(1))/aimag(main_obs(1))
       if(lwrapj)  write(fout,'(a,e16.8)') ' >>> accep_j  = ', dble(main_obs(2))/aimag(main_obs(2))
@@ -180,23 +190,23 @@ program ftdqmc_main
       end if
   end if
 
-#IFDEF CAL_AUTO
-#IFDEF GEN_CONFC_LEARNING
+#ifdef CAL_AUTO
+#ifdef GEN_CONFC_LEARNING
   deallocate( totsz_bin )
-#ELSE
+#else
   deallocate(mpi_jjcorr_Rtau)
   deallocate(jjcorr_Rtau_real)
   deallocate(jjcorr_Rtau)
-#ENDIF
-#ENDIF
+#endif
+#endif
 
-#IFDEF CUMC
+#ifdef CUMC
   call deallocate_cumulate
-#ENDIF
+#endif
 
-#IFNDEF CAL_AUTO
+#ifndef CAL_AUTO
   call deallocate_obs
-#ENDIF
+#endif
 
   call deallocate_core
   call deallocate_data_tmp
@@ -204,11 +214,11 @@ program ftdqmc_main
   call deallocate_tables
 
   if( irank.eq.0 ) then
-#IFDEF _OPENMP
+#ifdef _OPENMP
       end_time = omp_get_wtime()
-#ELSE
+#else
       call cpu_time(end_time)
-#ENDIF
+#endif
       call fdate( date_time_string )
       write(fout,*)
       write(fout,'(a,f10.2,a)') ' >>> Total time spent:', end_time-start_time, 's'
@@ -227,7 +237,9 @@ program ftdqmc_main
 
   close(fout)
 
+#ifdef MPI
   call MPI_BARRIER(MPI_COMM_WORLD,ierr)
   call MPI_FINALIZE(ierr)
+#endif
 
 end program ftdqmc_main

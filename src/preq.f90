@@ -1,12 +1,13 @@
 subroutine preq
-#IFDEF _OPENMP
+#ifdef _OPENMP
   USE OMP_LIB
-#ENDIF
+#endif
+#ifdef MPI
+  use mpi
+#endif
   use blockc
   use obser
   implicit none
-
-  include 'mpif.h'
 
   integer :: i, j, imj
   complex(dp) :: expiqr, spipi, spipi0
@@ -39,16 +40,22 @@ subroutine preq
   !!!!call mpi_reduce(spin_corrlt,mpi_c2,lq*lq,mpi_complex16,mpi_sum, 0,mpi_comm_world,ierr)
   !!!!spin_corrlt(:,:) = mpi_c2(:,:)
 
+#ifdef MPI
   call mpi_reduce(isingzz_corrlt,mpi_i1,lq,mpi_integer,mpi_sum, 0,mpi_comm_world,ierr)
   isingzz_corrlt(:) = mpi_i1(:)
+#endif
 
   if(lsstau) then
+#ifdef MPI
   call mpi_reduce( isingzztau_corrlt, mpi_i2, lq*ltrot, mpi_integer, mpi_sum, 0, mpi_comm_world, ierr )
   isingzztau_corrlt(:,:) = mpi_i2(:,:)
+#endif
   end if
 
+#ifdef MPI
   call mpi_reduce( obs_bin, mpi_obs_bin, 10, mpi_complex16, mpi_sum, 0, mpi_comm_world, ierr )
   obs_bin(:) = mpi_obs_bin(:)
+#endif
 
   if( irank .eq. 0 ) then
       !!!!!! calculate  the S(pi,pi)
@@ -158,7 +165,9 @@ subroutine preq
 
   end if
 
+#ifdef MPI
   call mpi_barrier( mpi_comm_world, ierr )
+#endif
 
   if(lsstau) deallocate(mpi_i2)
   deallocate(mpi_i1)

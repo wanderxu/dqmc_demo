@@ -13,13 +13,13 @@
          if( icount_nsw_stglobal .eq. nsw_stglobal ) then
              icount_nsw_stglobal = 0
 
-#IFDEF TEST
+#ifdef TEST
              write(fout,*)
              write(fout, '(a)') ' >>>>>>>>>> '
              write(fout, '(a)') ' in space time global update '
              write(fout, '(a)') ' >>>>>>>>>> '
              write(fout,*)
-#ENDIF
+#endif
 
              !! build the space-time cluster to be performed global update on
              !! use the Wolff algorithm
@@ -116,14 +116,14 @@
                  weight_track = logweightf_new + logweights_new
                  main_obs(3) = main_obs(3) + dcmplx(1.d0,1.d0)
                  main_obs(4) = main_obs(4) + dcmplx(dble(nstcluster),dble(ltrot*lq))
-#IFDEF TEST
+#ifdef TEST
                  write(fout,'(a,e24.16,a,i8)') ' global update accepted, logratiof = ', logratiof, '  nstcluster = ',  nstcluster
                  write(fout,'(a,e24.16)') ' logweights_old = ', logweights_old
                  write(fout,'(a,e24.16)') ' logweights_new = ', logweights_new
                  write(fout,'(a,e24.16)') ' logweightf_old = ', logweightf_old
                  write(fout,'(a,e24.16)') ' logweightf_new = ', logweightf_new
                  write(fout,'(a,e24.16)') ' weight_track = ', weight_track
-#ENDIF
+#endif
                  ! update logweight
                  logweightf_old = logweightf_new
                  logweights_old = logweights_new
@@ -135,14 +135,14 @@
                  ! global update is rejected
                  weight_track = logweightf_old + logweights_old
                  main_obs(3) = main_obs(3) + dcmplx(0.d0,1.d0)
-#IFDEF TEST
+#ifdef TEST
                  write(fout,'(a,e24.16,a,i8)') ' global update rejected, logratiof = ', logratiof, '  nstcluster = ',  nstcluster
                  write(fout,'(a,e24.16)') ' logweights_old = ', logweights_old
                  write(fout,'(a,e24.16)') ' logweights_new = ', logweights_new
                  write(fout,'(a,e24.16)') ' logweightf_old = ', logweightf_old
                  write(fout,'(a,e24.16)') ' logweightf_new = ', logweightf_new
                  write(fout,'(a,e24.16)') ' weight_track = ', weight_track
-#ENDIF
+#endif
                  ! global update is rejected, you need flip back the spin
                  do nt = 1, ltrot
                  do i = 1, lq

@@ -1,20 +1,29 @@
 subroutine inconfc
 
+#ifdef MPI
+    use mpi
+#endif
     use spring
     use blockc
     implicit none
 
-	include 'mpif.h'
     ! local
+#ifdef MPI
 	integer  status(mpi_status_size)
+#endif
     integer, dimension(:,:),   allocatable ::  itmpu
     integer, dimension(:,:,:), allocatable ::  itmpk, itmpj
     integer, dimension(:), allocatable :: b2int
     integer :: iseed0, i, nn, n, nf, nt, iit, ibt, icount, nbits2int, eof, n_re
     real(dp) :: x
 
+#ifdef MPI
 	call mpi_comm_size(mpi_comm_world,isize,ierr)
 	call mpi_comm_rank(mpi_comm_world,irank,ierr)
+#else
+    isize = 1
+    irank = 0
+#endif
 
     allocate (itmpu(lq,ltrot), itmpk(lq,2,ltrot), itmpj(lq,2,ltrot))
 
@@ -51,9 +60,11 @@ subroutine inconfc
 		             if (x.gt.0.5) nsigl_u(i,nt) = -1
                  enddo
              enddo
+#ifdef MPI
 	         call mpi_send(nsigl_u,lq*ltrot,mpi_integer, n, n+512,mpi_comm_world,ierr)
 	         !!!call mpi_send(nsigl_k, 2*lq*ltrot,mpi_integer, n, n+1024,mpi_comm_world,ierr)
 	         !!!call mpi_send(nsigl_j, 2*lq*ltrot,mpi_integer, n, n+1536,mpi_comm_world,ierr)
+#endif
 
 	      enddo
           !	set node zero.
@@ -73,9 +84,9 @@ subroutine inconfc
               enddo
           enddo
 	   else
-#IF DEFINED (CUMC) || DEFINED (GEN_CONFC_LEARNING)
+#if defined (CUMC) || defined (GEN_CONFC_LEARNING)
            read(30) weight_track
-#ENDIF
+#endif
           ! read all confins from node 0. 
           lwarnup = .false.
           write(fout,'(a)') ' start from old conf, do not need warnup '
@@ -114,9 +125,11 @@ subroutine inconfc
                 enddo
              enddo
 
+#ifdef MPI
              call mpi_send(itmpu,lq*ltrot,mpi_integer, n,  n+512,mpi_comm_world,ierr)
              !!!call mpi_send(itmpk, 2*lq*ltrot,mpi_integer, n, n+1024,mpi_comm_world,ierr)
              !!!call mpi_send(itmpj, 2*lq*ltrot,mpi_integer, n, n+1536,mpi_comm_world,ierr)
+#endif
 
           enddo
 
@@ -124,19 +137,25 @@ subroutine inconfc
           if( eof .lt. 0 ) then
           do n_re = n, isize-1
               itmpu(:,:) = nsigl_u(:,:)
+#ifdef MPI
               call mpi_send(itmpu,lq*ltrot,mpi_integer, n_re,  n_re+512,mpi_comm_world,ierr)
+#endif
           end do
           end if
 
 
 	   endif
 	else
+#ifdef MPI
 	   call mpi_recv(nsigl_u, lq*ltrot, mpi_integer,0,  irank + 512,  mpi_comm_world,status,ierr)
 	   !!!call mpi_recv(nsigl_k, 2*lq*ltrot, mpi_integer,0, irank + 1024, mpi_comm_world,status,ierr)
 	   !!!call mpi_recv(nsigl_j, 2*lq*ltrot, mpi_integer,0,  irank + 1536, mpi_comm_world,status,ierr)
+#endif
 	endif
 
+#ifdef MPI
     call mpi_bcast( lwarnup, 1, mpi_logical, 0, mpi_comm_world, ierr )
+#endif
 
     if (irank .eq. 0 ) then
       if(allocated(b2int)) deallocate(b2int)

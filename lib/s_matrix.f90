@@ -278,9 +278,9 @@
 
   subroutine s_compare_max_z( ndim, Amat, Bmat, max_diff )
   !! maximum elements of |Amat - Bmat|, complex number version
-#IFDEF _OPENMP
+#ifdef _OPENMP
     USE OMP_LIB
-#ENDIF
+#endif
     use constants, only : dp, zero
     implicit none
 
@@ -310,9 +310,9 @@
 
   subroutine s_compare_max_d( ndim, Amat, Bmat, max_diff )
   !! maximum elements of |Amat - Bmat|, real number version
-#IFDEF _OPENMP
+#ifdef _OPENMP
     USE OMP_LIB
-#ENDIF
+#endif
     use constants, only : dp, zero
     implicit none
     integer, intent(in) :: ndim
@@ -341,9 +341,9 @@
 
   subroutine s_z_x_diag_d( ndim, Amat, dvec, Bmat )
   !! matrix product of a complex matrix Amat and a real diagonal matrix (diagonal elements are stored in a vector dvec)
-#IFDEF _OPENMP
+#ifdef _OPENMP
     USE OMP_LIB
-#ENDIF
+#endif
     use constants, only: dp, zero
     implicit none
     integer, intent(in) :: ndim
@@ -368,9 +368,9 @@
 
   subroutine s_diag_d_x_z( ndim, dvec, Amat, Bmat )
   !! matrix product of a real diagonal matrix (diagonal elements are stored in a vector dvec) and a complex matrix Amat
-#IFDEF _OPENMP
+#ifdef _OPENMP
     USE OMP_LIB
-#ENDIF
+#endif
     use constants, only: dp, zero
     implicit none
     integer, intent(in) :: ndim
@@ -396,9 +396,9 @@
   subroutine s_diag_dvd( ndim, dvecr, Amat, dvecl, Bmat )
   !! matrix product of a real diagonal matrix (diagonal elements are stored in a vector dvecr), a complex matrix Amat
   !! and another real diagonal matrix (diagonal elements are stored in a vector dvecr)
-#IFDEF _OPENMP
+#ifdef _OPENMP
     USE OMP_LIB
-#ENDIF
+#endif
     use constants, only: dp, zero
     implicit none
     integer, intent(in) :: ndim
@@ -424,9 +424,9 @@
   subroutine s_v_invd_u( ndim, vmat, dvec, umat, zmat )
   !! matrix product of a complex matrix vmat, inverse of a real diagonal matrix (diagonal elements are stored in a vector dvecr)
   !! and another complex matrix umat
-#IFDEF _OPENMP
+#ifdef _OPENMP
     USE OMP_LIB
-#ENDIF
+#endif
     use constants, only: dp, czero, cone
     implicit none
     integer, intent(in) :: ndim
@@ -455,9 +455,9 @@
   subroutine s_v_d_u( ndim, vmat, dvec, umat, zmat )
   !! matrix product of a complex matrix vmat, a real diagonal matrix (diagonal elements are stored in a vector dvecr)
   !! and another complex matrix umat
-#IFDEF _OPENMP
+#ifdef _OPENMP
     USE OMP_LIB
-#ENDIF
+#endif
     use constants, only: dp, czero, cone
     implicit none
     integer, intent(in) :: ndim
@@ -1016,9 +1016,9 @@
   end subroutine s_zgeQRPT_logdetQ
 
   subroutine s_invdiag_d_x_zr( ndim, dvec, Amat, Bmat )
-#IFDEF _OPENMP
+#ifdef _OPENMP
     USE OMP_LIB
-#ENDIF
+#endif
     use constants, only: dp, czero, zero
     implicit none
     integer, intent(in) :: ndim

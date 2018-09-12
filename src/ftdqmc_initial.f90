@@ -11,10 +11,10 @@ subroutine ftdqmc_initial
   !------------------------------------------------
   call system_clock(system_time)
   stream_seed = abs( system_time - ( irank * 1981 + 2008 ) * 951049 )
-#IFDEF TEST
+#ifdef TEST
   stream_seed = abs( 0 - ( irank * 1981 + 2008 ) * 951049 )
   write(fout, '(a,i20)') ' stream_seed = ', stream_seed
-#ENDIF
+#endif
   call spring_sfmt_init(stream_seed)
 
   call fdate(date_time_string)
@@ -57,11 +57,11 @@ subroutine ftdqmc_initial_print
   implicit none
 
   integer :: i, j
+  namelist /model_para/ l, beta, dtau, mu, muA, muB, rhub, rj, js, hx, xmag, flux_x, flux_y
+  namelist /ctrl_para/ nwrap, nsweep, nbin, llocal, nsw_stglobal, lsstau, lsstau0r, ltau, ltauall, nuse, nublock
 
   IF(irank.eq.0) THEN
 
-  namelist /model_para/ l, beta, dtau, mu, muA, muB, rhub, rj, js, hx, xmag, flux_x, flux_y
-  namelist /ctrl_para/ nwrap, nsweep, nbin, llocal, nsw_stglobal, lsstau, lsstau0r, ltau, ltauall, nuse, nublock
   write(fout,'(a)')' Input parameters after tuning  '
   write(fout, model_para)
   write(fout, ctrl_para)

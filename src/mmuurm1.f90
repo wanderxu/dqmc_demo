@@ -2,9 +2,9 @@ subroutine mmuurm1(a_up, a_dn, nf, ntau, nflag)
   !	in a out u(nf) * a                if nflag = 1
   !	in a out exp(d(nf)) * ut(nf) * a  if nflag = 2
 
-#IFDEF _OPENMP
+#ifdef _OPENMP
   USE OMP_LIB
-#ENDIF
+#endif
   use blockc
   use data_tmp
   implicit none
@@ -26,9 +26,9 @@ subroutine mmuurm1(a_up, a_dn, nf, ntau, nflag)
      do nl= 1, ndim
         do i = 1, ndim
            a_up(i,nl) =  a_up(i,nl) / xsigma_u_up( nsigl_u(i,ntau))
-#IFDEF SPINDOWN
+#ifdef SPINDOWN
            a_dn(i,nl) =  a_dn(i,nl) / xsigma_u_dn( nsigl_u(i,ntau))
-#ENDIF
+#endif
         enddo
      enddo
 !$OMP END DO

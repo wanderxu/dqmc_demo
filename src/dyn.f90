@@ -15,7 +15,7 @@
                   call Bmatinv_tau_L( nt1, nt2, g0tup, g0tdn)
               end if
 
-#IFDEF TEST_LEVEL3
+#ifdef TEST_LEVEL3
               write(fout,*)
               write(fout, '(a)') ' gt0up(:,:) = '
               do i = 1, ndim
@@ -27,7 +27,7 @@
               do i = 1, ndim
                   write(fout,'(4(2e12.4))') g0tup(i,:)
               end do
-#IFDEF SPINDOWN
+#ifdef SPINDOWN
               write(fout,*)
               write(fout, '(a)') ' gt0dn(:,:) = '
               do i = 1, ndim
@@ -39,20 +39,20 @@
               do i = 1, ndim
                   write(fout,'(4(2e12.4))') g0tdn(i,:)
               end do
-#ENDIF
+#endif
               write(fout,*)
               write(fout, '(a)') ' gttup(:,:) = '
               do i = 1, ndim
                   write(fout,'(4(2e12.4))') grup(i,:)
               end do
-#IFDEF SPINDOWN
+#ifdef SPINDOWN
               write(fout,*)
               write(fout, '(a)') ' gttdn(:,:) = '
               do i = 1, ndim
                   write(fout,'(4(2e12.4))') grdn(i,:)
               end do
-#ENDIF
-#ENDIF
+#endif
+#endif
               call obsert(nt,gt0up,gt0dn,g0tup,g0tdn,grup,grdn,g00up,g00dn)
 
           end if ! if( ltau .and. lmeasure_dyn .and. (.not.lupdate) ) then
