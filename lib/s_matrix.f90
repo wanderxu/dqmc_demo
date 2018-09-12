@@ -4,7 +4,9 @@
   !  
   ! subroutine s_identity_z(n, A) ! build complex identity matrix
   ! subroutine s_logdet_z(ndim, zmat, zlogdet) ! logdet of a complex matrix
+  ! subroutine s_eig_dg(ldim, ndim, amat, eval, evec) ! diagonalize a general real matrix and return eigenvalues and eigenvectors
   ! subroutine s_eig_he(ldim, ndim, amat, eval, evec) ! computes all eigenvalues and eigenvectors of a complex Hermitian matrix
+  ! subroutine s_svd_dg(m, n, min_mn, amat, umat, svec, vmat) ! UDV decomposition of a real matrix
   ! subroutine s_svd_zg(m, n, min_mn, amat, umat, svec, vmat) ! UDV decomposition of a complex matrix
   ! subroutine s_svd_zg_logdetU(m, n, min_mn, amat, umat, svec, vmat, zlogdetU) ! UDV decomposition of a complex matrix, also return logdet(U)
   ! subroutine s_compare_max_z( ndim, Amat, Bmat, max_diff ) ! elements maxdiff of two complex matrices
@@ -27,6 +29,7 @@
   ! subroutine s_invdiag_d_x_zr( ndim, dvec, Amat, Bmat ) ! product of inverse a real diagonal and a complex matrix
   ! subroutine s_zgeQR(rdim, cdim, amat, qmat, rmat ) ! QR decomposition
   ! subroutine s_zgeQR_logdetQ(rdim, cdim, amat, qmat, rmat, zlogdet ) ! QR decomposition, also return logdet(Q)
+  ! subroutine s_inv_d(ndim, dmat) ! s_inv_d: inverse of a real matrix using lapack subroutines LU decomposition
   ! subroutine s_invqr_z(ndim, amat ) ! inverse of a complex matrix, using QR decomposition
   ! subroutine s_inv_logdet_qr_z(ndim, amat, zlogdet ) ! inverse of a complex matrix, using QR decomposition, also return logdet of this matrix
   ! subroutine s_inv_det_qr_z(ndim, amat, zdet ) ! inverse of a complex matrix, using QR decomposition, also return det of this matrix
@@ -102,6 +105,80 @@
      return
   end subroutine s_logdet_z
 
+  subroutine s_eig_dg(ldim, ndim, amat, eval, evec)
+  !! diagonalize a general real matrix and return eigenvalues and eigenvectors
+     use constants, only : dp, zero
+
+     implicit none
+     integer, intent(in)   :: ldim ! leading dimension of matrix amat
+     integer, intent(in)   :: ndim ! the order of the matrix amat
+
+     ! original general real(dp) matrix to compute eigenvals and eigenvectors
+     real(dp), intent(in)  :: amat(ldim,ndim)
+
+     ! if info = 0, the eigenvalues in ascending order
+     real(dp), intent(out) :: eval(ndim)
+
+     ! if info = 0, orthonormal eigenvectors of the matrix
+     real(dp), intent(out) :: evec(ldim,ndim)
+
+     integer :: istat
+
+     integer :: info ! return information from subroutine dgeev
+
+     integer :: lwork ! the length of the array work, lwork >= max(1,4*ndim)
+
+     real(dp), allocatable :: work(:)
+
+     ! auxiliary real(dp) matrix: real and imaginary parts of eigenvalues
+     real(dp), allocatable :: wr(:)
+     real(dp), allocatable :: wi(:)
+
+     ! auxiliary real(dp) matrix: left and right eigenvectors
+     real(dp), allocatable :: vr(:,:)
+     real(dp), allocatable :: vl(:,:)
+
+     ! initialize lwork
+     lwork = 4 * ndim
+
+     ! allocate memory
+     allocate(work(lwork),   stat=istat)
+     allocate(wr(ndim),      stat=istat)
+     allocate(wi(ndim),      stat=istat)
+     allocate(vr(ndim,ndim), stat=istat)
+     allocate(vl(ndim,ndim), stat=istat)
+     if ( istat /= 0 ) then
+         write(*,'(a)') 'error in s_eig_dg : can not allocate enough memory'
+         stop
+     endif ! back if ( istat /= 0 ) block
+
+     ! initialize output arrays
+     eval = zero
+     evec = amat
+
+     ! call the computational subroutine: dgeev
+     call DGEEV('N', 'V', ndim, evec, ldim, wr, wi, vl, ndim, vr, ndim, work, lwork, info)
+
+     ! check the status
+     if ( info /= 0 ) then
+         write(*,'(a)') 's_eig_dg : error in lapack subroutine dgeev'
+         stop
+     endif ! back if ( info /= 0 ) block
+
+     ! copy eigenvalues and eigenvectors
+     eval(1:ndim) = wr(1:ndim)
+     evec(1:ndim,1:ndim) = vr(1:ndim,1:ndim)
+
+     ! dealloate memory for workspace array
+     if ( allocated(work) ) deallocate(work)
+     if ( allocated(wr  ) ) deallocate(wr  )
+     if ( allocated(wi  ) ) deallocate(wi  )
+     if ( allocated(vr  ) ) deallocate(vr  )
+     if ( allocated(vl  ) ) deallocate(vl  )
+
+     return
+  end subroutine s_eig_dg
+
   subroutine s_eig_he(ldim, ndim, amat, eval, evec)
   !! computes all eigenvalues and eigenvectors of a complex Hermitian matrix
      use constants, only : dp, zero
@@ -154,6 +231,55 @@
      if ( allocated(rwork) ) deallocate(rwork)
      return
   end subroutine s_eig_he
+
+  subroutine s_svd_dg(m, n, min_mn, amat, umat, svec, vmat)
+  !! perform the singular values decomposition for a general
+  !! real m-by-n matrix A, where A = U * SIGMA * transpose(V), return
+  !! its left vectors, right vectors, and singular values
+     use constants, only : dp
+     implicit none
+     integer, intent(in)     :: m ! number of rows of A matrix
+     integer, intent(in)     :: n ! number of columns of A matrix
+     integer, intent(in)     :: min_mn ! minimal value of m and n
+     real(dp), intent(inout) :: amat(m,n)
+     real(dp), intent(out)   :: umat(m,min_mn) ! left vectors of svd, U
+     real(dp), intent(out)   :: svec(min_mn) ! singular values of svd, SIGMA
+     real(dp), intent(out)   :: vmat(min_mn,n) ! right vectors of svd, transpose(V)
+
+     integer :: istat
+
+     integer :: info ! return information from dgesvd
+
+     ! length of work array, lwork >= max(1, 3 * min_mn + max(m,n), 5 * min_mn)
+     integer :: lwork 
+
+     ! workspace array
+     real(dp), allocatable :: work(:)
+
+     ! initialize lwrok
+     lwork = max(1, 3 * min_mn + max(m,n), 5 * min_mn)
+
+     ! allocate memory
+     allocate(work(lwork), stat=istat)
+     if ( istat /= 0 ) then
+         write(*,'(a)') 'error in s_svd_dg : can not allocate enough memory'
+         stop
+     endif
+
+     ! call the computational subroutine: dgesvd
+     call DGESVD('S', 'S', m, n, amat, m, svec, umat, m, vmat, min_mn, work, lwork, info)
+
+     ! check the status
+     if ( info /= 0 ) then
+         write(*,'(a)') 'error in s_svd_dg : error in lapack subroutine dgesvd'
+         stop
+     endif
+
+     ! deallocate the memory for workspace array
+     if ( allocated(work) ) deallocate(work)
+
+     return
+  end subroutine s_svd_dg
 
   subroutine s_svd_zg(m, n, min_mn, amat, umat, svec, vmat)
   !! s_svd_zg: perform the singular values decomposition for a general
@@ -1204,6 +1330,52 @@
     deallocate(tau)
 
   end subroutine s_zgeQR_logdetQ
+
+  subroutine s_inv_d(ndim, dmat)
+  !! s_inv_d: inverse of a real matrix using lapack subroutines LU decomposition
+     use constants, only : dp
+     implicit none
+     integer, intent(in)     :: ndim
+     ! object matrix, on entry, it contains the original matrix, on exit,
+     ! it is destroyed and replaced with the inversed matrix
+     real(dp), intent(inout) :: dmat(ndim,ndim)
+
+     integer  :: ierror
+
+     ! working arrays for lapack subroutines
+     integer, allocatable  :: ipiv(:)
+     real(dp), allocatable :: work(:)
+
+     ! allocate memory
+     allocate(ipiv(ndim), stat=ierror)
+     allocate(work(ndim), stat=ierror)
+     if ( ierror /= 0 ) then
+         write(*,'(a)') 'error in s_inv_d : can not allocate enough memory'
+         stop
+     endif
+
+     ! computes the LU factorization of a general m-by-n matrix, need lapack
+     ! package, dgetrf subroutine
+     call DGETRF(ndim, ndim, dmat, ndim, ipiv, ierror)
+     if ( ierror /= 0 ) then
+         write(*,'(a)') 'error in s_inv_d : error in lapack subroutine dgetrf'
+         stop
+     endif
+
+     ! computes the inverse of an LU-factored general matrix, need lapack
+     ! package, dgetri subroutine
+     call DGETRI(ndim, dmat, ndim, ipiv, work, ndim, ierror)
+     if ( ierror /= 0 ) then
+         write(*,'(a)')'error in s_inv_d : error in lapack subroutine dgetri'
+         stop
+     endif
+
+     ! deallocate memory
+     if ( allocated(ipiv) ) deallocate(ipiv)
+     if ( allocated(work) ) deallocate(work)
+
+     return
+  end subroutine s_inv_d
 
   subroutine s_invqr_z(ndim, amat )
   ! inverse of a complex matrix, using QR decomposition
