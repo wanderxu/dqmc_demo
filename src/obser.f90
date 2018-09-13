@@ -1,6 +1,6 @@
 module obser
   use blockc
-  complex(dp), save :: obs_bin(10), pair_bin(19), high_pair_bin(4)
+  complex(dp), save :: obs_bin(10), pair_bin(19), high_pair_bin(4)  ! to store scalar variables
   complex(dp), allocatable, dimension(:,:), save :: gtau_up, gtau_dn
   complex(dp), allocatable, dimension(:,:), save :: chiszsz, chininj
   complex(dp), allocatable, dimension(:,:), save :: chijxjxaa, chijxjxab, chijxjxba, chijxjxbb
@@ -289,7 +289,7 @@ module obser
         zecoup = zecoup + ( grupc(i,i) - grdnc(i,i) ) * nsigl_u(i,nt)
     end do
     zecoup = zecoup*dcmplx(-rhub*0.5d0, 0.d0)  ! note 0.5 for fermion spin 1/2
-    obs_bin(3) = obs_bin(3) + zecoup + dconjg(zecoup) ! layer 1 and layer 2
+    obs_bin(5) = obs_bin(5) + zecoup + dconjg(zecoup) ! layer 1 and layer 2
 
     ! zejs
     ijs = 0
@@ -312,7 +312,7 @@ module obser
 !$OMP END PARALLEL
     end do
     zejs = dcmplx( dble(ijs)*(-js), 0.d0 )
-    obs_bin(4) = obs_bin(4) + zejs
+    obs_bin(6) = obs_bin(6) + zejs
 
     ! ehx
     ehx = zero
@@ -323,7 +323,7 @@ module obser
             ehx = ehx + cothdth
         end if
     end do
-    obs_bin(5) = obs_bin(5) + dcmplx( -hx*ehx, 0.d0 )
+    obs_bin(7) = obs_bin(7) + dcmplx( -hx*ehx, 0.d0 )
 
     ! pairing
     Cotss = czero
