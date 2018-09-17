@@ -390,12 +390,12 @@ module blockc
     deallocate( grdnc, grupc, grdn, grup )
     deallocate( hop_minusx )
     deallocate( hop_plusx )
-#IFDEF SPINDOWN
+#ifdef SPINDOWN
     deallocate( hopping_tmp_dn )
-#ENDIF
+#endif
     deallocate( hopping_tmp )
 
-#IFDEF SPINDOWN
+#ifdef SPINDOWN
     deallocate( urtm1_dn, urt_dn )
 #endif
     deallocate( urtm1, urt )

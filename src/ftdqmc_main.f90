@@ -17,12 +17,12 @@ program ftdqmc_main
   integer :: nbc, nsw
   character (len = 24) :: date_time_string
   real(dp) :: start_time, end_time, time1, time2
-!#IFDEF CAL_AUTO
+#ifdef CAL_AUTO
   integer :: i, j, imj, n, totsz, nti, ntj
   integer, allocatable, dimension(:) :: totsz_bin
   integer, allocatable, dimension(:,:) :: jjcorr_Rtau, mpi_jjcorr_Rtau
   real(dp), allocatable, dimension(:,:) :: jjcorr_Rtau_real
-!#ENDIF
+#endif
 
 #ifdef MPI
   call MPI_INIT(ierr)                             
@@ -79,19 +79,19 @@ program ftdqmc_main
   call initial_heff
 #endif
 
-!#IFDEF CAL_AUTO
-!#IFDEF GEN_CONFC_LEARNING
+#ifdef CAL_AUTO
+#ifdef GEN_CONFC_LEARNING
   if( llocal .and. .not. lstglobal ) then
       allocate( totsz_bin(2*nsweep) )
   else
       allocate( totsz_bin(nsweep) )
   end if
-!#ELSE
+#else
   allocate(jjcorr_Rtau(lq,ltrot/2+1))
   allocate(jjcorr_Rtau_real(lq,ltrot/2+1))
   allocate(mpi_jjcorr_Rtau(lq,ltrot/2+1))
-!#ENDIF
-!#ENDIF
+#endif
+#endif
 
   max_wrap_error = 0.d0
   if(ltau) xmax_dyn = 0.d0
@@ -191,15 +191,15 @@ program ftdqmc_main
       end if
   end if
 
-!#IFDEF CAL_AUTO
-!#IFDEF GEN_CONFC_LEARNING
+#ifdef CAL_AUTO
+#ifdef GEN_CONFC_LEARNING
   deallocate( totsz_bin )
-!#ELSE
+#else
   deallocate(mpi_jjcorr_Rtau)
   deallocate(jjcorr_Rtau_real)
   deallocate(jjcorr_Rtau)
-!#ENDIF
-!#ENDIF
+#endif
+#endif
 
 #ifdef CUMC
   call deallocate_cumulate

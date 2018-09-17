@@ -1,6 +1,4 @@
       call obser_init
-      totsz_bin(:) = 0
-      if(lsstau) jjcorr_Rtau(:,:) = 0
       do nsw = 1, nsweep
           if(lstglobal .and. llocal ) then
               !! perform local and global update, only measure after global update
@@ -51,52 +49,8 @@
               write(fout,'(a,i4,i4,a)') ' ftdqmc_sweep ', nbc, nsw,  '  done'
           end if
 #endif
+      end do
 #ifndef GEN_CONFC_LEARNING
-          !! calculate spin-spin interaction
-          if(lsstau .and. mod(nsw,nskip).eq.0) then
-          do ntj = 1, ltrot
-            do nti = 1, ltrot
-              n = mod(nti-ntj + ltrot, ltrot) + 1
-              if( n .le. (ltrot/2+1) ) then
-                do j = 1, lq
-                  do i = 1, lq
-                    imj = latt_imj(i,j)
-                    jjcorr_Rtau(imj,n) = jjcorr_Rtau(imj,n) + nsigl_u(i,nti)*nsigl_u(j,ntj)
-                  end do
-                end do
-              end if
-            end do
-          end do
-          end if
-#endif
-      end do  ! do nsw = 1, nsweep
-#ifdef GEN_CONFC_LEARNING
-      if( llocal .and. .not. lstglobal ) then
-          open (unit=9091,file='totsz.bin',status='unknown', action="write", position="append")
-          do i = 1, 2*nsweep
-            write(9091, '(e16.8)') dble(abs(totsz_bin(i)))/dble(ltrot*lq)
-          end do
-          close(9091)
-      else
-          open (unit=9091,file='totsz.bin',status='unknown', action="write", position="append")
-          do i = 1, nsweep
-            write(9091, '(e16.8)') dble(abs(totsz_bin(i)))/dble(ltrot*lq)
-          end do
-          close(9091)
-      end if
-#else
       call preq  ! reduce
-      if(lsstau) then
-      call mpi_reduce( jjcorr_Rtau, mpi_jjcorr_Rtau, lq*(ltrot/2+1), mpi_integer, mpi_sum, 0, mpi_comm_world, ierr )
-      if( irank .eq. 0 ) then
-          jjcorr_Rtau_real(:,:) = dble( mpi_jjcorr_Rtau(:,:) ) / dble( isize*nsweep/nskip )
-          open (unit=9095,file='jjcorrRtau.bin',status='unknown', action="write", position="append")
-          do n = 1, ltrot/2+1
-              do i = 1, lq
-                write(9095, '(e16.8)') jjcorr_Rtau_real(i,n)
-              end do
-          end do
-      end if
-      end if
 #endif
       if(ltau) call prtau

@@ -77,7 +77,7 @@ subroutine prtau
 #ifdef SPINDOWN
          filek = "gtau_dn.bin"
          call fourier_trans_tau(gtau_dn,filek)
-#ENDIF
+#endif
           open (unit=188,file='szsztaur_corrlt.bin',status='unknown', action="write", position="append")
           do itau = 1, ltrot
               do imj = 1, lq

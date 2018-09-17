@@ -1,17 +1,17 @@
 # fortran compiler and linker
 #-------------------------------------------------------------------------
-F90    = mpif90
+F90    = gfortran -ffree-line-length-512
 LINKER = $(F90)
 
 # fortran preprocessor options, common setting
 #-------------------------------------------------------------------------
 #RUNMODE =  -DBREAKUP_T  -DSPINDOWN -DDYNERROR -DGEN_CONFC_LEARNING # -DTEST # -DTEST_LEVEL3 #-DTEST # -DDYNERROR # -DTEST -DTEST_LEVEL3  -DBREAKUP_T 
 #RUNMODE = -DBREAKUP_T -DCAL_AUTO  -DBREAKUP_T  -DSPINDOWN -DDYNERROR -DGEN_CONFC_LEARNING # -DTEST # -DTEST_LEVEL3 #-DTEST # -DDYNERROR # -DTEST -DTEST_LEVEL3  -DBREAKUP_T 
-RUNMODE = -DMPI -DBREAKUP_T -DSPINDOWN -DDYNERROR  #-DTEST# -DTEST_LEVEL3 #-DTEST # -DDYNERROR # -DTEST -DTEST_LEVEL3  -DBREAKUP_T 
+RUNMODE = -DBREAKUP_T -DSPINDOWN -DDYNERROR  #-DTEST# -DTEST_LEVEL3 #-DTEST # -DDYNERROR # -DTEST -DTEST_LEVEL3  -DBREAKUP_T 
 #RUNMODE =   -DCUMC  -DBREAKUP_T  -DSPINDOWN -DDYNERROR # -DGEN_CONFC_LEARNING # -DTEST # -DTEST_LEVEL3 #-DTEST # -DDYNERROR # -DTEST -DTEST_LEVEL3  -DBREAKUP_T 
 #RUNMODE = -DCAL_AUTO -DCUMC  -DBREAKUP_T  -DSPINDOWN -DDYNERROR -DGEN_CONFC_LEARNING # -DTEST  -DTEST_LEVEL3 #-DTEST # -DDYNERROR # -DTEST -DTEST_LEVEL3  -DBREAKUP_T 
 OMP    = #-openmp
-FPP    = -fpp
+FPP    = -cpp
 CPP    = $(FPP) $(RUNMODE) $(OMP)
 
 # machine tuning options, just for my laptop: iris system
@@ -20,7 +20,7 @@ GPROF  = #-pg
 #CHECK  = -warn all -check all -traceback -g -nogen-interfaces
 #CHECK  = -traceback
 #CDUMP  = -vec-report2 -openmp-report2 -nogen-interfaces
-LEVEL  = -O3 -march=core-avx2 -unroll-aggressive  -align all
+LEVEL  = -O3 -march=core-avx2 -unroll-aggressive # -align all
 #LEVEL  = -O3
 #MKL =  -mkl=parallel
 MTUNE  = #-mtune=core-avx2
@@ -36,7 +36,8 @@ LFLAGS = $(OMP) $(GPROF) $(MKL)
 LIBS= ../lib/libMM.a
 #MKLROOT=/opt/intel/composer_xe_2013_sp1.3.174/mkl
 #MKLROOT=/public_local/software/compiler/intel/composer_xe_2013_sp1.0.080/mkl
-LIBS+= -Wl,--start-group ${MKLROOT}/lib/intel64/libmkl_intel_lp64.a ${MKLROOT}/lib/intel64/libmkl_core.a \
-       ${MKLROOT}/lib/intel64/libmkl_sequential.a -Wl,--end-group -lpthread -lm
+#LIBS+= -Wl,--start-group ${MKLROOT}/lib/intel64/libmkl_intel_lp64.a ${MKLROOT}/lib/intel64/libmkl_core.a \
+#       ${MKLROOT}/lib/intel64/libmkl_sequential.a -Wl,--end-group -lpthread -lm
 #LIBS+=  -Wl,--start-group ${MKLROOT}/lib/intel64/libmkl_intel_lp64.a ${MKLROOT}/lib/intel64/libmkl_core.a \
 #        ${MKLROOT}/lib/intel64/libmkl_intel_thread.a -Wl,--end-group -lpthread -lm -ldl
+LIBS+=  -lblas -llapack

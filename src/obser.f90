@@ -1,6 +1,7 @@
 module obser
   use blockc
   complex(dp), save :: obs_bin(10), pair_bin(19), high_pair_bin(4)  ! to store scalar variables
+  integer, allocatable, dimension(:,:), save :: isingzztau_corrlt
   complex(dp), allocatable, dimension(:,:), save :: gtau_up, gtau_dn
   complex(dp), allocatable, dimension(:,:), save :: chiszsz, chininj
   complex(dp), allocatable, dimension(:,:), save :: chijxjxaa, chijxjxab, chijxjxba, chijxjxbb
@@ -9,6 +10,7 @@ module obser
 
   subroutine allocate_obs
     implicit none
+    if(lsstau) allocate( isingzztau_corrlt(lq,ltrot) )
     if(ltau) then
         allocate( gtau_up(ndim,ltrot) )
 #ifdef SPINDOWN
@@ -37,6 +39,7 @@ module obser
 #endif
         deallocate( gtau_up )
     end if
+    if(lsstau) deallocate( isingzztau_corrlt )
   end subroutine deallocate_obs
 
   subroutine obser_init
@@ -45,6 +48,7 @@ module obser
     obs_bin(:) = czero
     pair_bin(:) = czero
     high_pair_bin(:) = czero
+    if(lsstau) isingzztau_corrlt(:,:) = 0
     if(ltau) then
         gtau_up(:,:) = czero
 #ifdef SPINDOWN
@@ -607,6 +611,25 @@ Cnnt1t1pxipy = Cnnt1t1pxipy +     dcmplx(2.d0*dble( grupc(iax,jax)*grupc(i,j) - 
             high_pair_bin(4) = high_pair_bin(4) + grdnc(i,j)*dconjg(grdnc(i,j))
         end do
     end do
+
+    ! isingzztau_corrlt
+    ! < s_i(tau) s_j(0) >
+    if( lsstau ) then
+!$OMP PARALLEL &
+!$OMP PRIVATE ( n, j, i, imj )
+!$OMP DO
+    do n = 1, ltrot
+        do j = 1, lq
+            do i = 1, lq
+                imj = latt_imj(i,j)
+                isingzztau_corrlt(imj,n) = isingzztau_corrlt(imj,n) + nsigl_u(i,mod(n+nt-2,ltrot)+1) * nsigl_u(j,nt)
+                !isingzztau_corrlt(imj,n) = isingzztau_corrlt(imj,n) + nsigl_u(i,n) * nsigl_u(j,1)
+            end do
+        end do
+    end do
+!$OMP END DO
+!$OMP END PARALLEL
+    end if
 
   end subroutine obser_equaltime
 

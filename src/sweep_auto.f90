@@ -16,7 +16,7 @@
 !$OMP DO REDUCTION ( + : totsz )
               do n = 1, ltrot
                   do i = 1, ndim
-                      totsz = totsz + nsigl_u(i,n)
+                      totsz = totsz + nsigl_u(i,n)*( (int(sign(1.d0,js)))**(list(i,1)+list(i,2)) )
                   end do
               end do
 !$OMP END DO
@@ -81,7 +81,7 @@
               write(fout,'(a,i4,i4,a)') ' ftdqmc_sweep ', nbc, nsw,  '  done'
           end if
 #endif
-#IFNDEF GEN_CONFC_LEARNING
+#ifndef GEN_CONFC_LEARNING
           !! calculate spin-spin interaction
           do ntj = 1, ltrot
             do nti = 1, ltrot
@@ -113,7 +113,11 @@
           close(9091)
       end if
 #else
+#ifdef MPI
       call mpi_reduce( jjcorr_Rtau, mpi_jjcorr_Rtau, lq*(ltrot/2+1), mpi_integer, mpi_sum, 0, mpi_comm_world, ierr )
+#else
+      mpi_jjcorr_Rtau = jjcorr_Rtau
+#endif
       if( irank .eq. 0 ) then
           jjcorr_Rtau_real(:,:) = dble( mpi_jjcorr_Rtau(:,:) ) / dble( isize*nsweep )
           open (unit=9095,file='jjcorrRtau.bin',status='unknown', action="write", position="append")
