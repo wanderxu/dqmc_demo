@@ -14,7 +14,7 @@ main = main.o
 
 objects = $(modu1) $(modu2) $(dqmcf1) $(main)
 
-#LIBS+= ../common/libMM.a
+#LIBS+= ../lib/libMM.a
 
 all: cpmod x_confc
 
@@ -22,7 +22,7 @@ x_confc: $(objects)
 	$(LINKER) $(objects) -o x_confc $(LFLAGS) $(LIBS)
 
 cpmod:
-	cp ../../common/*.mod .
+	cp ../../lib/*.mod .
 
 .f90.o:
 	$(F90) $(FFLAGS) $*.f90

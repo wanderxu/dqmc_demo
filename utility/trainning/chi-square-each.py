@@ -5,12 +5,6 @@ Author:         Xiao-Yan Xu <wanderxu@gmail.com>
 Description:
 use chi square to do fitting.
 
-Input:
-      file "tmppy.dat" with first k columns of independent variables,
-                            following columns with observables and errors
-      take care of the number of independent variables k and the model to fitting defined in curvefunc
-      for any special case, you need change corresponding places
-
 """
 import math
 import numpy as np

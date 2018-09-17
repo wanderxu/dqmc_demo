@@ -35,7 +35,8 @@ def chi_square ( xdata, ydata, ydata_sigma, p0 ):
         popt,pcov = opt.curve_fit(curvefunc, xdata, ydata, p0, sigma=ydata_sigma, absolute_sigma=False )
         perr = np.sqrt(np.diag(pcov))
         rchi_sq = np.sum( ( (ydata-curvefunc(xdata, *popt ) ) / ydata_sigma )**2 ) / len(ydata)
-        return popt, perr, rchi_sq
+        rsq = rchi_sq / np.abs( np.sum( ydata**2 ) / len(ydata) - np.sum( ydata )**2 / len(ydata) / len(ydata) )
+        return popt, perr, rchi_sq, rsq
 
 
 ## prepare data
@@ -47,9 +48,9 @@ xdata = inmat[1:ncol]
 ydata = inmat[0]
 ydata_sigma =len(ydata)*[1.0]
 p0=ncol*[1.0]
-popt,perr,rchi_sq = chi_square( xdata, ydata, ydata_sigma, p0 )
+popt,perr,rchi_sq, rsq = chi_square( xdata, ydata, ydata_sigma, p0 )
 for i in range(ncol-1) :
     print " {} +/- {} for p{}".format(popt[i+1],perr[i+1],i+1)
 i=0
 print " {} +/- {} for p{}".format(popt[i],perr[i],i)
-print " x^2 = ", rchi_sq
+print " x^2 = {}  {} ".format(rchi_sq, rsq)

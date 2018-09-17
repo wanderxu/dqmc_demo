@@ -1,8 +1,10 @@
 #!/bin/bash
-autoexe=$HOME/mycode/DQMC/slmc_fm/utility/auto/auto.py
-x_confc=$HOME/mycode/DQMC/slmc_fm/utility/ana_confc/x_confc
-#trainexe=$HOME/mycode/DQMC/slmc_fm/utility/trainning/chi-square.py
-trainexe=$HOME/mycode/DQMC/slmc_fm/utility/trainning/chi-square.rsquare.py
+# NOTE: please set codedir first
+codedir=
+autoexe=$codedir/utility/auto/auto.py
+x_confc=$codedir/utility/ana_confc/x_confc
+#trainexe=$codedir/utility/trainning/chi-square.py
+trainexe=$codedir/utility/trainning/chi-square.rsquare.py
 
 # calculate auto-correlation time
 ####echo " calculating auto-correlation time ... "
