@@ -245,6 +245,12 @@ module blockc
     call mpi_barrier(mpi_comm_world,ierr)
 #endif
 
+    ! check parameters
+    if(mod(l,4) .ne. 0 ) then
+        write(fout, '(a)') 'error in make_tables : requre system size l to be fourfold, namely mod(l,4)=0'
+        stop
+    end if
+
     ! tune parameters
     if( rhub .gt. 0.d0 ) lwrapu = .true.
     if( rj .gt. 0.d0 ) lwrapj = .true.

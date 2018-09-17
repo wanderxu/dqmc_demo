@@ -17,7 +17,7 @@ CPP    = $(FPP) $(RUNMODE) $(OMP)
 # machine tuning options, just for my laptop: iris system
 #-------------------------------------------------------------------------
 GPROF  = #-pg
-#CHECK  = -warn all -check all -traceback -g -nogen-interfaces
+#CHECK  = -Wall -fcheck=all -fbacktrace -g
 #CHECK  = -traceback
 #CDUMP  = -vec-report2 -openmp-report2 -nogen-interfaces
 LEVEL  = -O3 -march=core-avx2 -unroll-aggressive # -align all
