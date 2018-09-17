@@ -11,6 +11,7 @@ subroutine inconfc
 #ifdef MPI
 	integer  status(mpi_status_size)
 #endif
+    logical :: exists
     integer, dimension(:,:),   allocatable ::  itmpu
     integer, dimension(:,:,:), allocatable ::  itmpk, itmpj
     integer, dimension(:), allocatable :: b2int
@@ -32,12 +33,16 @@ subroutine inconfc
     allocate( nsigl_j(lq,2,ltrot) )
         
     if (irank .eq. 0 ) then
-       !!open (unit=30,file='confin',     status='unknown')
-       open (unit=30,file='confin', status='unknown', form='unformatted', access='sequential')
+       inquire (file = 'confin', exist = exists)
+       if ( exists .eqv. .true. ) then
+           open (unit=30,file='confin', status='unknown', form='unformatted', access='sequential')
+	       read(30) iseed0
+       else
+           iseed0 = 0
+       end if
     endif
 
 	if ( irank.eq.0 )  then
-	   read(30) iseed0
 	   if (iseed0.eq.0) then
           ! start from scratch
           lwarnup = .true.
