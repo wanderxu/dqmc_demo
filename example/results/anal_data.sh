@@ -56,10 +56,10 @@ for beta in ${betaarray}; do
 
             paste Spipi.tmp2 Spipidq.tmp2 |awk '{if(NR==1) print h, 1-$3/$1, sqrt($4*$1*$4*$1+$2*$3*$2*$3)/($1*$1) }' h=$h >> $WORKDIR/${pretag}_ising_Spipi_ccratio.dat
 
-            #rm Spipi.tmp2
-            #rm Spipi.tmp
-            #rm Spipidq.tmp2
-            #rm Spipidq.tmp
+            rm Spipi.tmp2
+            rm Spipi.tmp
+            rm Spipidq.tmp2
+            rm Spipidq.tmp
 
         fi
     done
