@@ -148,7 +148,7 @@ Main program.
 
 ## Running the tests
 
-There are some scripts in run/ that can start a test or submit jobs on server.
+There are some scripts in example/ that can start a test locally directly or submit jobs on server with a little change according to the server operating system.
 
 
 
